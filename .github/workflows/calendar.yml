@@ -1,0 +1,89 @@
+name: Calendar
+
+# Rebuilds the calendar JSON from the GOARCH feeds and publishes it to GitHub
+# Pages. The feeds are ~32 MB and served with `no-store`, so this runs here
+# once a day rather than on every user's device.
+
+on:
+  schedule:
+    # Deliberately off the hour: GitHub queues scheduled runs heavily at :00 and
+    # delays are routine. Nothing here is time-critical, so a late run is fine.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'tool/build_calendar.dart'
+      - 'lib/models/calendar.dart'
+      - '.github/workflows/calendar.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race; queue instead of cancelling so a scheduled run
+# cannot discard a manually triggered one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The tool is plain Dart, but pubspec.yaml depends on the Flutter SDK, so
+      # `dart pub get` cannot resolve without Flutter present.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Build calendar
+        run: |
+          set -eo pipefail
+          dart run tool/build_calendar.dart --out public 2>&1 | tee build.log
+
+      # The feed has a hard end date and simply stops rather than rolling
+      # forward. Surface that on the run page, not just buried in the log.
+      - name: Report feed runway
+        run: |
+          {
+            echo '### Calendar build'
+            echo
+            echo '```'
+            grep -E '^(en|el): [0-9]+ days|^  upstream last modified' build.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if grep -q 'WARNING' build.log; then
+            grep 'WARNING' build.log | while read -r line; do
+              echo "::warning title=Calendar feed runway::${line#*WARNING: }"
+            done
+            {
+              echo
+              echo '> [!WARNING]'
+              grep 'WARNING' build.log | sed 's/^ *WARNING: /> /'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
