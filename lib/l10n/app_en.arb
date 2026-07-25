@@ -1,0 +1,83 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Prosefchi",
+  "@appTitle": {
+    "description": "The application name, shown in the task switcher."
+  },
+
+  "today": "Today",
+  "@today": {
+    "description": "Title of the main screen."
+  },
+
+  "commemorations": "Saints and Feasts",
+  "@commemorations": {
+    "description": "Heading above the list of the day's commemorations."
+  },
+
+  "epistleReading": "Epistle",
+  "@epistleReading": {
+    "description": "Heading above the appointed epistle reading."
+  },
+
+  "gospelReading": "Gospel",
+  "@gospelReading": {
+    "description": "Heading above the appointed gospel reading."
+  },
+
+  "markMajorFeast": "Great feast",
+  "@markMajorFeast": {
+    "description": "Label for a day of major rank."
+  },
+
+  "markWineAndOil": "Wine and oil",
+  "@markWineAndOil": {
+    "description": "Fasting label: wine and oil are permitted."
+  },
+
+  "markFish": "Fish",
+  "@markFish": {
+    "description": "Fasting label: fish is permitted."
+  },
+
+  "markDairy": "Dairy",
+  "@markDairy": {
+    "description": "Fasting label: dairy is permitted."
+  },
+
+  "noEntryForDay": "No entry for this day",
+  "@noEntryForDay": {
+    "description": "Shown when the calendar is present but does not cover the selected date, which happens past the end of the published feed."
+  },
+
+  "calendarNotDownloaded": "The calendar has not been downloaded yet",
+  "@calendarNotDownloaded": {
+    "description": "Shown on a first launch before any successful fetch."
+  },
+
+  "retry": "Retry",
+  "@retry": {
+    "description": "Button that attempts the download again."
+  },
+
+  "daysUntilPascha": "{count, plural, =0{Pascha} =1{1 day until Pascha} other{{count} days until Pascha}}",
+  "@daysUntilPascha": {
+    "description": "How far off Pascha is, shown when no calendar entry is available.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "daysAfterPascha": "{count, plural, =1{1 day after Pascha} other{{count} days after Pascha}}",
+  "@daysAfterPascha": {
+    "description": "How long since Pascha, shown when no calendar entry is available.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+}

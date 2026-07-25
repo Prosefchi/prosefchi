@@ -1,0 +1,18 @@
+{
+  "@@locale": "el",
+
+  "appTitle": "Προσευχή",
+  "today": "Σήμερα",
+  "commemorations": "Άγιοι και εορτές",
+  "epistleReading": "Απόστολος",
+  "gospelReading": "Ευαγγέλιο",
+  "markMajorFeast": "Μεγάλη εορτή",
+  "markWineAndOil": "Οίνος και έλαιον",
+  "markFish": "Ιχθύς",
+  "markDairy": "Γαλακτερά",
+  "noEntryForDay": "Δεν υπάρχει καταχώριση για αυτήν την ημέρα",
+  "calendarNotDownloaded": "Το ημερολόγιο δεν έχει ληφθεί ακόμη",
+  "retry": "Δοκιμή ξανά",
+  "daysUntilPascha": "{count, plural, =0{Πάσχα} =1{1 ημέρα μέχρι το Πάσχα} other{{count} ημέρες μέχρι το Πάσχα}}",
+  "daysAfterPascha": "{count, plural, =1{1 ημέρα μετά το Πάσχα} other{{count} ημέρες μετά το Πάσχα}}"
+}
