@@ -18,10 +18,9 @@ void main() {
     });
 
     test('reads the fasting markers', () {
-      expect(
-        DayMark.split('🍇 Epiphanius, Bishop of Cyprus').marks,
-        [DayMark.wineAndOil],
-      );
+      expect(DayMark.split('🍇 Epiphanius, Bishop of Cyprus').marks, [
+        DayMark.wineAndOil,
+      ]);
       expect(DayMark.split('🐟 Mid-Pentecost').marks, [DayMark.fish]);
       expect(DayMark.split('🧀 Forgiveness Sunday').marks, [DayMark.dairy]);
     });
@@ -55,7 +54,10 @@ void main() {
               'title': 'Paraskeve the Righteous Martyr',
               'marks': ['majorFeast', 'fish'],
               'saints': ['Paraskeve the Righteous Martyr', 'Hermolaos'],
-              'gospel': {'reference': 'Mark 5:24-34', 'text': 'At that time...'},
+              'gospel': {
+                'reference': 'Mark 5:24-34',
+                'text': 'At that time...',
+              },
             },
           },
         });

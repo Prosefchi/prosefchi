@@ -32,7 +32,8 @@ String calendarJson({
       'marks': marks,
       'gospel': {
         'reference': gospelReference,
-        'text': 'At that time, a great crowd followed him and thronged about him.',
+        'text':
+            'At that time, a great crowd followed him and thronged about him.',
       },
     },
   },
@@ -122,7 +123,10 @@ void main() {
 
     // Pascha 2026 is 12 April; 26 July is 105 days after it.
     expect(find.text('105 days after Pascha'), findsOneWidget);
-    expect(find.text('The calendar has not been downloaded yet'), findsOneWidget);
+    expect(
+      find.text('The calendar has not been downloaded yet'),
+      findsOneWidget,
+    );
     expect(find.text('Retry'), findsOneWidget);
   });
 
@@ -132,10 +136,7 @@ void main() {
     // The published feed stops at 2026-08-31, so dates past it are a normal
     // state with a different message from "nothing downloaded".
     await tester.pumpWidget(
-      harness(
-        repositoryServing(calendarJson()),
-        date: DateTime(2026, 9, 15),
-      ),
+      harness(repositoryServing(calendarJson()), date: DateTime(2026, 9, 15)),
     );
     await settle(tester);
 
@@ -143,7 +144,9 @@ void main() {
     expect(find.text('The calendar has not been downloaded yet'), findsNothing);
   });
 
-  testWidgets('does not repeat the headline as a one-item list', (tester) async {
+  testWidgets('does not repeat the headline as a one-item list', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       harness(
         repositoryServing(

@@ -53,11 +53,14 @@ void main() {
     ]);
   });
 
-  test('returns null when neither the language nor English is bundled', () async {
-    final repository = PrayerRepository(bundle: _FakeBundle({}));
+  test(
+    'returns null when neither the language nor English is bundled',
+    () async {
+      final repository = PrayerRepository(bundle: _FakeBundle({}));
 
-    expect(await repository.load(PrayerOccasion.midday, 'el'), isNull);
-  });
+      expect(await repository.load(PrayerOccasion.midday, 'el'), isNull);
+    },
+  );
 
   test('does not fall back from English to itself', () async {
     final bundle = _FakeBundle({});

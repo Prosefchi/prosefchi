@@ -44,15 +44,17 @@ Future<void> settle(WidgetTester tester) async {
   }
 }
 
-Widget harness(Map<String, String> assets, {Locale locale = const Locale('en')}) =>
-    MaterialApp(
-      locale: locale,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: PrayersScreen(
-        repository: PrayerRepository(bundle: _FakeBundle(assets)),
-      ),
-    );
+Widget harness(
+  Map<String, String> assets, {
+  Locale locale = const Locale('en'),
+}) => MaterialApp(
+  locale: locale,
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+  home: PrayersScreen(
+    repository: PrayerRepository(bundle: _FakeBundle(assets)),
+  ),
+);
 
 void main() {
   testWidgets('lists every rule', (tester) async {
@@ -113,9 +115,14 @@ void main() {
 
     expect(find.text('Morning Prayers'), findsOneWidget);
     expect(find.text('The Beginning'), findsOneWidget);
-    expect(find.text('On rising from sleep, make the sign of the Cross.'), findsOneWidget);
     expect(
-      find.text('In the name of the Father, and of the Son, and of the Holy Spirit. Amen.'),
+      find.text('On rising from sleep, make the sign of the Cross.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'In the name of the Father, and of the Son, and of the Holy Spirit. Amen.',
+      ),
       findsOneWidget,
     );
   });

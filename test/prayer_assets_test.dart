@@ -2,7 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/models/prayer.dart';
-import 'package:prosefchi/services/calendar_repository.dart' show supportedLanguages;
+import 'package:prosefchi/services/calendar_repository.dart'
+    show supportedLanguages;
 
 /// Checks the authored prayer files themselves, not the parser.
 ///
@@ -11,18 +12,18 @@ import 'package:prosefchi/services/calendar_repository.dart' show supportedLangu
 /// but a poor way to find out you wrote `**Lord**` and shipped the asterisks,
 /// so the mistakes are caught here instead.
 void main() {
-  final files = Directory('res/prayers')
-      .listSync()
-      .whereType<File>()
-      .where((f) => f.path.endsWith('.md'))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
+  final files =
+      Directory('res/prayers')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.md'))
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
 
   test('every occasion has a file in every language', () {
     final expected = {
       for (final occasion in PrayerOccasion.values)
-        for (final language in supportedLanguages)
-          occasion.assetPath(language),
+        for (final language in supportedLanguages) occasion.assetPath(language),
     };
     final actual = files.map((f) => f.path.replaceAll(r'\', '/')).toSet();
 

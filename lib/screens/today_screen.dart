@@ -107,10 +107,12 @@ class _TodayScreenState extends State<TodayScreen> {
             _DateHeadline(date: _date, locale: _language ?? 'en'),
             const SizedBox(height: 16),
             if (_loading)
-              const Center(child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: CircularProgressIndicator(),
-              ))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: CircularProgressIndicator(),
+                ),
+              )
             else if (_day case final day?)
               ..._dayContents(context, l10n, day)
             else

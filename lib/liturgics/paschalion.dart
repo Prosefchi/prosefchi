@@ -81,8 +81,7 @@ enum MovableFeast {
   final int offsetFromPascha;
 
   /// The date this feast falls on in [year].
-  DateTime inYear(int year) =>
-      addDays(orthodoxPascha(year), offsetFromPascha);
+  DateTime inYear(int year) => addDays(orthodoxPascha(year), offsetFromPascha);
 }
 
 /// All movable feasts in [year], earliest first.
@@ -103,10 +102,11 @@ DateTime addDays(DateTime date, int days) =>
 /// Compares in UTC deliberately. Subtracting two local `DateTime`s across a
 /// daylight-saving change yields 23 or 25 hours for one of the days, and
 /// `inDays` truncates that to one day fewer than the calendar shows.
-int daysBetween(DateTime from, DateTime to) =>
-    DateTime.utc(to.year, to.month, to.day)
-        .difference(DateTime.utc(from.year, from.month, from.day))
-        .inDays;
+int daysBetween(DateTime from, DateTime to) => DateTime.utc(
+  to.year,
+  to.month,
+  to.day,
+).difference(DateTime.utc(from.year, from.month, from.day)).inDays;
 
 int _julianDayFromJulianDate(int year, int month, int day) {
   final a = (14 - month) ~/ 12;

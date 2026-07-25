@@ -49,9 +49,7 @@ enum DayMark {
     for (final mark in values) {
       if (!text.contains(mark.symbol)) continue;
       found.add(mark);
-      text = text
-          .replaceAll('${mark.symbol}️', '')
-          .replaceAll(mark.symbol, '');
+      text = text.replaceAll('${mark.symbol}️', '').replaceAll(mark.symbol, '');
     }
     return (title: text.trim(), marks: found);
   }
@@ -212,10 +210,11 @@ class Calendar {
   ///
   /// Compares in UTC: a local subtraction spanning a daylight-saving change
   /// loses an hour and truncates to a day short.
-  int runwayFrom(DateTime from) =>
-      DateTime.utc(end.year, end.month, end.day)
-          .difference(DateTime.utc(from.year, from.month, from.day))
-          .inDays;
+  int runwayFrom(DateTime from) => DateTime.utc(
+    end.year,
+    end.month,
+    end.day,
+  ).difference(DateTime.utc(from.year, from.month, from.day)).inDays;
 
   Map<String, dynamic> toJson() => {
     'language': language,

@@ -110,9 +110,7 @@ class _PrayerTile extends StatelessWidget {
       trailing: ready ? const Icon(Icons.chevron_right) : null,
       onTap: ready
           ? () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => PrayerScreen(set: set!),
-              ),
+              MaterialPageRoute<void>(builder: (_) => PrayerScreen(set: set!)),
             )
           : null,
     );

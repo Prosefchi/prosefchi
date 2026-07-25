@@ -23,10 +23,7 @@ Glory to You, our God, glory to You.
         isA<PrayerText>(),
         isA<PrayerText>(),
       ]);
-      expect(
-        (set.blocks[1] as PrayerHeading).text,
-        'The Beginning',
-      );
+      expect((set.blocks[1] as PrayerHeading).text, 'The Beginning');
       expect(
         (set.blocks[3] as PrayerText).text,
         'Glory to You, our God, glory to You.',
@@ -110,7 +107,10 @@ Amen.
 
   group('PrayerOccasion', () {
     test('builds the asset path from the slug, not the identifier', () {
-      expect(PrayerOccasion.morning.assetPath('el'), 'res/prayers/morning_el.md');
+      expect(
+        PrayerOccasion.morning.assetPath('el'),
+        'res/prayers/morning_el.md',
+      );
       expect(
         PrayerOccasion.beforeMeal.assetPath('en'),
         'res/prayers/before_meal_en.md',
