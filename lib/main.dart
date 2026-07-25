@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'l10n/app_localizations.dart';
-import 'screens/today_screen.dart';
+import 'screens/home_shell.dart';
 
 void main() => runApp(const ProsefchiApp());
 
@@ -23,6 +23,6 @@ class ProsefchiApp extends StatelessWidget {
       colorSchemeSeed: const Color(0xFF7B1113),
       brightness: Brightness.dark,
     ),
-    home: const TodayScreen(),
+    home: const HomeShell(),
   );
 }

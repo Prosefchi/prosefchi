@@ -11,6 +11,56 @@
     "description": "Title of the main screen."
   },
 
+  "prayers": "Prayers",
+  "@prayers": {
+    "description": "Title of the prayers section, and its navigation label."
+  },
+
+  "prayerMorning": "Morning",
+  "@prayerMorning": {
+    "description": "The morning rule."
+  },
+
+  "prayerMidday": "Midday",
+  "@prayerMidday": {
+    "description": "The midday rule."
+  },
+
+  "prayerNight": "Evening",
+  "@prayerNight": {
+    "description": "The evening rule."
+  },
+
+  "prayerCompline": "Small Compline",
+  "@prayerCompline": {
+    "description": "The office of Small Compline, said before sleep."
+  },
+
+  "prayerBeforeMeal": "Before a Meal",
+  "@prayerBeforeMeal": {
+    "description": "The blessing said before eating."
+  },
+
+  "prayerAfterMeal": "After a Meal",
+  "@prayerAfterMeal": {
+    "description": "The thanksgiving said after eating."
+  },
+
+  "prayerBeforeCommunion": "Before Holy Communion",
+  "@prayerBeforeCommunion": {
+    "description": "Prayers of preparation before receiving Communion."
+  },
+
+  "prayerAfterCommunion": "After Holy Communion",
+  "@prayerAfterCommunion": {
+    "description": "Prayers of thanksgiving after receiving Communion."
+  },
+
+  "prayerNotAvailable": "Not yet available",
+  "@prayerNotAvailable": {
+    "description": "Shown for a rule whose text has not been added yet."
+  },
+
   "commemorations": "Saints and Feasts",
   "@commemorations": {
     "description": "Heading above the list of the day's commemorations."
