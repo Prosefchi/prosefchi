@@ -70,14 +70,17 @@ flutter:
   # Generates AppLocalizations from lib/l10n/*.arb. See l10n.yaml.
   generate: true
 
-  # No assets yet. The calendar is fetched and cached to disk rather than
-  # bundled: the covered window is short enough that a shipped copy would
-  # expire before many users updated the app.
+  # Prayers are bundled because they must work with no signal at all, and are
+  # authored content that does not change between releases. The calendar is
+  # not: its window is short enough that a shipped copy would expire before
+  # many users updated the app, so it is fetched and stored instead.
   #
-  # Prayers will need an assets entry here, since those must work offline
-  # unconditionally. Two things to remember when adding it: directory entries
-  # are not recursive, so each subdirectory needs its own line; and a declared
-  # directory that does not exist fails the build outright.
+  # Files sit directly in res/prayers/ rather than in per-language or per-time
+  # subdirectories, so this one entry covers all of them. Directory entries are
+  # not recursive: a subdirectory added later needs its own line here, and a
+  # missing asset fails at runtime rather than at build.
+  assets:
+    - res/prayers/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
