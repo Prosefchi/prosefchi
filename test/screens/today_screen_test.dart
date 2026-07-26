@@ -17,7 +17,7 @@ String calendarJson({
     'Paraskeve the Righteous Martyr',
     'Hermolaos the Holy Martyr',
   ],
-  List<String> marks = const ['majorFeast', 'fish'],
+  List<String> marks = const ['majorFeast'],
   String gospelReference = 'Mark 5:24-34',
   String? fasting,
   bool matinsGospel = false,
@@ -101,7 +101,6 @@ void main() {
 
     // Marks render as labelled chips rather than raw emoji in the headline.
     expect(find.text('Great feast'), findsOneWidget);
-    expect(find.text('Fish'), findsOneWidget);
   });
 
   testWidgets('renders Greek labels under the el locale', (tester) async {
@@ -112,7 +111,8 @@ void main() {
             language: 'el',
             title: 'Παρασκευή η Οσιομάρτυς',
             saints: const ['Παρασκευή η Οσιομάρτυς', 'Ερμόλαος ο Ιερομάρτυς'],
-            marks: const ['fish'],
+            marks: const ['majorFeast'],
+            fasting: 'Ημέρα Νηστείας (Κατάλυσις ιχθύος)',
             gospelReference: 'Κατὰ Μᾶρκον 5:24-34',
           ),
         ),
@@ -123,7 +123,7 @@ void main() {
 
     expect(find.text('Σήμερα'), findsOneWidget);
     expect(find.text('Ευαγγέλιο'), findsOneWidget);
-    expect(find.text('Ιχθύς'), findsOneWidget);
+    expect(find.text('Ημέρα Νηστείας (Κατάλυσις ιχθύος)'), findsOneWidget);
     expect(find.text('Παρασκευή η Οσιομάρτυς'), findsWidgets);
   });
 
@@ -255,6 +255,25 @@ void main() {
     // Sunday of All Saints (7 June).
     expect(find.text('Grave Tone'), findsOneWidget);
     expect(find.text('Eothinon 8'), findsOneWidget);
+  });
+
+  testWidgets('says so plainly when the day is not a fast', (tester) async {
+    // An empty slot is ambiguous between there being no fast and our not
+    // knowing, which are not the same answer for someone checking.
+    // 2026-07-26 is a Sunday outside every season.
+    await tester.pumpWidget(harness(repositoryServing(calendarJson())));
+    await settle(tester);
+
+    expect(find.text('No fast'), findsOneWidget);
+  });
+
+  testWidgets('names an ordinary Wednesday as a fast day', (tester) async {
+    await tester.pumpWidget(
+      harness(repositoryServing(calendarJson()), date: DateTime(2026, 10, 14)),
+    );
+    await settle(tester);
+
+    expect(find.text('Fast day'), findsOneWidget);
   });
 
   testWidgets('falls back to the computed fast season past the feed', (

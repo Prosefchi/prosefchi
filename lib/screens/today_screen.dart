@@ -100,11 +100,16 @@ class _TodayScreenState extends State<TodayScreen> {
   /// The fasting rule worked out from the Paschalion, for days upstream does
   /// not cover. Names the season where there is one, since that says more than
   /// simply that the day fasts.
-  static String? _computedFasting(AppLocalizations l10n, DateTime date) {
+  ///
+  /// Never null: every date resolves to something, so a day with no fast says
+  /// so rather than leaving the slot empty. An empty slot is ambiguous between
+  /// there being no fast and our not knowing, and those are not the same
+  /// answer to give someone who opened the app to check.
+  static String _computedFasting(AppLocalizations l10n, DateTime date) {
     if (fastSeasonFor(date) case final season?) {
       return l10n.fastSeasonLabel(season);
     }
-    return isFastDay(date) ? l10n.fastDay : null;
+    return isFastDay(date) ? l10n.fastDay : l10n.noFast;
   }
 
   @override
@@ -243,9 +248,11 @@ class _DayHeader extends StatelessWidget {
 
   /// The rank and fasting pills.
   ///
-  /// Where upstream states the fasting rule in words it wins, and the fasting
-  /// markers are dropped: they say the same thing less precisely, and showing
-  /// both reads as the day being labelled twice.
+  /// The fasting rule in words wins and the fasting markers are dropped: they
+  /// say the same thing less precisely, and showing both reads as the day
+  /// being labelled twice. Safe to do unconditionally — across the whole feed
+  /// a fasting marker never appears without a rule stated alongside it, so
+  /// dropping one never loses information the rule does not carry.
   List<Widget> _pills(AppLocalizations l10n) => [
     for (final mark in marks)
       if (fasting == null || mark == DayMark.majorFeast)

@@ -191,6 +191,10 @@
     "description": "Liturgical label: fastSeasonNativity."
   },
   "fastDay": "Fast day",
+  "noFast": "No fast",
+  "@noFast": {
+    "description": "Shown when the day is not a fast day, so the slot says so rather than standing empty and leaving it ambiguous whether there is no fast or no data."
+  },
   "@fastDay": {
     "description": "Shown when the day fasts but falls in no named season, as an ordinary Wednesday or Friday does."
   },
