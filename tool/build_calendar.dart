@@ -17,25 +17,22 @@ import 'dart:io';
 
 import 'package:prosefchi/models/calendar.dart';
 
+/// The parts a day's description is divided into.
+enum Section { saints, epistle, gospel, matinsGospel, oldTestament }
+
 /// A GOARCH feed plus the section headers used in that language.
 ///
 /// The two feeds are authored separately and are not field-identical — Greek
 /// carries a handful of readings English lacks — so each is parsed on its own
 /// terms and joined only by date.
 class Feed {
-  const Feed({
-    required this.url,
-    required this.saints,
-    required this.epistle,
-    required this.gospel,
-  });
+  const Feed({required this.url, required this.markers});
 
   final String url;
-  final String saints;
-  final String epistle;
-  final String gospel;
 
-  List<String> get markers => [saints, epistle, gospel];
+  /// Headers per section, in the order they should be tried. Upstream writes
+  /// the Old Testament header both singular and plural, so both are listed.
+  final Map<Section, List<String>> markers;
 }
 
 const feeds = <String, Feed>{
@@ -43,17 +40,28 @@ const feeds = <String, Feed>{
     url:
         'https://calendar.google.com/calendar/ical/'
         'i0foh8u5am8ui8grpo1svvaun4%40group.calendar.google.com/public/basic.ics',
-    saints: 'Saints and Feasts:',
-    epistle: 'Epistle Reading:',
-    gospel: 'Gospel Reading:',
+    markers: {
+      Section.saints: ['Saints and Feasts:'],
+      Section.epistle: ['Epistle Reading:'],
+      Section.gospel: ['Gospel Reading:'],
+      Section.matinsGospel: ['Matins Gospel Reading:'],
+      Section.oldTestament: [
+        'Old Testament Readings:',
+        'Old Testament Reading:',
+      ],
+    },
   ),
   'el': Feed(
     url:
         'https://calendar.google.com/calendar/ical/'
         '6aaps70c37oadvt5erfvpthmuo%40group.calendar.google.com/public/basic.ics',
-    saints: 'Ἅγιοι καὶ ἑορταί:',
-    epistle: 'Ἀνάγνωσις Ἐπιστολῆς:',
-    gospel: 'Ἀνάγνωσις Εὐαγγελίου:',
+    markers: {
+      Section.saints: ['Ἅγιοι καὶ ἑορταί:'],
+      Section.epistle: ['Ἀνάγνωσις Ἐπιστολῆς:'],
+      Section.gospel: ['Ἀνάγνωσις Εὐαγγελίου:'],
+      Section.matinsGospel: ['Ἀνάγνωσις Εὐαγγελίου Ὄρθρου:'],
+      Section.oldTestament: ['Ἀνάγνωσις Παλαιᾱς Διαθήκης:'],
+    },
   ),
 };
 
@@ -81,7 +89,7 @@ Future<void> main(List<String> args) async {
       lang,
       useCache: options.containsKey('cache'),
     );
-    final parsed = _parseEvents(ics, feed);
+    final parsed = parseEvents(ics, feed);
 
     final keys =
         parsed.days.keys
@@ -109,9 +117,12 @@ Future<void> main(List<String> args) async {
     await file.writeAsString(jsonEncode(calendar.toJson()));
 
     final withReadings = keys.where((k) => parsed.days[k]!.hasReadings).length;
+    final withFasting = keys
+        .where((k) => parsed.days[k]!.fasting != null)
+        .length;
     stdout.writeln(
       '$lang: ${keys.length} days  ${keys.first}..${keys.last}  '
-      '$withReadings with readings  '
+      '$withReadings with readings  $withFasting with a fasting rule  '
       '${((await file.length()) / 1024).toStringAsFixed(0)} KB  -> ${file.path}',
     );
     stdout.writeln(
@@ -159,7 +170,7 @@ Future<String> _load(String url, String lang, {required bool useCache}) async {
 /// That timestamp is taken across the whole feed rather than the emitted
 /// window, because it answers "has upstream changed at all", which is what
 /// decides whether a rebuild is meaningful.
-({Map<String, CalendarDay> days, DateTime? sourceUpdatedAt}) _parseEvents(
+({Map<String, CalendarDay> days, DateTime? sourceUpdatedAt}) parseEvents(
   String ics,
   Feed feed,
 ) {
@@ -193,32 +204,59 @@ Future<String> _load(String url, String lang, {required bool useCache}) async {
     final description =
         RegExp(r'\nDESCRIPTION:(.*)').firstMatch(block)?.group(1) ?? '';
 
-    final sections = _sections(_unescape(description), feed.markers);
-    final saints = sections[feed.saints];
-    final headline = DayMark.split(_unescape(summary));
+    final parts = sections(unescapeIcs(description), feed);
+    final headline = DayMark.split(unescapeIcs(summary));
+    final saints = commemorations(parts[Section.saints]);
 
     result[date] = CalendarDay(
       date: DateTime.parse(date),
       title: headline.title,
       marks: headline.marks,
-      saints: saints == null
-          ? const []
-          : saints
-                .split(';')
-                .map((s) => s.trim())
-                .where((s) => s.isNotEmpty)
-                .toList(),
-      epistle: _reading(sections[feed.epistle]),
-      gospel: _reading(sections[feed.gospel]),
+      saints: saints.saints,
+      fasting: saints.fasting,
+      epistle: readingFrom(parts[Section.epistle]),
+      gospel: readingFrom(parts[Section.gospel]),
+      matinsGospel: readingFrom(parts[Section.matinsGospel]),
+      oldTestament: readingFrom(parts[Section.oldTestament]),
     );
   }
   return (days: result, sourceUpdatedAt: sourceUpdatedAt);
 }
 
+/// Splits the saints section into the commemorations and the fasting rule.
+///
+/// Only the first paragraph is a list of commemorations. What follows is the
+/// fasting rule in words, and splitting the whole section on `;` glued it onto
+/// the last saint — and in Greek, where `;` is the question mark, chopped any
+/// prose into fragments.
+({List<String> saints, String? fasting}) commemorations(String? body) {
+  if (body == null || body.isEmpty) return (saints: const [], fasting: null);
+
+  final paragraphs = body
+      .split('\n\n')
+      .map((p) => p.trim())
+      .where((p) => p.isNotEmpty)
+      .toList();
+  if (paragraphs.isEmpty) return (saints: const [], fasting: null);
+
+  return (
+    saints: paragraphs.first
+        .split(';')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList(),
+    fasting: paragraphs.length > 1 ? paragraphs.sublist(1).join(' ') : null,
+  );
+}
+
 /// Splits a section body into its citation and the reading text.
 ///
-/// Null for the ~9% of days with no appointed reading, which is normal.
-Reading? _reading(String? body) {
+/// Public, like the other parsing helpers here, so test/tool can exercise them
+/// directly. This file is not under lib/ and so never ships.
+///
+/// Null for the days with no such reading, which is normal: only about a fifth
+/// of days appoint a Matins gospel or an Old Testament reading.
+Reading? readingFrom(String? body) {
   if (body == null || body.isEmpty) return null;
   final split = body.indexOf('\n');
   if (split < 0) return Reading(reference: body.trim());
@@ -228,28 +266,45 @@ Reading? _reading(String? body) {
   );
 }
 
-/// Slices a description into sections keyed by marker.
+/// Slices a description into its sections.
 ///
-/// Splitting on blank lines does not work: the Gospel text itself contains
-/// blank lines. Instead locate each marker and take everything up to the next.
-Map<String, String> _sections(String description, List<String> markers) {
-  final found = <(int, String)>[];
-  for (final marker in markers) {
-    final index = description.indexOf(marker);
-    if (index >= 0) found.add((index, marker));
+/// Markers are matched only at the start of a line. Searching anywhere would
+/// find "Gospel Reading:" inside "Matins Gospel Reading:" and report the
+/// Matins reading as the day's Gospel, which it did on 648 days.
+///
+/// Every section upstream writes has to be listed, not just the ones we keep:
+/// a section that is not recognised does not end the one before it, so its
+/// whole text is absorbed into the previous section.
+Map<Section, String> sections(String description, Feed feed) {
+  final found = <(int, Section, int)>[];
+  for (final entry in feed.markers.entries) {
+    for (final marker in entry.value) {
+      final index = _lineStartIndexOf(description, marker);
+      if (index != null) {
+        found.add((index, entry.key, marker.length));
+        break;
+      }
+    }
   }
   found.sort((a, b) => a.$1.compareTo(b.$1));
 
-  final result = <String, String>{};
+  final result = <Section, String>{};
   for (var i = 0; i < found.length; i++) {
-    final (start, marker) = found[i];
+    final (start, section, markerLength) = found[i];
     final end = i + 1 < found.length ? found[i + 1].$1 : description.length;
-    result[marker] = description.substring(start + marker.length, end).trim();
+    result[section] = description.substring(start + markerLength, end).trim();
   }
   return result;
 }
 
-String _unescape(String value) {
+/// The index of [marker] where it begins a line, or null if it never does.
+int? _lineStartIndexOf(String text, String marker) {
+  if (text.startsWith(marker)) return 0;
+  final index = text.indexOf('\n$marker');
+  return index < 0 ? null : index + 1;
+}
+
+String unescapeIcs(String value) {
   final out = StringBuffer();
   for (var i = 0; i < value.length; i++) {
     if (value[i] != r'\' || i + 1 >= value.length) {

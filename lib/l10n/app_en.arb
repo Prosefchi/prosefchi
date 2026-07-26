@@ -124,6 +124,14 @@
   "@gospelReading": {
     "description": "Heading above the appointed gospel reading."
   },
+  "matinsGospelReading": "Matins Gospel",
+  "@matinsGospelReading": {
+    "description": "Heading above the resurrectional gospel read at Matins, which is a different reading from the day’s Gospel."
+  },
+  "oldTestamentReading": "Old Testament",
+  "@oldTestamentReading": {
+    "description": "Heading above the appointed Old Testament reading."
+  },
   "markMajorFeast": "Great feast",
   "@markMajorFeast": {
     "description": "Label for a day of major rank."

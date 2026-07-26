@@ -122,6 +122,7 @@ class _TodayScreenState extends State<TodayScreen> {
               locale: _language ?? 'en',
               title: day?.title,
               marks: day?.marks ?? const [],
+              fasting: day?.fasting,
             ),
             // Computed, so it appears in every state. It also means the
             // no-data screen keeps the same shape as the ordinary one rather
@@ -135,10 +136,22 @@ class _TodayScreenState extends State<TodayScreen> {
             else if (day != null) ...[
               if (day.saints.length > 1)
                 _CommemorationsCard(saints: day.saints),
+              if (day.oldTestament case final reading?)
+                _ReadingCard(
+                  heading: l10n.oldTestamentReading,
+                  reading: reading,
+                ),
               if (day.epistle case final epistle?)
                 _ReadingCard(heading: l10n.epistleReading, reading: epistle),
               if (day.gospel case final gospel?)
                 _ReadingCard(heading: l10n.gospelReading, reading: gospel),
+              // A separate reading from the Gospel, not a variant of it, so it
+              // gets its own card rather than being folded in beside it.
+              if (day.matinsGospel case final reading?)
+                _ReadingCard(
+                  heading: l10n.matinsGospelReading,
+                  reading: reading,
+                ),
             ] else
               _EmptyDayCard(haveCalendar: _haveCalendar, onRetry: _retry),
           ],
@@ -155,12 +168,16 @@ class _DayHeader extends StatelessWidget {
     required this.locale,
     required this.title,
     required this.marks,
+    required this.fasting,
   });
 
   final DateTime date;
   final String locale;
   final String? title;
   final List<DayMark> marks;
+
+  /// The fasting rule in words, where upstream gives one.
+  final String? fasting;
 
   @override
   Widget build(BuildContext context) {
@@ -193,22 +210,27 @@ class _DayHeader extends StatelessWidget {
                 ),
               ),
             ],
-            if (marks.isNotEmpty) ...[
+            if (_pills(l10n) case final pills when pills.isNotEmpty) ...[
               const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final mark in marks)
-                    _MarkChip(mark: mark, label: _markLabel(l10n, mark)),
-                ],
-              ),
+              Wrap(spacing: 8, runSpacing: 8, children: pills),
             ],
           ],
         ),
       ),
     );
   }
+
+  /// The rank and fasting pills.
+  ///
+  /// Where upstream states the fasting rule in words it wins, and the fasting
+  /// markers are dropped: they say the same thing less precisely, and showing
+  /// both reads as the day being labelled twice.
+  List<Widget> _pills(AppLocalizations l10n) => [
+    for (final mark in marks)
+      if (fasting == null || mark == DayMark.majorFeast)
+        _MarkChip(mark: mark, label: _markLabel(l10n, mark)),
+    if (fasting case final rule?) _FastingPill(rule: rule),
+  ];
 
   static String _markLabel(AppLocalizations l10n, DayMark mark) =>
       switch (mark) {
@@ -240,6 +262,36 @@ class _MarkChip extends StatelessWidget {
           Text(mark.symbol, style: const TextStyle(fontSize: 13)),
           const SizedBox(width: 6),
           Text(label, style: theme.textTheme.labelMedium),
+        ],
+      ),
+    );
+  }
+}
+
+class _FastingPill extends StatelessWidget {
+  const _FastingPill({required this.rule});
+
+  final String rule;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.restaurant_outlined,
+            size: 13,
+            color: theme.colorScheme.onSurface,
+          ),
+          const SizedBox(width: 6),
+          Text(rule, style: theme.textTheme.labelMedium),
         ],
       ),
     );

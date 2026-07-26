@@ -10,9 +10,10 @@
 /// only in the event summary and never in the commemorations list, so the
 /// saints arrive clean and only the title needs splitting.
 ///
-/// Note these mark *allowances*, not the fast itself: an unmarked day may be a
-/// strict fast or no fast at all. Deciding which needs the computed fast
-/// periods, with these as the override.
+/// These mark *allowances* only, so an unmarked day is ambiguous between a
+/// strict fast and no fast at all. [CalendarDay.fasting] resolves that: on the
+/// days it is present upstream states the rule outright, and it should be
+/// preferred over these.
 enum DayMark {
   /// A great feast.
   majorFeast('☦'),
@@ -85,8 +86,11 @@ class CalendarDay {
     required this.title,
     this.saints = const [],
     this.marks = const [],
+    this.fasting,
     this.epistle,
     this.gospel,
+    this.matinsGospel,
+    this.oldTestament,
   });
 
   factory CalendarDay.fromJson(String date, Map<String, dynamic> json) =>
@@ -101,13 +105,15 @@ class CalendarDay {
             .map(DayMark.byName)
             .nonNulls
             .toList(),
-        epistle: json['epistle'] == null
-            ? null
-            : Reading.fromJson(json['epistle'] as Map<String, dynamic>),
-        gospel: json['gospel'] == null
-            ? null
-            : Reading.fromJson(json['gospel'] as Map<String, dynamic>),
+        fasting: json['fasting'] as String?,
+        epistle: _reading(json['epistle']),
+        gospel: _reading(json['gospel']),
+        matinsGospel: _reading(json['matinsGospel']),
+        oldTestament: _reading(json['oldTestament']),
       );
+
+  static Reading? _reading(Object? json) =>
+      json == null ? null : Reading.fromJson(json as Map<String, dynamic>);
 
   final DateTime date;
 
@@ -120,10 +126,28 @@ class CalendarDay {
   /// Fasting allowances and feast rank, as marked upstream.
   final List<DayMark> marks;
 
+  /// The fasting rule in words, as upstream states it: "Strict Fast", "Fast
+  /// Day (Wine and Oil Allowed)", "Fast Free" and so on.
+  ///
+  /// Authoritative where it exists, and unambiguous in a way [marks] is not:
+  /// the markers only ever record an allowance, so an unmarked day could be a
+  /// strict fast or no fast at all. This says which.
+  final String? fasting;
+
   final Reading? epistle;
   final Reading? gospel;
 
-  bool get hasReadings => epistle != null || gospel != null;
+  /// The resurrectional gospel read at Matins, appointed on roughly a fifth of
+  /// days. A different reading from [gospel], not a variant of it.
+  final Reading? matinsGospel;
+
+  final Reading? oldTestament;
+
+  bool get hasReadings =>
+      epistle != null ||
+      gospel != null ||
+      matinsGospel != null ||
+      oldTestament != null;
 
   bool get isMajorFeast => marks.contains(DayMark.majorFeast);
 
@@ -131,8 +155,11 @@ class CalendarDay {
     'title': title,
     if (saints.isNotEmpty) 'saints': saints,
     if (marks.isNotEmpty) 'marks': [for (final mark in marks) mark.name],
+    if (fasting != null) 'fasting': fasting,
     if (epistle != null) 'epistle': epistle!.toJson(),
     if (gospel != null) 'gospel': gospel!.toJson(),
+    if (matinsGospel != null) 'matinsGospel': matinsGospel!.toJson(),
+    if (oldTestament != null) 'oldTestament': oldTestament!.toJson(),
   };
 }
 

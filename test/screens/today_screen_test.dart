@@ -19,6 +19,8 @@ String calendarJson({
   ],
   List<String> marks = const ['majorFeast', 'fish'],
   String gospelReference = 'Mark 5:24-34',
+  String? fasting,
+  bool matinsGospel = false,
 }) => jsonEncode({
   'language': language,
   'source': 'https://example.test/feed.ics',
@@ -30,6 +32,12 @@ String calendarJson({
       'title': title,
       'saints': saints,
       'marks': marks,
+      'fasting': ?fasting,
+      if (matinsGospel)
+        'matinsGospel': {
+          'reference': 'Luke 1:39-49, 56',
+          'text': 'At that time Mary arose and went into the hill country.',
+        },
       'gospel': {
         'reference': gospelReference,
         'text':
@@ -183,6 +191,41 @@ void main() {
     await settle(tester);
 
     expect(find.text(passage), findsOneWidget);
+  });
+
+  testWidgets('shows the fasting rule and drops the redundant mark', (
+    tester,
+  ) async {
+    // Upstream states the rule in words where it has one. The fish marker says
+    // the same thing less precisely, so showing both labels the day twice.
+    await tester.pumpWidget(
+      harness(
+        repositoryServing(calendarJson(fasting: 'Fast Day (Fish Allowed)')),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('Fast Day (Fish Allowed)'), findsOneWidget);
+    expect(find.text('Fish'), findsNothing);
+    expect(
+      find.text('Great feast'),
+      findsOneWidget,
+      reason: 'rank still shown',
+    );
+  });
+
+  testWidgets('gives the Matins gospel its own card', (tester) async {
+    // A separate reading from the Gospel, not a variant of it. Conflating them
+    // showed the wrong reading on 648 days of the feed.
+    await tester.pumpWidget(
+      harness(repositoryServing(calendarJson(matinsGospel: true))),
+    );
+    await settle(tester);
+
+    expect(find.text('Gospel'), findsOneWidget);
+    expect(find.text('Matins Gospel'), findsOneWidget);
+    expect(find.text('Mark 5:24-34'), findsOneWidget);
+    expect(find.text('Luke 1:39-49, 56'), findsOneWidget);
   });
 
   testWidgets('shows the distance from Pascha even with a full day', (
