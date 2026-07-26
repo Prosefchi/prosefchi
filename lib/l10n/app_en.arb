@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "Prosefchi",
+  "appTitle": "Orthodox Prayer",
   "@appTitle": {
     "description": "The application name, shown in the task switcher."
   },
@@ -258,5 +258,29 @@
         "type": "int"
       }
     }
+  },
+  "about": "About",
+  "@about": {
+    "description": "About section: about."
+  },
+  "sourceCode": "Source code",
+  "@sourceCode": {
+    "description": "About section: sourceCode."
+  },
+  "sourceCodeSubtitle": "View the project on GitHub",
+  "@sourceCodeSubtitle": {
+    "description": "About section: sourceCodeSubtitle."
+  },
+  "appVersion": "Version",
+  "@appVersion": {
+    "description": "About section: appVersion."
+  },
+  "openSourceLicences": "Open source licences",
+  "@openSourceLicences": {
+    "description": "About section: openSourceLicences."
+  },
+  "couldNotOpenLink": "Could not open the link",
+  "@couldNotOpenLink": {
+    "description": "Shown when no browser is available to handle the repository link."
   }
 }

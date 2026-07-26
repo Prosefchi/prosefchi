@@ -54,6 +54,11 @@ dependencies:
   flutter_timezone: ^5.1.0
   shared_preferences: ^2.5.5
 
+  # The about section: opening the repository, and reading the version out of
+  # the bundle rather than restating it here where it would drift.
+  url_launcher: ^6.3.2
+  package_info_plus: ^10.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -6,17 +6,27 @@ import '../services/calendar_repository.dart' show supportedLanguages;
 import '../services/notification_service.dart';
 import '../services/reminder_store.dart';
 import '../services/settings_controller.dart';
+import 'about_section.dart';
 import 'onboarding_screen.dart';
 import 'reminders_screen.dart';
 
 /// Language and reminders.
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key, this.reminderStore, this.scheduler});
+  const SettingsScreen({
+    super.key,
+    this.reminderStore,
+    this.scheduler,
+    this.about,
+  });
 
   /// Injectable and passed through to [RemindersScreen], so a test can drive
   /// the whole settings flow without platform channels.
   final ReminderStore? reminderStore;
   final ReminderScheduler? scheduler;
+
+  /// Substituted in tests, where the about section's platform channels are
+  /// unavailable.
+  final Widget? about;
 
   @override
   Widget build(BuildContext context) {
@@ -62,8 +72,8 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Last, and set apart: replaying the welcome is a different kind of
-          // thing from the settings above it.
+          // Set apart: replaying the welcome is a different kind of thing from
+          // the settings above it.
           const Divider(height: 32),
           ListTile(
             leading: const Icon(Icons.waving_hand_outlined),
@@ -77,6 +87,9 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
           ),
+          const Divider(height: 32),
+          _Heading(l10n.about),
+          about ?? const AboutSection(),
         ],
       ),
     );

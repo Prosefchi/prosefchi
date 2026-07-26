@@ -106,6 +106,9 @@ Future<Widget> harness(
         home: SettingsScreen(
           reminderStore: reminderStore,
           scheduler: scheduler,
+          // The real one reaches for package_info_plus and url_launcher,
+          // neither of which has a platform channel under flutter test.
+          about: const SizedBox.shrink(key: Key('about')),
         ),
       ),
     ),
@@ -230,6 +233,22 @@ void main() {
     await settle(tester);
 
     expect(find.byType(PageView), findsOneWidget);
+  });
+
+  testWidgets('carries an about section at the bottom', (tester) async {
+    // It is the last thing on the page, past the default 800x600 surface, and
+    // a ListView does not build what it cannot show.
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      await harness(SettingsController(store: _MemorySettingsStore())),
+    );
+    await settle(tester);
+
+    expect(find.text('About'), findsOneWidget);
+    expect(find.byKey(const Key('about')), findsOneWidget);
   });
 
   testWidgets('opens the reminders screen', (tester) async {

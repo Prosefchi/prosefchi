@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The launcher name. Localized in values-el; the manifest points here
+         rather than carrying a literal, which cannot be translated. -->
+    <string name="app_name">Orthodox Prayer</string>
+</resources>
