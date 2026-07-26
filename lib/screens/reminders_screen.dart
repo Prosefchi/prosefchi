@@ -51,7 +51,7 @@ class _ReminderListState extends State<ReminderList> {
   late final ReminderScheduler _scheduler =
       widget.scheduler ?? NotificationService();
   late final CalendarRepository _calendars =
-      widget.calendars ?? CalendarRepository();
+      widget.calendars ?? sharedCalendarRepository;
 
   Map<PrayerOccasion, Reminder> _reminders = {};
   FastingReminder _fasting = const FastingReminder.initial();
@@ -65,8 +65,11 @@ class _ReminderListState extends State<ReminderList> {
   }
 
   Future<void> _load() async {
-    final reminders = await _store.readAll();
-    final fasting = await _store.readFasting();
+    // Independent reads over the same preferences; no reason to serialize.
+    final (reminders, fasting) = await (
+      _store.readAll(),
+      _store.readFasting(),
+    ).wait;
     if (!mounted) return;
     setState(() {
       _reminders = reminders;
@@ -80,17 +83,12 @@ class _ReminderListState extends State<ReminderList> {
   /// off clears the whole block.
   Future<void> _updateFasting(FastingReminder reminder) async {
     final l10n = AppLocalizations.of(context);
-    final language = _languageFor(Localizations.localeOf(context));
+    final language = languageFor(Localizations.localeOf(context));
 
-    if (reminder.enabled && !_fasting.enabled) {
-      final granted = await _scheduler.requestPermission();
-      if (!mounted) return;
-      if (!granted) {
-        setState(() => _permissionDenied = true);
-        return;
-      }
-      setState(() => _permissionDenied = false);
+    if (reminder.enabled && !_fasting.enabled && !await _ensurePermission()) {
+      return;
     }
+    if (!mounted) return;
 
     setState(() => _fasting = reminder);
 
@@ -104,21 +102,40 @@ class _ReminderListState extends State<ReminderList> {
     );
   }
 
-  Future<void> _pickFastingTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: _fasting.hour, minute: _fasting.minute),
-    );
-    if (picked == null) return;
-    await _updateFasting(
-      _fasting.copyWith(hour: picked.hour, minute: picked.minute),
-    );
+  /// Requests notification permission, reporting whether it was granted.
+  ///
+  /// Called on the first switch-on rather than at launch, so the prompt arrives
+  /// attached to an action whose purpose is obvious. Every reminder ships off
+  /// precisely so that this is the flow.
+  Future<bool> _ensurePermission() async {
+    final granted = await _scheduler.requestPermission();
+    if (!mounted) return false;
+    setState(() => _permissionDenied = !granted);
+    return granted;
   }
 
-  static String _languageFor(Locale locale) =>
-      supportedLanguages.contains(locale.languageCode)
-      ? locale.languageCode
-      : supportedLanguages.first;
+  /// Shows the picker seeded from an hour and minute the caller holds.
+  Future<TimeOfDay?> _askTime(int hour, int minute) => showTimePicker(
+    context: context,
+    initialTime: TimeOfDay(hour: hour, minute: minute),
+  );
+
+  /// The trailing time button, or nothing when times are not on offer.
+  Widget? _timeButton(VoidCallback onPressed) => widget.showTimes
+      ? IconButton(
+          icon: const Icon(Icons.schedule),
+          tooltip: MaterialLocalizations.of(context).timePickerInputHelpText,
+          onPressed: onPressed,
+        )
+      : null;
+
+  Future<void> _pickFastingTime() async {
+    if (await _askTime(_fasting.hour, _fasting.minute) case final time?) {
+      await _updateFasting(
+        _fasting.copyWith(hour: time.hour, minute: time.minute),
+      );
+    }
+  }
 
   /// Persists first, then schedules.
   ///
@@ -129,18 +146,12 @@ class _ReminderListState extends State<ReminderList> {
     final l10n = AppLocalizations.of(context);
     final label = l10n.occasionLabel(reminder.occasion);
 
-    // Asked on the first switch-on rather than at launch, so the prompt arrives
-    // attached to an action whose purpose is obvious. Every reminder ships off
-    // precisely so that this is the flow.
-    if (reminder.enabled && !_reminders[reminder.occasion]!.enabled) {
-      final granted = await _scheduler.requestPermission();
-      if (!mounted) return;
-      if (!granted) {
-        setState(() => _permissionDenied = true);
-        return;
-      }
-      setState(() => _permissionDenied = false);
+    if (reminder.enabled &&
+        !_reminders[reminder.occasion]!.enabled &&
+        !await _ensurePermission()) {
+      return;
     }
+    if (!mounted) return;
 
     setState(() => _reminders = {..._reminders, reminder.occasion: reminder});
 
@@ -154,12 +165,9 @@ class _ReminderListState extends State<ReminderList> {
   }
 
   Future<void> _pickTime(Reminder reminder) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: reminder.hour, minute: reminder.minute),
-    );
-    if (picked == null) return;
-    await _update(reminder.copyWith(hour: picked.hour, minute: picked.minute));
+    if (await _askTime(reminder.hour, reminder.minute) case final time?) {
+      await _update(reminder.copyWith(hour: time.hour, minute: time.minute));
+    }
   }
 
   @override
@@ -190,11 +198,10 @@ class _ReminderListState extends State<ReminderList> {
           // A heading at each change of group. The enum is ordered so every
           // group is contiguous, so this is a comparison with the previous
           // entry rather than a separate grouping pass.
-          if (occasion.index == 0 ||
-              PrayerOccasion.values[occasion.index - 1].group != occasion.group)
+          if (startsGroup(occasion))
             GroupHeading(
+              occasion: occasion,
               label: l10n.groupLabel(occasion.group),
-              first: occasion.index == 0,
             ),
           if (_reminders[occasion] case final reminder?)
             SwitchListTile(
@@ -209,15 +216,7 @@ class _ReminderListState extends State<ReminderList> {
                           : l10n.reminderOff,
                     )
                   : null,
-              secondary: widget.showTimes
-                  ? IconButton(
-                      icon: const Icon(Icons.schedule),
-                      tooltip: MaterialLocalizations.of(
-                        context,
-                      ).timePickerInputHelpText,
-                      onPressed: () => _pickTime(reminder),
-                    )
-                  : null,
+              secondary: _timeButton(() => _pickTime(reminder)),
             ),
         ],
         // Set apart because it is a different kind of reminder: it fires on
@@ -234,15 +233,7 @@ class _ReminderListState extends State<ReminderList> {
                       ' · ${l10n.fastingReminderSubtitle}'
                 : l10n.fastingReminderSubtitle,
           ),
-          secondary: widget.showTimes
-              ? IconButton(
-                  icon: const Icon(Icons.schedule),
-                  tooltip: MaterialLocalizations.of(
-                    context,
-                  ).timePickerInputHelpText,
-                  onPressed: _pickFastingTime,
-                )
-              : null,
+          secondary: _timeButton(_pickFastingTime),
         ),
       ],
     );

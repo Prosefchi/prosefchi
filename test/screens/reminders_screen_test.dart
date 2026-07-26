@@ -11,6 +11,7 @@ import 'package:prosefchi/services/calendar_repository.dart';
 import 'package:prosefchi/services/reminder_store.dart';
 
 import '../support/memory_calendar_store.dart';
+import '../support/pump.dart';
 
 class _MemoryReminderStore implements ReminderStore {
   _MemoryReminderStore([Map<PrayerOccasion, Reminder>? initial])
@@ -75,12 +76,6 @@ class _RecordingScheduler implements ReminderScheduler {
     required String title,
   }) async {
     fastingDays = reminder.enabled ? days : const [];
-  }
-}
-
-Future<void> settle(WidgetTester tester) async {
-  for (var i = 0; i < 20; i++) {
-    await tester.pump(const Duration(milliseconds: 50));
   }
 }
 

@@ -13,6 +13,9 @@ class MemoryCalendarStore implements CalendarStore {
   Future<String?> read(String name) async => entries[name];
 
   @override
+  Future<bool> exists(String name) async => entries.containsKey(name);
+
+  @override
   Future<void> write(String name, String contents) async =>
       entries[name] = contents;
 

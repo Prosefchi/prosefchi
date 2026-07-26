@@ -59,7 +59,7 @@ class _HomeShellState extends State<HomeShell> {
 
     await refreshFastingReminders(
       reminder: reminder,
-      calendars: widget.calendars ?? CalendarRepository(),
+      calendars: widget.calendars ?? sharedCalendarRepository,
       scheduler: widget.scheduler ?? NotificationService(),
       language: language,
       l10n: l10n,

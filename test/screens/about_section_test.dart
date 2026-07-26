@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/screens/about_section.dart';
+import '../support/pump.dart';
 
 PackageInfo info({String version = '1.2.3', String build = '7'}) => PackageInfo(
   appName: 'Orthodox Prayer',
@@ -10,12 +11,6 @@ PackageInfo info({String version = '1.2.3', String build = '7'}) => PackageInfo(
   version: version,
   buildNumber: build,
 );
-
-Future<void> settle(WidgetTester tester) async {
-  for (var i = 0; i < 15; i++) {
-    await tester.pump(const Duration(milliseconds: 50));
-  }
-}
 
 Widget harness({
   Future<PackageInfo> Function()? packageInfo,

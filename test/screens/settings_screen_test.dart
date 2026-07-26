@@ -7,6 +7,7 @@ import 'package:prosefchi/screens/settings_screen.dart';
 import 'package:prosefchi/services/notification_service.dart';
 import 'package:prosefchi/services/reminder_store.dart';
 import 'package:prosefchi/services/settings_controller.dart';
+import '../support/pump.dart';
 
 class _MemorySettingsStore implements SettingsStore {
   _MemorySettingsStore([this.language]);
@@ -80,12 +81,6 @@ class _RecordingScheduler implements ReminderScheduler {
     required String title,
   }) async {
     fastingDays = reminder.enabled ? days : const [];
-  }
-}
-
-Future<void> settle(WidgetTester tester) async {
-  for (var i = 0; i < 20; i++) {
-    await tester.pump(const Duration(milliseconds: 50));
   }
 }
 

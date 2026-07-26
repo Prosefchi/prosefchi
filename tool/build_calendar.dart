@@ -15,6 +15,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:prosefchi/liturgics/paschalion.dart';
 import 'package:prosefchi/models/calendar.dart';
 
 /// The parts a day's description is divided into.
@@ -149,6 +150,33 @@ const feeds = <String, Feed>{
   ),
 };
 
+// Indexing a String allocates a one-character String per character, and this
+// runs over ~32 MB of feed. Comparing code units instead costs nothing.
+const _backslash = 0x5C;
+const _newline = 0x0A;
+const _comma = 0x2C;
+const _semicolon = 0x3B;
+const _lowerN = 0x6E;
+const _upperN = 0x4E;
+
+/// Compiled once and reused across all 3287 entries of both feeds.
+///
+/// Constructing these inside the per-event loop meant roughly forty thousand
+/// regex compilations per build.
+final _dtstart = RegExp(r'DTSTART;VALUE=DATE:(\d{8})');
+final _lastModified = RegExp(r'\nLAST-MODIFIED:(\d{8}T\d{6}Z)');
+final _summary = RegExp(r'\nSUMMARY:(.*)');
+final _description = RegExp(r'\nDESCRIPTION:(.*)');
+final _folded = RegExp(r'\r?\n[ \t]');
+
+/// The language-specific patterns, compiled on first use and kept.
+///
+/// [Feed] is const so it cannot hold them itself, and they are needed once per
+/// event.
+final _compiled = <String, RegExp>{};
+RegExp _pattern(String source) =>
+    _compiled.putIfAbsent(source, () => RegExp(source));
+
 /// Warn when the feed runs this close to its end. GOARCH populates the calendar
 /// in bulk, so a short runway needs to be loud rather than discovered by users.
 const runwayWarningDays = 60;
@@ -159,9 +187,7 @@ Future<void> main(List<String> args) async {
   await outDir.create(recursive: true);
 
   final today = _today();
-  final from =
-      options['from'] ??
-      Calendar.dateKey(today.subtract(const Duration(days: 90)));
+  final from = options['from'] ?? Calendar.dateKey(addDays(today, -90));
   final to = options['to'] ?? '9999-12-31';
 
   for (final entry in feeds.entries) {
@@ -275,21 +301,17 @@ Future<String> _load(String url, String lang, {required bool useCache}) async {
 parseEvents(String ics, Feed feed) {
   // RFC 5545 folds long lines with CRLF + a single space or tab. Unfold before
   // anything else, or DESCRIPTION arrives in 75-octet fragments.
-  final unfolded = ics.replaceAll(RegExp(r'\r?\n[ \t]'), '');
+  final unfolded = ics.replaceAll(_folded, '');
 
   final result = <String, CalendarDay>{};
   final unparsed = <String>[];
   DateTime? sourceUpdatedAt;
 
   for (final block in unfolded.split('BEGIN:VEVENT').skip(1)) {
-    final compact = RegExp(
-      r'DTSTART;VALUE=DATE:(\d{8})',
-    ).firstMatch(block)?.group(1);
+    final compact = _dtstart.firstMatch(block)?.group(1);
     if (compact == null) continue;
 
-    final modified = RegExp(
-      r'\nLAST-MODIFIED:(\d{8}T\d{6}Z)',
-    ).firstMatch(block)?.group(1);
+    final modified = _lastModified.firstMatch(block)?.group(1);
     if (modified != null) {
       final parsed = DateTime.parse(modified);
       if (sourceUpdatedAt == null || parsed.isAfter(sourceUpdatedAt)) {
@@ -300,9 +322,8 @@ parseEvents(String ics, Feed feed) {
     final date =
         '${compact.substring(0, 4)}-${compact.substring(4, 6)}-'
         '${compact.substring(6)}';
-    final summary = RegExp(r'\nSUMMARY:(.*)').firstMatch(block)?.group(1) ?? '';
-    final description =
-        RegExp(r'\nDESCRIPTION:(.*)').firstMatch(block)?.group(1) ?? '';
+    final summary = _summary.firstMatch(block)?.group(1) ?? '';
+    final description = _description.firstMatch(block)?.group(1) ?? '';
 
     final parts = sections(unescapeIcs(description), feed);
     final headline = DayMark.split(unescapeIcs(summary));
@@ -322,7 +343,7 @@ parseEvents(String ics, Feed feed) {
       // stated means an ordinary day, which does not fast.
       fasts:
           saints.fasting != null &&
-          !RegExp(feed.fastFreePattern).hasMatch(saints.fasting!),
+          !_pattern(feed.fastFreePattern).hasMatch(saints.fasting!),
       tone: saints.tone,
       eothinon: saints.eothinon,
       epistle: readingFrom(parts[Section.epistle]),
@@ -374,7 +395,7 @@ commemorations(String? body, Feed feed) {
   int? eothinon;
   final fasting = <String>[];
   final unparsed = <String>[];
-  final isFasting = RegExp(feed.fastingPattern);
+  final isFasting = _pattern(feed.fastingPattern);
 
   for (final paragraph in paragraphs.skip(1)) {
     for (final raw in paragraph.split('\n')) {
@@ -463,24 +484,24 @@ int? _lineStartIndexOf(String text, String marker) {
 String unescapeIcs(String value) {
   final out = StringBuffer();
   for (var i = 0; i < value.length; i++) {
-    if (value[i] != r'\' || i + 1 >= value.length) {
-      out.write(value[i]);
+    final unit = value.codeUnitAt(i);
+    if (unit != _backslash || i + 1 >= value.length) {
+      out.writeCharCode(unit);
       continue;
     }
-    switch (value[++i]) {
-      case 'n':
-      case 'N':
-        out.write('\n');
-      case ',':
-        out.write(',');
-      case ';':
-        out.write(';');
-      case r'\':
-        out.write(r'\');
-      default:
+    switch (value.codeUnitAt(++i)) {
+      case _lowerN:
+      case _upperN:
+        out.writeCharCode(_newline);
+      case final escaped
+          when escaped == _comma ||
+              escaped == _semicolon ||
+              escaped == _backslash:
+        out.writeCharCode(escaped);
+      case final other:
         out
-          ..write(r'\')
-          ..write(value[i]);
+          ..writeCharCode(_backslash)
+          ..writeCharCode(other);
     }
   }
   return out.toString();

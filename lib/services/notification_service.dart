@@ -52,6 +52,24 @@ class NotificationService implements ReminderScheduler {
 
   final FlutterLocalNotificationsPlugin _plugin;
 
+  /// Taken from the flag, so a reminder is recognisably from this app even
+  /// though the icon itself is reduced to a plain cross.
+  static const _brandColour = Color(0xFFBB0602);
+
+  /// How every notification this app posts is presented. Stated once: the two
+  /// kinds differ in how they are scheduled, not in how they look.
+  NotificationDetails _detailsFor(String channelId, String channelName) =>
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          channelName,
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+          color: _brandColour,
+        ),
+        iOS: DarwinNotificationDetails(threadIdentifier: channelId),
+      );
+
   bool _initialized = false;
 
   /// Reminders are wall-clock events: 7am stays 7am across a daylight saving
@@ -149,20 +167,8 @@ class NotificationService implements ReminderScheduler {
       id: reminder.notificationId,
       title: title,
       body: body,
-      scheduledDate: _nextOccurrence(reminder.hour, reminder.minute),
-      notificationDetails: NotificationDetails(
-        android: AndroidNotificationDetails(
-          reminder.channelId,
-          channelName,
-          importance: Importance.defaultImportance,
-          priority: Priority.defaultPriority,
-          // Tints the silhouette and the app name in the shade. Taken from the
-          // flag, so a reminder is recognisably from this app even though the
-          // icon itself is reduced to a plain cross.
-          color: const Color(0xFFBB0602),
-        ),
-        iOS: DarwinNotificationDetails(threadIdentifier: reminder.channelId),
-      ),
+      scheduledDate: nextOccurrence(reminder.hour, reminder.minute),
+      notificationDetails: _detailsFor(reminder.channelId, channelName),
       // Inexact deliberately. Exact alarms need SCHEDULE_EXACT_ALARM, which
       // the user must grant in system settings, or USE_EXACT_ALARM, which Play
       // policy restricts to alarm and calendar apps. A reminder that may drift
@@ -186,21 +192,13 @@ class NotificationService implements ReminderScheduler {
     // Clear the whole block rather than the days about to be rescheduled: the
     // previous refill may have covered dates this one does not, and those
     // would otherwise fire with stale text.
-    for (var i = 0; i < FastingReminder.idCapacity; i++) {
-      await _plugin.cancel(id: FastingReminder.idBase + i);
-    }
+    await Future.wait([
+      for (var i = 0; i < FastingReminder.idCapacity; i++)
+        _plugin.cancel(id: FastingReminder.idBase + i),
+    ]);
     if (!reminder.enabled) return;
 
-    final details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        reminder.channelId,
-        channelName,
-        importance: Importance.defaultImportance,
-        priority: Priority.defaultPriority,
-        color: const Color(0xFFBB0602),
-      ),
-      iOS: DarwinNotificationDetails(threadIdentifier: reminder.channelId),
-    );
+    final details = _detailsFor(reminder.channelId, channelName);
 
     for (var i = 0; i < days.length && i < FastingReminder.idCapacity; i++) {
       final day = days[i];
@@ -226,16 +224,6 @@ class NotificationService implements ReminderScheduler {
         // on its own day, and is replaced at the next refill.
       );
     }
-  }
-
-  Future<void> cancel(Reminder reminder) async {
-    await initialize();
-    await _plugin.cancel(id: reminder.notificationId);
-  }
-
-  Future<void> cancelAll() async {
-    await initialize();
-    await _plugin.cancelAll();
   }
 
   /// Today at that time, or tomorrow if it has already passed.
@@ -268,7 +256,4 @@ class NotificationService implements ReminderScheduler {
             minute,
           );
   }
-
-  tz.TZDateTime _nextOccurrence(int hour, int minute) =>
-      nextOccurrence(hour, minute);
 }

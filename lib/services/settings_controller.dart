@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'calendar_repository.dart' show supportedLanguages;
+import 'calendar_repository.dart' show languageFor, supportedLanguages;
 
 /// Persists the app-level settings.
 ///
@@ -98,10 +98,8 @@ class SettingsController extends ChangeNotifier {
   }
 
   /// The device's language if we publish it, otherwise English.
-  static String deviceLanguage() {
-    final code = PlatformDispatcher.instance.locale.languageCode;
-    return supportedLanguages.contains(code) ? code : supportedLanguages.first;
-  }
+  static String deviceLanguage() =>
+      languageFor(PlatformDispatcher.instance.locale);
 }
 
 /// Makes the controller reachable from any screen, and rebuilds them when it

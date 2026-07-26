@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' show Locale;
 import 'dart:io' show HttpStatus;
 
 import 'package:flutter/foundation.dart';
@@ -12,6 +13,24 @@ import 'calendar_store.dart';
 /// ISO 639-1 codes, because that is what `intl` and Flutter's localization
 /// tooling expect: Greek is `el`, not `gr`.
 const supportedLanguages = ['en', 'el'];
+
+/// The content language for [locale], clamped to what we actually publish.
+///
+/// One definition: every screen asks this question and a private copy in each
+/// was four places to keep in step.
+String languageFor(Locale locale) =>
+    supportedLanguages.contains(locale.languageCode)
+    ? locale.languageCode
+    : supportedLanguages.first;
+
+/// The repository used wherever one is not injected.
+///
+/// Shared on purpose. Parsing a year of Greek readings is not free and the
+/// cache inside a repository is per-instance, so three screens each building
+/// their own meant reading and parsing the same stored calendar three times a
+/// launch — and leaking two `http.Client`s along with it. Lazily created on
+/// first use, and lives as long as the app, so nothing disposes it.
+final sharedCalendarRepository = CalendarRepository();
 
 /// Where the published calendar is served from.
 ///
@@ -66,12 +85,17 @@ class CalendarRepository {
   /// cheap.
   Future<bool> refresh(String language) async {
     try {
-      final etag = await _store.read(_etagName(language));
-      final stored = await _store.read(_jsonName(language));
+      // Both are independent, and neither reads the calendar body: a 304 with
+      // no stored copy would leave us with nothing, so the conditional request
+      // is only sent when there is something to fall back on.
+      final (etag, stored) = await (
+        _store.read(_etagName(language)),
+        _store.exists(_jsonName(language)),
+      ).wait;
 
       final response = await _client.get(
         _baseUrl.resolve(_jsonName(language)),
-        headers: {'If-None-Match': ?(stored == null ? null : etag)},
+        headers: {'If-None-Match': ?(stored ? etag : null)},
       );
 
       if (response.statusCode == HttpStatus.notModified) return false;

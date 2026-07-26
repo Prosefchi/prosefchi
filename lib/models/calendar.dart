@@ -4,6 +4,8 @@
 // them via toJson, and the app reads them back with fromJson. One definition
 // means the generator and the reader cannot drift apart.
 
+import '../liturgics/paschalion.dart';
+
 /// A marker GOARCH prefixes to a day's title.
 ///
 /// These encode the fasting allowance and the rank of the feast. They appear
@@ -32,12 +34,7 @@ enum DayMark {
   /// The bare codepoint, without the variation selector upstream appends.
   final String symbol;
 
-  static DayMark? byName(String name) {
-    for (final mark in values) {
-      if (mark.name == name) return mark;
-    }
-    return null;
-  }
+  static DayMark? byName(String name) => values.asNameMap()[name];
 
   /// Splits the markers off a raw title.
   ///
@@ -260,14 +257,7 @@ class Calendar {
   }
 
   /// Days of coverage left after [from]. Negative once the feed has lapsed.
-  ///
-  /// Compares in UTC: a local subtraction spanning a daylight-saving change
-  /// loses an hour and truncates to a day short.
-  int runwayFrom(DateTime from) => DateTime.utc(
-    end.year,
-    end.month,
-    end.day,
-  ).difference(DateTime.utc(from.year, from.month, from.day)).inDays;
+  int runwayFrom(DateTime from) => daysBetween(from, end);
 
   Map<String, dynamic> toJson() => {
     'language': language,

@@ -1,8 +1,4 @@
-import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/prayer.dart';
@@ -12,19 +8,8 @@ import 'package:prosefchi/services/document_repository.dart';
 import 'package:prosefchi/services/notification_service.dart';
 import 'package:prosefchi/services/reminder_store.dart';
 import 'package:prosefchi/services/settings_controller.dart';
-
-class _FakeBundle extends CachingAssetBundle {
-  _FakeBundle(this.contents);
-
-  final Map<String, String> contents;
-
-  @override
-  Future<ByteData> load(String key) async {
-    final value = contents[key];
-    if (value == null) throw FlutterError('Unable to load asset: "$key".');
-    return ByteData.sublistView(utf8.encode(value));
-  }
-}
+import '../support/pump.dart';
+import '../support/fake_bundle.dart';
 
 class _MemorySettingsStore implements SettingsStore {
   _MemorySettingsStore({this.language});
@@ -113,12 +98,6 @@ const welcomeEl = '''
 Η Προσευχή έχει πρόχειρη την εορτή της ημέρας.
 ''';
 
-Future<void> settle(WidgetTester tester) async {
-  for (var i = 0; i < 25; i++) {
-    await tester.pump(const Duration(milliseconds: 50));
-  }
-}
-
 Future<Widget> harness(
   SettingsController controller, {
   ReminderStore? reminderStore,
@@ -135,7 +114,7 @@ Future<Widget> harness(
         supportedLocales: AppLocalizations.supportedLocales,
         home: OnboardingScreen(
           documents: DocumentRepository(
-            bundle: _FakeBundle({
+            bundle: FakeBundle({
               'res/welcome_en.md': welcomeEn,
               'res/welcome_el.md': welcomeEl,
             }),

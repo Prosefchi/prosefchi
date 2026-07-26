@@ -9,6 +9,7 @@ import 'package:prosefchi/screens/today_screen.dart';
 import 'package:prosefchi/services/calendar_repository.dart';
 
 import '../support/memory_calendar_store.dart';
+import '../support/pump.dart';
 
 String calendarJson({
   String language = 'en',
@@ -50,17 +51,6 @@ String calendarJson({
     },
   },
 });
-
-/// Pumps a bounded number of frames.
-///
-/// `pumpAndSettle` cannot be used here: it runs until no frame is scheduled,
-/// and the loading spinner schedules one forever, so it spins until its own
-/// timeout instead of returning.
-Future<void> settle(WidgetTester tester) async {
-  for (var i = 0; i < 20; i++) {
-    await tester.pump(const Duration(milliseconds: 50));
-  }
-}
 
 void main() {
   CalendarRepository repositoryServing(String? body) => CalendarRepository(

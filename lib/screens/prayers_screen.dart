@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/occasion_labels.dart';
 import '../models/prayer.dart';
-import '../services/calendar_repository.dart' show supportedLanguages;
+import '../services/calendar_repository.dart' show languageFor;
 import '../services/prayer_repository.dart';
 import 'occasion_ui.dart';
 import 'settings_screen.dart';
@@ -30,7 +30,7 @@ class _PrayersScreenState extends State<PrayersScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final language = _languageFor(Localizations.localeOf(context));
+    final language = languageFor(Localizations.localeOf(context));
     if (language == _language) return;
     _language = language;
     _load(language);
@@ -38,21 +38,23 @@ class _PrayersScreenState extends State<PrayersScreen> {
 
   Future<void> _load(String language) async {
     setState(() => _loading = true);
-    final loaded = <PrayerOccasion, PrayerSet?>{};
-    for (final occasion in PrayerOccasion.values) {
-      loaded[occasion] = await _repository.load(occasion, language);
-    }
+    // Eight independent asset reads. Serialized they cost eight round trips,
+    // and HomeShell's IndexedStack means this runs at launch rather than when
+    // the tab is first opened.
+    final sets = await Future.wait([
+      for (final occasion in PrayerOccasion.values)
+        _repository.load(occasion, language),
+    ]);
+    final loaded = {
+      for (final (index, occasion) in PrayerOccasion.values.indexed)
+        occasion: sets[index],
+    };
     if (!mounted) return;
     setState(() {
       _sets = loaded;
       _loading = false;
     });
   }
-
-  static String _languageFor(Locale locale) =>
-      supportedLanguages.contains(locale.languageCode)
-      ? locale.languageCode
-      : supportedLanguages.first;
 
   @override
   Widget build(BuildContext context) {
@@ -76,12 +78,10 @@ class _PrayersScreenState extends State<PrayersScreen> {
           : ListView(
               children: [
                 for (final occasion in PrayerOccasion.values) ...[
-                  if (occasion.index == 0 ||
-                      PrayerOccasion.values[occasion.index - 1].group !=
-                          occasion.group)
+                  if (startsGroup(occasion))
                     GroupHeading(
+                      occasion: occasion,
                       label: l10n.groupLabel(occasion.group),
-                      first: occasion.index == 0,
                     ),
                   _PrayerTile(
                     icon: occasionIcon(occasion),

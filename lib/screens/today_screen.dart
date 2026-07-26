@@ -31,7 +31,7 @@ class TodayScreen extends StatefulWidget {
 
 class _TodayScreenState extends State<TodayScreen> {
   late final CalendarRepository _repository =
-      widget.repository ?? CalendarRepository();
+      widget.repository ?? sharedCalendarRepository;
 
   late final DateTime _date = widget.date ?? DateTime.now();
 
@@ -45,16 +45,10 @@ class _TodayScreenState extends State<TodayScreen> {
     super.didChangeDependencies();
     // The locale is not available in initState. Reload only when the language
     // actually changes, since this fires for unrelated dependency changes too.
-    final language = _languageFor(Localizations.localeOf(context));
+    final language = languageFor(Localizations.localeOf(context));
     if (language == _language) return;
     _language = language;
     _load(language);
-  }
-
-  @override
-  void dispose() {
-    if (widget.repository == null) _repository.dispose();
-    super.dispose();
   }
 
   /// Reads the stored calendar, then refreshes behind it.
@@ -91,11 +85,6 @@ class _TodayScreenState extends State<TodayScreen> {
   Future<void> _retry() async {
     if (_language case final language?) await _load(language);
   }
-
-  static String _languageFor(Locale locale) =>
-      supportedLanguages.contains(locale.languageCode)
-      ? locale.languageCode
-      : supportedLanguages.first;
 
   /// The fasting rule worked out from the Paschalion, for days upstream does
   /// not cover. Names the season where there is one, since that says more than
@@ -256,8 +245,15 @@ class _DayHeader extends StatelessWidget {
   List<Widget> _pills(AppLocalizations l10n) => [
     for (final mark in marks)
       if (fasting == null || mark == DayMark.majorFeast)
-        _MarkChip(mark: mark, label: _markLabel(l10n, mark)),
-    if (fasting case final rule?) _FastingPill(rule: rule),
+        _Pill(
+          leading: Text(mark.symbol, style: const TextStyle(fontSize: 13)),
+          label: _markLabel(l10n, mark),
+        ),
+    if (fasting case final rule?)
+      _Pill(
+        leading: const Icon(Icons.restaurant_outlined, size: 13),
+        label: rule,
+      ),
   ];
 
   static String _markLabel(AppLocalizations l10n, DayMark mark) =>
@@ -269,10 +265,10 @@ class _DayHeader extends StatelessWidget {
       };
 }
 
-class _MarkChip extends StatelessWidget {
-  const _MarkChip({required this.mark, required this.label});
+class _Pill extends StatelessWidget {
+  const _Pill({required this.leading, required this.label});
 
-  final DayMark mark;
+  final Widget leading;
   final String label;
 
   @override
@@ -284,45 +280,15 @@ class _MarkChip extends StatelessWidget {
         color: theme.colorScheme.surface.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(20),
       ),
+      // The fasting rule can be a long sentence, and a Wrap gives its children
+      // unbounded width, so without Flexible the pill runs off the edge rather
+      // than wrapping inside it.
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(mark.symbol, style: const TextStyle(fontSize: 13)),
+          leading,
           const SizedBox(width: 6),
-          Text(label, style: theme.textTheme.labelMedium),
-        ],
-      ),
-    );
-  }
-}
-
-class _FastingPill extends StatelessWidget {
-  const _FastingPill({required this.rule});
-
-  final String rule;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      // The rule can be a long sentence — "Fast Day (Dairy, Eggs, and Fish
-      // Allowed)" — and a Wrap gives its children unbounded width, so without
-      // Flexible the pill runs off the edge rather than wrapping inside it.
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.restaurant_outlined,
-            size: 13,
-            color: theme.colorScheme.onSurface,
-          ),
-          const SizedBox(width: 6),
-          Flexible(child: Text(rule, style: theme.textTheme.labelMedium)),
+          Flexible(child: Text(label, style: theme.textTheme.labelMedium)),
         ],
       ),
     );

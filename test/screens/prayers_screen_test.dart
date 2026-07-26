@@ -1,27 +1,12 @@
-import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/prayer.dart';
 import 'package:prosefchi/screens/occasion_ui.dart';
 import 'package:prosefchi/screens/prayers_screen.dart';
 import 'package:prosefchi/services/prayer_repository.dart';
-
-class _FakeBundle extends CachingAssetBundle {
-  _FakeBundle(this.contents);
-
-  final Map<String, String> contents;
-
-  @override
-  Future<ByteData> load(String key) async {
-    final value = contents[key];
-    if (value == null) throw FlutterError('Unable to load asset: "$key".');
-    return ByteData.sublistView(utf8.encode(value));
-  }
-}
+import '../support/pump.dart';
+import '../support/fake_bundle.dart';
 
 const morning = '''
 # Morning Prayers
@@ -39,12 +24,6 @@ const placeholderMidday = '''
 > [Awaiting text: the midday rule.]
 ''';
 
-Future<void> settle(WidgetTester tester) async {
-  for (var i = 0; i < 20; i++) {
-    await tester.pump(const Duration(milliseconds: 50));
-  }
-}
-
 Widget harness(
   Map<String, String> assets, {
   Locale locale = const Locale('en'),
@@ -52,9 +31,7 @@ Widget harness(
   locale: locale,
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
-  home: PrayersScreen(
-    repository: PrayerRepository(bundle: _FakeBundle(assets)),
-  ),
+  home: PrayersScreen(repository: PrayerRepository(bundle: FakeBundle(assets))),
 );
 
 void main() {
