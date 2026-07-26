@@ -29,6 +29,7 @@ class Feed {
   const Feed({
     required this.url,
     required this.markers,
+    required this.fastingPattern,
     this.tones = const {},
     this.eothina = const {},
   });
@@ -44,6 +45,16 @@ class Feed {
 
   /// The eleven resurrectional Matins gospels as upstream names them.
   final Map<String, int> eothina;
+
+  /// Recognises a line as a statement about fasting.
+  ///
+  /// A whitelist of the exact phrasings would be brittle — there are five in
+  /// English and nine in Greek, and upstream is free to add more — so this
+  /// matches the vocabulary they are all built from instead. Anything in that
+  /// slot which does not match is reported rather than shown, because a line
+  /// there is occasionally a feast name and rendering it as the fasting rule
+  /// states something false about the day.
+  final String fastingPattern;
 }
 
 const feeds = <String, Feed>{
@@ -54,7 +65,7 @@ const feeds = <String, Feed>{
     markers: {
       Section.saints: ['Saints and Feasts:'],
       Section.epistle: ['Epistle Reading:'],
-      Section.gospel: ['Gospel Reading:'],
+      Section.gospel: ['Gospel Reading:', 'Gospel Readings:'],
       Section.matinsGospel: ['Matins Gospel Reading:'],
       Section.oldTestament: [
         'Old Testament Readings:',
@@ -71,6 +82,7 @@ const feeds = <String, Feed>{
       'Grave Tone': 7,
       'Plagal of the Fourth Tone': 8,
     },
+    fastingPattern: r'\bFast\b|\bAbstain|Allowed',
     eothina: {
       'First Orthros Gospel': 1,
       'Second Orthros Gospel': 2,
@@ -108,6 +120,8 @@ const feeds = <String, Feed>{
       'Ηχος βαρύς': 7,
       "Ηχος πλ. δ'": 8,
     },
+    fastingPattern:
+        r'Νηστεί|νηστεί|Κατάλυσ|κατάλυσ|ξηροφαγ|ξεροφαγ|Ἀποχή|Αποχή',
     eothina: {
       "Εωθ. Α'": 1,
       "Εωθ. Β'": 2,
@@ -175,6 +189,19 @@ Future<void> main(List<String> args) async {
     final file = File('${outDir.path}/calendar.$lang.json');
     await file.writeAsString(jsonEncode(calendar.toJson()));
 
+    if (parsed.unparsed.isNotEmpty) {
+      // Loud on purpose. A line here is a format upstream has changed or a
+      // header we do not know, and the previous one of those showed the wrong
+      // Gospel on 648 days before anyone noticed.
+      stdout.writeln(
+        '  WARNING: $lang has ${parsed.unparsed.length} unrecognised '
+        'line(s) in the saints section:',
+      );
+      for (final line in parsed.unparsed.take(5)) {
+        stdout.writeln('    $line');
+      }
+    }
+
     final withReadings = keys.where((k) => parsed.days[k]!.hasReadings).length;
     final withFasting = keys
         .where((k) => parsed.days[k]!.fasting != null)
@@ -229,15 +256,18 @@ Future<String> _load(String url, String lang, {required bool useCache}) async {
 /// That timestamp is taken across the whole feed rather than the emitted
 /// window, because it answers "has upstream changed at all", which is what
 /// decides whether a rebuild is meaningful.
-({Map<String, CalendarDay> days, DateTime? sourceUpdatedAt}) parseEvents(
-  String ics,
-  Feed feed,
-) {
+({
+  Map<String, CalendarDay> days,
+  DateTime? sourceUpdatedAt,
+  List<String> unparsed,
+})
+parseEvents(String ics, Feed feed) {
   // RFC 5545 folds long lines with CRLF + a single space or tab. Unfold before
   // anything else, or DESCRIPTION arrives in 75-octet fragments.
   final unfolded = ics.replaceAll(RegExp(r'\r?\n[ \t]'), '');
 
   final result = <String, CalendarDay>{};
+  final unparsed = <String>[];
   DateTime? sourceUpdatedAt;
 
   for (final block in unfolded.split('BEGIN:VEVENT').skip(1)) {
@@ -266,6 +296,9 @@ Future<String> _load(String url, String lang, {required bool useCache}) async {
     final parts = sections(unescapeIcs(description), feed);
     final headline = DayMark.split(unescapeIcs(summary));
     final saints = commemorations(parts[Section.saints], feed);
+    for (final line in saints.unparsed) {
+      unparsed.add('$date  $line');
+    }
 
     result[date] = CalendarDay(
       date: DateTime.parse(date),
@@ -281,7 +314,7 @@ Future<String> _load(String url, String lang, {required bool useCache}) async {
       oldTestament: readingFrom(parts[Section.oldTestament]),
     );
   }
-  return (days: result, sourceUpdatedAt: sourceUpdatedAt);
+  return (days: result, sourceUpdatedAt: sourceUpdatedAt, unparsed: unparsed);
 }
 
 /// Splits the saints section into everything upstream packs into it.
@@ -296,9 +329,21 @@ Future<String> _load(String url, String lang, {required bool useCache}) async {
 ///
 /// Splitting the whole section on `;` glued all of it onto the last saint, and
 /// in Greek, where `;` is the question mark, chopped prose into fragments.
-({List<String> saints, String? fasting, int? tone, int? eothinon})
+({
+  List<String> saints,
+  String? fasting,
+  int? tone,
+  int? eothinon,
+  List<String> unparsed,
+})
 commemorations(String? body, Feed feed) {
-  const empty = (saints: <String>[], fasting: null, tone: null, eothinon: null);
+  const empty = (
+    saints: <String>[],
+    fasting: null,
+    tone: null,
+    eothinon: null,
+    unparsed: <String>[],
+  );
   if (body == null || body.isEmpty) return empty;
 
   final paragraphs = body
@@ -311,6 +356,8 @@ commemorations(String? body, Feed feed) {
   int? tone;
   int? eothinon;
   final fasting = <String>[];
+  final unparsed = <String>[];
+  final isFasting = RegExp(feed.fastingPattern);
 
   for (final paragraph in paragraphs.skip(1)) {
     for (final raw in paragraph.split('\n')) {
@@ -320,8 +367,10 @@ commemorations(String? body, Feed feed) {
         tone = value;
       } else if (feed.eothina[line] case final value?) {
         eothinon = value;
-      } else {
+      } else if (isFasting.hasMatch(line)) {
         fasting.add(line);
+      } else {
+        unparsed.add(line);
       }
     }
   }
@@ -335,6 +384,7 @@ commemorations(String? body, Feed feed) {
     fasting: fasting.isEmpty ? null : fasting.join(' '),
     tone: tone,
     eothinon: eothinon,
+    unparsed: unparsed,
   );
 }
 

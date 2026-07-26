@@ -42,6 +42,7 @@ void main() {
         description,
         const Feed(
           url: 'x',
+          fastingPattern: r'\bFast\b',
           markers: {
             Section.saints: ['Saints and Feasts:'],
             Section.gospel: ['Gospel Reading:'],
@@ -132,6 +133,43 @@ void main() {
       );
       expect(commemorations("A\n\nΗχος βαρύς", feeds['el']!).tone, 7);
       expect(commemorations("A\n\nΗχος πλ. δ'", feeds['el']!).tone, 8);
+    });
+
+    test('does not report a feast name as the fasting rule', () {
+      // Upstream occasionally puts the feast in that slot. Rendering it as the
+      // fasting rule states something false about the day, so it is set aside
+      // and reported at build time instead.
+      final result = commemorations(
+        'Christ is born\n\nThe Theophany of Our Lord and Saviour Jesus Christ',
+        feeds['en']!,
+      );
+
+      expect(result.fasting, isNull);
+      expect(result.unparsed, [
+        'The Theophany of Our Lord and Saviour Jesus Christ',
+      ]);
+    });
+
+    test('recognises a fasting rule that never says the word fast', () {
+      // "Wine & Oil Allowed" appears once and matches no other phrasing. The
+      // build-time warning is what surfaced it.
+      final result = commemorations('A\n\nWine & Oil Allowed', feeds['en']!);
+
+      expect(result.fasting, 'Wine & Oil Allowed');
+      expect(result.unparsed, isEmpty);
+    });
+
+    test('reads the plural Gospel Readings header', () {
+      // Holy Week 2018 and 2019 use it. Unlisted, it swallowed the gospel text
+      // into the saints section on six days.
+      final parts = sections(
+        'Saints and Feasts: Holy Wednesday\n\n'
+        'Gospel Readings: John 12:17-50\nAt that time, the crowd.',
+        feeds['en']!,
+      );
+
+      expect(parts[Section.gospel], startsWith('John 12:17-50'));
+      expect(parts[Section.saints], 'Holy Wednesday');
     });
 
     test('reads the Greek eothinon numerals', () {
