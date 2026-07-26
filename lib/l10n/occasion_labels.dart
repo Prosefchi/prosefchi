@@ -7,6 +7,11 @@ import 'app_localizations.dart';
 /// baked into a scheduled notification. Three copies of this switch would be
 /// three chances for a notification to call a rule something the list does not.
 extension PrayerOccasionLabels on AppLocalizations {
+  String groupLabel(PrayerGroup group) => switch (group) {
+    PrayerGroup.daily => prayerGroupDaily,
+    PrayerGroup.liturgy => prayerGroupLiturgy,
+  };
+
   String occasionLabel(PrayerOccasion occasion) => switch (occasion) {
     PrayerOccasion.morning => prayerMorning,
     PrayerOccasion.midday => prayerMidday,

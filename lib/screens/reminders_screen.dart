@@ -185,7 +185,16 @@ class _ReminderListState extends State<ReminderList> {
               ),
             ),
           ),
-        for (final occasion in PrayerOccasion.values)
+        for (final occasion in PrayerOccasion.values) ...[
+          // A heading at each change of group. The enum is ordered so every
+          // group is contiguous, so this is a comparison with the previous
+          // entry rather than a separate grouping pass.
+          if (occasion.index == 0 ||
+              PrayerOccasion.values[occasion.index - 1].group != occasion.group)
+            _GroupHeading(
+              label: l10n.groupLabel(occasion.group),
+              first: occasion.index == 0,
+            ),
           if (_reminders[occasion] case final reminder?)
             SwitchListTile(
               value: reminder.enabled,
@@ -209,6 +218,7 @@ class _ReminderListState extends State<ReminderList> {
                     )
                   : null,
             ),
+        ],
         // Set apart because it is a different kind of reminder: it fires on
         // some days and not others, where every rule above fires daily.
         const Divider(height: 24),
@@ -267,4 +277,37 @@ class RemindersScreen extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _GroupHeading extends StatelessWidget {
+  const _GroupHeading({required this.label, required this.first});
+
+  final String label;
+
+  /// The first heading needs no rule above it; the page edge already separates
+  /// it from what came before.
+  final bool first;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!first) const Divider(height: 24),
+        Padding(
+          padding: EdgeInsets.fromLTRB(16, first ? 16 : 0, 16, 4),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }

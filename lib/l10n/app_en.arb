@@ -45,6 +45,14 @@
     "description": "Prayers of thanksgiving after receiving Communion."
   },
   "prayerNotAvailable": "Not yet available",
+  "prayerGroupDaily": "Daily",
+  "@prayerGroupDaily": {
+    "description": "Heading over the rules tied to the hours of the day and to meals."
+  },
+  "prayerGroupLiturgy": "Liturgy",
+  "@prayerGroupLiturgy": {
+    "description": "Heading over the rules tied to the Divine Liturgy rather than the clock."
+  },
   "@prayerNotAvailable": {
     "description": "Shown for a rule whose text has not been added yet."
   },

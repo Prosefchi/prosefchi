@@ -23,6 +23,32 @@ void main() {
     });
   });
 
+  group('grouping', () {
+    test('each group is contiguous in declaration order', () {
+      // The reminders list emits a heading whenever the group changes from the
+      // previous entry, so a group split across the list would render twice.
+      final seen = <PrayerGroup>{};
+      PrayerGroup? previous;
+      for (final occasion in PrayerOccasion.values) {
+        if (occasion.group != previous) {
+          expect(
+            seen.add(occasion.group),
+            isTrue,
+            reason: '${occasion.group} appears in more than one run',
+          );
+          previous = occasion.group;
+        }
+      }
+    });
+
+    test('Communion is liturgical, the rest daily', () {
+      expect(PrayerOccasion.beforeCommunion.group, PrayerGroup.liturgy);
+      expect(PrayerOccasion.afterCommunion.group, PrayerGroup.liturgy);
+      expect(PrayerOccasion.morning.group, PrayerGroup.daily);
+      expect(PrayerOccasion.beforeMeal.group, PrayerGroup.daily);
+    });
+  });
+
   group('identity', () {
     test('notification ids are unique across occasions', () {
       final ids = PrayerOccasion.values

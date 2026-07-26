@@ -12,6 +12,8 @@
   "prayerBeforeCommunion": "Πρὸ τῆς Θείας Κοινωνίας",
   "prayerAfterCommunion": "Μετὰ τὴν Θείαν Κοινωνίαν",
   "prayerNotAvailable": "Δεν είναι ακόμη διαθέσιμο",
+  "prayerGroupDaily": "Καθημερινά",
+  "prayerGroupLiturgy": "Θεία Λειτουργία",
   "reminders": "Υπενθυμίσεις",
   "reminderBody": "Ώρα για προσευχή",
   "reminderPermissionDenied": "Οι ειδοποιήσεις είναι απενεργοποιημένες. Ενεργοποιήστε τες από τις ρυθμίσεις.",

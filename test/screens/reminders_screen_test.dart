@@ -222,6 +222,38 @@ void main() {
     expect(find.text('Off'), findsNWidgets(PrayerOccasion.values.length));
   });
 
+  testWidgets('groups the rules by kind', (tester) async {
+    // Communion is not a daily rule: someone who receives monthly wants it on
+    // a different footing from a morning one.
+    await tester.pumpWidget(
+      harness(_MemoryReminderStore(), _RecordingScheduler()),
+    );
+    await settle(tester);
+
+    expect(find.text('Daily'), findsOneWidget);
+    expect(find.text('Liturgy'), findsOneWidget);
+  });
+
+  testWidgets('puts a heading at each change of group, and no more', (
+    tester,
+  ) async {
+    // The enum is ordered so each group is contiguous, so one heading per
+    // group rather than one per row.
+    await tester.pumpWidget(
+      harness(_MemoryReminderStore(), _RecordingScheduler()),
+    );
+    await settle(tester);
+
+    final groups = PrayerOccasion.values.map((o) => o.group).toSet();
+    expect(groups, hasLength(2));
+    for (final group in groups) {
+      expect(
+        PrayerOccasion.values.where((o) => o.group == group).length,
+        greaterThan(0),
+      );
+    }
+  });
+
   testWidgets('offers a fasting reminder alongside the prayer rules', (
     tester,
   ) async {
@@ -298,6 +330,8 @@ void main() {
     await settle(tester);
 
     expect(find.text('Υπενθυμίσεις'), findsOneWidget);
+    expect(find.text('Καθημερινά'), findsOneWidget);
+    expect(find.text('Θεία Λειτουργία'), findsOneWidget);
     expect(find.text('Πρωί'), findsOneWidget);
     expect(find.text('Ανενεργό'), findsWidgets);
   });

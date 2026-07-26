@@ -14,6 +14,19 @@ typedef PrayerHeading = MarkupHeading;
 typedef PrayerRubric = MarkupNote;
 typedef PrayerText = MarkupText;
 
+/// What kind of occasion a prayer rule belongs to.
+///
+/// Declaration order is display order, and [PrayerOccasion] is already ordered
+/// so each group is contiguous.
+enum PrayerGroup {
+  /// Tied to the hours of the day, and to meals, which come round daily too.
+  daily,
+
+  /// Tied to the Divine Liturgy rather than to the clock. Someone who receives
+  /// monthly wants these on a different footing from a morning rule.
+  liturgy,
+}
+
 /// An occasion the app offers a rule for.
 ///
 /// Not "time of day": meals and Communion are occasions rather than hours, and
@@ -23,18 +36,20 @@ typedef PrayerText = MarkupText;
 /// [slug] is stated rather than derived from [name], so the asset filenames
 /// stay snake_case while the Dart identifiers stay camelCase.
 enum PrayerOccasion {
-  morning('morning'),
-  midday('midday'),
-  night('night'),
-  compline('compline'),
-  beforeMeal('before_meal'),
-  afterMeal('after_meal'),
-  beforeCommunion('before_communion'),
-  afterCommunion('after_communion');
+  morning('morning', PrayerGroup.daily),
+  midday('midday', PrayerGroup.daily),
+  night('night', PrayerGroup.daily),
+  compline('compline', PrayerGroup.daily),
+  beforeMeal('before_meal', PrayerGroup.daily),
+  afterMeal('after_meal', PrayerGroup.daily),
+  beforeCommunion('before_communion', PrayerGroup.liturgy),
+  afterCommunion('after_communion', PrayerGroup.liturgy);
 
-  const PrayerOccasion(this.slug);
+  const PrayerOccasion(this.slug, this.group);
 
   final String slug;
+
+  final PrayerGroup group;
 
   String assetPath(String language) => 'res/prayers/${slug}_$language.md';
 }
