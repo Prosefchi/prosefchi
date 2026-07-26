@@ -79,9 +79,11 @@ void main() {
     await tester.pumpWidget(harness(repositoryServing(calendarJson())));
     await settle(tester);
 
-    expect(find.text('Paraskeve the Righteous Martyr'), findsWidgets);
-    expect(find.text('Hermolaos the Holy Martyr'), findsNothing);
-    expect(find.text('· Hermolaos the Holy Martyr'), findsOneWidget);
+    // Once as the headline, once in the commemorations list.
+    expect(find.text('Paraskeve the Righteous Martyr'), findsNWidgets(2));
+    // The bullet is drawn rather than prefixed to the string, so the name is
+    // the whole of the text a screen reader announces.
+    expect(find.text('Hermolaos the Holy Martyr'), findsOneWidget);
     expect(find.text('Mark 5:24-34'), findsOneWidget);
     expect(find.text('Gospel'), findsOneWidget);
 
@@ -157,6 +159,40 @@ void main() {
     await settle(tester);
 
     expect(find.text('Saints and Feasts'), findsNothing);
-    expect(find.text('· Paraskeve the Righteous Martyr'), findsNothing);
+    expect(
+      find.text('Paraskeve the Righteous Martyr'),
+      findsOneWidget,
+      reason: 'the headline only, with no list repeating it',
+    );
+  });
+
+  testWidgets('folds the reading text away behind its citation', (
+    tester,
+  ) async {
+    // Two passages of several hundred words each is what turned this page
+    // into a slab. The citation is what people scan for.
+    await tester.pumpWidget(harness(repositoryServing(calendarJson())));
+    await settle(tester);
+
+    const passage =
+        'At that time, a great crowd followed him and thronged about him.';
+    expect(find.text('Mark 5:24-34'), findsOneWidget);
+    expect(find.text(passage), findsNothing);
+
+    await tester.tap(find.text('Gospel'));
+    await settle(tester);
+
+    expect(find.text(passage), findsOneWidget);
+  });
+
+  testWidgets('shows the distance from Pascha even with a full day', (
+    tester,
+  ) async {
+    // Computed rather than fetched, so it is present in every state and the
+    // no-data screen keeps the same shape as this one.
+    await tester.pumpWidget(harness(repositoryServing(calendarJson())));
+    await settle(tester);
+
+    expect(find.text('105 days after Pascha'), findsOneWidget);
   });
 }
