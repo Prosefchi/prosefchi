@@ -1,0 +1,43 @@
+name: Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Only the newest push on a branch matters, so supersede rather than queue.
+# The opposite of the calendar workflow, where a cancelled run would mean a
+# missed deploy.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Only tracked sources. The generated localizations under lib/l10n are
+      # gitignored and not ours to keep formatted.
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')
+
+      # --fatal-infos deliberately: the info-level lints have already caught a
+      # real improvement here, and letting them accumulate makes the signal
+      # worthless.
+      - run: flutter analyze --fatal-infos
+
+      - run: flutter test

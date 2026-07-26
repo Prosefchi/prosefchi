@@ -44,6 +44,11 @@ jobs:
 
       - run: flutter pub get
 
+      # The generator writes through lib/models/calendar.dart, so a break there
+      # would publish malformed data to every client. Cheap gate for the cost of
+      # a few seconds on a job that already has the SDK warm.
+      - run: flutter test
+
       - name: Build calendar
         run: |
           set -eo pipefail
