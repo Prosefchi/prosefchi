@@ -11,24 +11,35 @@ import 'calendar_repository.dart' show supportedLanguages;
 abstract interface class SettingsStore {
   Future<String?> readLanguage();
   Future<void> writeLanguage(String? language);
+  Future<bool> readOnboardingSeen();
+  Future<void> writeOnboardingSeen(bool seen);
 }
 
 class PreferencesSettingsStore implements SettingsStore {
-  static const _key = 'settings.language';
+  static const _languageKey = 'settings.language';
+  static const _onboardingKey = 'settings.onboardingSeen';
 
   @override
   Future<String?> readLanguage() async =>
-      (await SharedPreferences.getInstance()).getString(_key);
+      (await SharedPreferences.getInstance()).getString(_languageKey);
 
   @override
   Future<void> writeLanguage(String? language) async {
     final preferences = await SharedPreferences.getInstance();
     if (language == null) {
-      await preferences.remove(_key);
+      await preferences.remove(_languageKey);
     } else {
-      await preferences.setString(_key, language);
+      await preferences.setString(_languageKey, language);
     }
   }
+
+  @override
+  Future<bool> readOnboardingSeen() async =>
+      (await SharedPreferences.getInstance()).getBool(_onboardingKey) ?? false;
+
+  @override
+  Future<void> writeOnboardingSeen(bool seen) async =>
+      (await SharedPreferences.getInstance()).setBool(_onboardingKey, seen);
 }
 
 /// Holds the settings the whole app reads, and notifies when they change.
@@ -43,6 +54,13 @@ class SettingsController extends ChangeNotifier {
   final SettingsStore _store;
 
   String? _language;
+  bool _onboardingSeen = false;
+
+  /// Whether the welcome flow has been completed.
+  ///
+  /// Drives what the app opens on. Replaying it from settings does not clear
+  /// this, so a replay is a replay rather than a downgrade to a first launch.
+  bool get onboardingSeen => _onboardingSeen;
 
   /// The chosen language, or null to follow the device.
   String? get language => _language;
@@ -61,6 +79,14 @@ class SettingsController extends ChangeNotifier {
   Future<void> load() async {
     final stored = await _store.readLanguage();
     _language = supportedLanguages.contains(stored) ? stored : null;
+    _onboardingSeen = await _store.readOnboardingSeen();
+    notifyListeners();
+  }
+
+  Future<void> completeOnboarding() async {
+    if (_onboardingSeen) return;
+    _onboardingSeen = true;
+    await _store.writeOnboardingSeen(true);
     notifyListeners();
   }
 

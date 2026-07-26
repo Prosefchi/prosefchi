@@ -77,6 +77,21 @@ void main() {
     }
   });
 
+  test('every language has a welcome page that parses', () {
+    for (final language in supportedLanguages) {
+      final file = File('res/welcome_$language.md');
+      expect(file.existsSync(), isTrue, reason: '${file.path} is missing');
+
+      final document = MarkupDocument.parse(file.readAsStringSync());
+      expect(document.title, isNotEmpty, reason: '${file.path} has no title');
+      expect(
+        document.hasContent,
+        isTrue,
+        reason: '${file.path} has no prose, only headings or notes',
+      );
+    }
+  });
+
   test('every file is listed under a bundled asset directory', () {
     // Directory entries in pubspec.yaml are not recursive, so a file added in
     // a new subdirectory would be missing at runtime with no build error.

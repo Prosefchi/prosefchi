@@ -88,6 +88,30 @@
   "@remindersSubtitle": {
     "description": "Subtitle on the row that opens the reminders screen."
   },
+  "onboardingNext": "Next",
+  "@onboardingNext": {
+    "description": "Advances to the next page of the welcome flow."
+  },
+  "onboardingSkip": "Skip",
+  "@onboardingSkip": {
+    "description": "Leaves the welcome flow without going through it."
+  },
+  "onboardingDone": "Get started",
+  "@onboardingDone": {
+    "description": "Finishes the welcome flow on its last page."
+  },
+  "onboardingRemindersTitle": "Reminders",
+  "@onboardingRemindersTitle": {
+    "description": "Heading of the welcome page that offers reminders."
+  },
+  "onboardingRemindersBody": "Choose any prayers you would like to be reminded of. Nothing is on until you turn it on, and you can change all of this later in Settings.",
+  "@onboardingRemindersBody": {
+    "description": "Explains the reminder choices during the welcome flow."
+  },
+  "showWelcomeAgain": "Show the welcome again",
+  "@showWelcomeAgain": {
+    "description": "Settings row that replays the welcome flow."
+  },
   "commemorations": "Saints and Feasts",
   "@commemorations": {
     "description": "Heading above the list of the day's commemorations."

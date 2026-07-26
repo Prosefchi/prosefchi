@@ -12,6 +12,7 @@ class _MemorySettingsStore implements SettingsStore {
   _MemorySettingsStore([this.language]);
 
   String? language;
+  bool onboardingSeen = true;
   int writes = 0;
 
   @override
@@ -22,6 +23,12 @@ class _MemorySettingsStore implements SettingsStore {
     language = value;
     writes++;
   }
+
+  @override
+  Future<bool> readOnboardingSeen() async => onboardingSeen;
+
+  @override
+  Future<void> writeOnboardingSeen(bool seen) async => onboardingSeen = seen;
 }
 
 class _MemoryReminderStore implements ReminderStore {
@@ -131,7 +138,10 @@ void main() {
     await tester.pumpWidget(
       await harness(
         SettingsController(store: _MemorySettingsStore()),
-        reminderStore: _MemoryReminderStore(),
+        reminderStore: _MemoryReminderStore({
+          for (final occasion in [PrayerOccasion.morning, PrayerOccasion.night])
+            occasion: Reminder.defaultFor(occasion).copyWith(enabled: true),
+        }),
         scheduler: scheduler,
       ),
     );
@@ -140,7 +150,6 @@ void main() {
     await tester.tap(find.text('Ελληνικά'));
     await settle(tester);
 
-    // Morning and Evening are the two enabled by default.
     expect(scheduler.titles, ['Πρωί', 'Βράδυ']);
   });
 
@@ -185,6 +194,22 @@ void main() {
 
     expect(controller.language, isNull);
     expect(find.text('System default'), findsOneWidget);
+  });
+
+  testWidgets('replays the welcome from the last row', (tester) async {
+    await tester.pumpWidget(
+      await harness(
+        SettingsController(store: _MemorySettingsStore()),
+        reminderStore: _MemoryReminderStore(),
+        scheduler: _RecordingScheduler(),
+      ),
+    );
+    await settle(tester);
+
+    await tester.tap(find.text('Show the welcome again'));
+    await settle(tester);
+
+    expect(find.byType(PageView), findsOneWidget);
   });
 
   testWidgets('opens the reminders screen', (tester) async {

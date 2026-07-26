@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'l10n/app_localizations.dart';
 import 'screens/home_shell.dart';
+import 'screens/onboarding_screen.dart';
 import 'services/settings_controller.dart';
 
 Future<void> main() async {
@@ -45,7 +46,12 @@ class ProsefchiApp extends StatelessWidget {
           colorSchemeSeed: const Color(0xFF7B1113),
           brightness: Brightness.dark,
         ),
-        home: const HomeShell(),
+        // The welcome flow is the home widget until it is done, rather than a
+        // route pushed over the app, so there is no frame where the app shows
+        // behind it and nothing to dismiss it past.
+        home: settings.onboardingSeen
+            ? const HomeShell()
+            : const OnboardingScreen(),
       ),
     ),
   );

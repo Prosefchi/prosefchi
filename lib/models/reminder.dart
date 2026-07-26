@@ -28,60 +28,29 @@ class Reminder {
 
   /// The setting an occasion starts with.
   ///
-  /// Only the rules tied to a time of day are on by default. Meals and
-  /// Communion are occasions rather than hours: a daily alarm to say the
-  /// preparation prayers is wrong for someone who receives monthly, so they
-  /// start off and carry a nominal time for whoever wants them.
-  factory Reminder.defaultFor(PrayerOccasion occasion) => switch (occasion) {
-    PrayerOccasion.morning => Reminder(
-      occasion: occasion,
-      enabled: true,
-      hour: 7,
-      minute: 0,
-    ),
-    PrayerOccasion.midday => Reminder(
-      occasion: occasion,
-      enabled: false,
-      hour: 12,
-      minute: 0,
-    ),
-    PrayerOccasion.night => Reminder(
-      occasion: occasion,
-      enabled: true,
-      hour: 21,
-      minute: 0,
-    ),
-    PrayerOccasion.compline => Reminder(
+  /// Every reminder starts off. An app that begins notifying someone who never
+  /// asked is presumptuous, and it would also mean requesting the notification
+  /// permission before the user has any reason to say yes. The onboarding asks
+  /// instead, and the times here are only what a reminder starts at once it is
+  /// switched on.
+  factory Reminder.defaultFor(PrayerOccasion occasion) {
+    final (hour, minute) = switch (occasion) {
+      PrayerOccasion.morning => (7, 0),
+      PrayerOccasion.midday => (12, 0),
+      PrayerOccasion.night => (21, 0),
+      PrayerOccasion.compline => (22, 0),
+      PrayerOccasion.beforeMeal => (13, 0),
+      PrayerOccasion.afterMeal => (13, 30),
+      PrayerOccasion.beforeCommunion => (6, 0),
+      PrayerOccasion.afterCommunion => (11, 0),
+    };
+    return Reminder(
       occasion: occasion,
       enabled: false,
-      hour: 22,
-      minute: 0,
-    ),
-    PrayerOccasion.beforeMeal => Reminder(
-      occasion: occasion,
-      enabled: false,
-      hour: 13,
-      minute: 0,
-    ),
-    PrayerOccasion.afterMeal => Reminder(
-      occasion: occasion,
-      enabled: false,
-      hour: 13,
-      minute: 30,
-    ),
-    PrayerOccasion.beforeCommunion => Reminder(
-      occasion: occasion,
-      enabled: false,
-      hour: 6,
-      minute: 0,
-    ),
-    PrayerOccasion.afterCommunion => Reminder(
-      occasion: occasion,
-      enabled: false,
-      hour: 11,
-      minute: 0,
-    ),
-  };
+      hour: hour,
+      minute: minute,
+    );
+  }
 
   final PrayerOccasion occasion;
   final bool enabled;

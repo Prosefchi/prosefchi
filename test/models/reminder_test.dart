@@ -4,16 +4,14 @@ import 'package:prosefchi/models/reminder.dart';
 
 void main() {
   group('defaults', () {
-    test('only the rules tied to a time of day start enabled', () {
-      // Meals and Communion are occasions rather than hours. A daily alarm to
-      // say the preparation prayers is wrong for someone who receives monthly.
-      final enabled = PrayerOccasion.values
-          .map(Reminder.defaultFor)
-          .where((r) => r.enabled)
-          .map((r) => r.occasion)
-          .toSet();
-
-      expect(enabled, {PrayerOccasion.morning, PrayerOccasion.night});
+    test('every reminder starts off', () {
+      // Notifying someone who never asked is presumptuous, and it would mean
+      // requesting the notification permission before they have any reason to
+      // say yes. The welcome flow asks instead.
+      expect(
+        PrayerOccasion.values.map(Reminder.defaultFor).where((r) => r.enabled),
+        isEmpty,
+      );
     });
 
     test('every occasion has a usable default time', () {

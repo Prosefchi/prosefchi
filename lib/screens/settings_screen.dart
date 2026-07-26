@@ -6,6 +6,7 @@ import '../services/calendar_repository.dart' show supportedLanguages;
 import '../services/notification_service.dart';
 import '../services/reminder_store.dart';
 import '../services/settings_controller.dart';
+import 'onboarding_screen.dart';
 import 'reminders_screen.dart';
 
 /// Language and reminders.
@@ -58,6 +59,21 @@ class SettingsScreen extends StatelessWidget {
               MaterialPageRoute<void>(
                 builder: (_) =>
                     RemindersScreen(store: reminderStore, scheduler: scheduler),
+              ),
+            ),
+          ),
+          // Last, and set apart: replaying the welcome is a different kind of
+          // thing from the settings above it.
+          const Divider(height: 32),
+          ListTile(
+            leading: const Icon(Icons.waving_hand_outlined),
+            title: Text(l10n.showWelcomeAgain),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => OnboardingScreen(
+                  reminderStore: reminderStore,
+                  scheduler: scheduler,
+                ),
               ),
             ),
           ),

@@ -83,7 +83,7 @@ void main() {
     );
   });
 
-  testWidgets('only the time-of-day rules start enabled', (tester) async {
+  testWidgets('every reminder starts off', (tester) async {
     await tester.pumpWidget(
       harness(_MemoryReminderStore(), _RecordingScheduler()),
     );
@@ -93,7 +93,7 @@ void main() {
         .widgetList<SwitchListTile>(find.byType(SwitchListTile))
         .toList();
 
-    expect(switches.where((s) => s.value), hasLength(2));
+    expect(switches.where((s) => s.value), isEmpty);
   });
 
   testWidgets('switching one on persists and schedules only that one', (
@@ -121,7 +121,12 @@ void main() {
     // apply is responsible for cancelling a disabled reminder, so it must be
     // called rather than skipped.
     final scheduler = _RecordingScheduler();
-    await tester.pumpWidget(harness(_MemoryReminderStore(), scheduler));
+    final store = _MemoryReminderStore({
+      PrayerOccasion.morning: Reminder.defaultFor(
+        PrayerOccasion.morning,
+      ).copyWith(enabled: true),
+    });
+    await tester.pumpWidget(harness(store, scheduler));
     await settle(tester);
 
     await tester.tap(find.text('Morning'));
@@ -133,7 +138,12 @@ void main() {
 
   testWidgets('asks permission only when switching on', (tester) async {
     final scheduler = _RecordingScheduler();
-    await tester.pumpWidget(harness(_MemoryReminderStore(), scheduler));
+    final store = _MemoryReminderStore({
+      PrayerOccasion.morning: Reminder.defaultFor(
+        PrayerOccasion.morning,
+      ).copyWith(enabled: true),
+    });
+    await tester.pumpWidget(harness(store, scheduler));
     await settle(tester);
 
     await tester.tap(find.text('Morning')); // on -> off
@@ -175,8 +185,7 @@ void main() {
     );
     await settle(tester);
 
-    // Six of the eight start disabled.
-    expect(find.text('Off'), findsNWidgets(PrayerOccasion.values.length - 2));
+    expect(find.text('Off'), findsNWidgets(PrayerOccasion.values.length));
   });
 
   testWidgets('labels the occasions in Greek under the el locale', (
