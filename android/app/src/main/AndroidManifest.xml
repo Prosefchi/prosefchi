@@ -37,6 +37,20 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Posts a scheduled reminder when its alarm fires. Nothing works
+             without this line, and nothing complains about its absence either.
+
+             Every alarm the plugin sets targets this receiver explicitly. An
+             undeclared receiver is not a component the system can deliver to, so
+             the broadcast is dropped: the notification is never shown, the chain
+             that arms the following day never advances, and — because the plugin
+             creates a notification channel only when it first posts to it — the
+             app's notification settings stay empty, which reads as "this app has
+             no notifications" rather than as a manifest fault. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+            android:exported="false" />
+
         <!-- Reschedules pending reminders after a reboot or an app update.
              MY_PACKAGE_REPLACED matters as much as BOOT_COMPLETED: updating
              through the store also clears scheduled alarms. -->
