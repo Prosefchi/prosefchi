@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'dart:ui' show Color;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -61,11 +62,14 @@ class NotificationService implements ReminderScheduler {
 
     await _plugin.initialize(
       settings: const InitializationSettings(
-        // TODO: replace with a monochrome silhouette in
-        // android/app/src/main/res/drawable/. Android renders the notification
-        // icon as a mask, so a full-colour launcher icon shows as a white
-        // blob on API 21+.
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        // A white-on-transparent silhouette, not the launcher icon. Android
+        // reads only the alpha channel of a notification icon, so anything
+        // with colour in it arrives as a featureless white blob.
+        //
+        // The cross alone rather than the full emblem: at the 24dp the status
+        // bar renders these at, the firesteels collapse into grey mush that
+        // reads as a rendering fault.
+        android: AndroidInitializationSettings('@drawable/ic_notification'),
         // Permissions are requested explicitly rather than on first launch, so
         // the prompt arrives when the user switches a reminder on and knows
         // what it is for.
@@ -141,6 +145,10 @@ class NotificationService implements ReminderScheduler {
           channelName,
           importance: Importance.defaultImportance,
           priority: Priority.defaultPriority,
+          // Tints the silhouette and the app name in the shade. Taken from the
+          // flag, so a reminder is recognisably from this app even though the
+          // icon itself is reduced to a plain cross.
+          color: const Color(0xFFBB0602),
         ),
         iOS: DarwinNotificationDetails(threadIdentifier: reminder.channelId),
       ),
