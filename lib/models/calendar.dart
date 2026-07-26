@@ -87,6 +87,7 @@ class CalendarDay {
     this.saints = const [],
     this.marks = const [],
     this.fasting,
+    this.fasts = false,
     this.tone,
     this.eothinon,
     this.epistle,
@@ -108,6 +109,7 @@ class CalendarDay {
             .nonNulls
             .toList(),
         fasting: json['fasting'] as String?,
+        fasts: json['fasts'] as bool? ?? false,
         tone: json['tone'] as int?,
         eothinon: json['eothinon'] as int?,
         epistle: _reading(json['epistle']),
@@ -137,6 +139,13 @@ class CalendarDay {
   /// the markers only ever record an allowance, so an unmarked day could be a
   /// strict fast or no fast at all. This says which.
   final String? fasting;
+
+  /// Whether the day fasts at all.
+  ///
+  /// Decided when the calendar is built, so the app never interprets the rule
+  /// text. False both when no rule is stated, which means an ordinary day, and
+  /// when the rule lifts the fast.
+  final bool fasts;
 
   /// The Octoechos tone, 1 to 8, where upstream publishes it.
   ///
@@ -170,6 +179,7 @@ class CalendarDay {
     if (saints.isNotEmpty) 'saints': saints,
     if (marks.isNotEmpty) 'marks': [for (final mark in marks) mark.name],
     if (fasting != null) 'fasting': fasting,
+    if (fasts) 'fasts': true,
     if (tone != null) 'tone': tone,
     if (eothinon != null) 'eothinon': eothinon,
     if (epistle != null) 'epistle': epistle!.toJson(),

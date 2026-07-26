@@ -61,6 +61,18 @@
     "description": "Shown when the user declined the notification permission."
   },
   "reminderOff": "Off",
+  "fastingReminder": "Fasting",
+  "@fastingReminder": {
+    "description": "Name of the fasting reminder, and its notification channel."
+  },
+  "fastingReminderBody": "Today is a fast day",
+  "@fastingReminderBody": {
+    "description": "Body of the fasting notification on days where upstream states no particular rule."
+  },
+  "fastingReminderSubtitle": "Only on the days that fast",
+  "@fastingReminderSubtitle": {
+    "description": "Explains that this reminder is not daily, unlike the prayer ones."
+  },
   "@reminderOff": {
     "description": "Shown in place of a time when a reminder is disabled."
   },

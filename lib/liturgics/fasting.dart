@@ -140,3 +140,28 @@ bool isFastDay(DateTime date) {
 
 bool _within(DateTime date, DateTime start, DateTime end) =>
     !daysBetween(start, date).isNegative && !daysBetween(date, end).isNegative;
+
+/// The fast days from [from] onward, for scheduling reminders against.
+///
+/// A fasting reminder cannot repeat daily the way a prayer reminder does,
+/// because it must not fire on the days between. Local notifications fix their
+/// content when scheduled and offer no hook to withdraw one before it appears,
+/// so each day is scheduled individually and the list is refilled when the app
+/// next opens.
+///
+/// [limit] exists because iOS keeps at most 64 pending notifications per app
+/// and silently drops the rest. Through Great Lent every day fasts, so a
+/// [within] of 60 would otherwise ask for 51 at once and crowd out the prayer
+/// reminders sharing that budget.
+List<DateTime> upcomingFastDays(
+  DateTime from, {
+  int within = 60,
+  int limit = 30,
+}) {
+  final days = <DateTime>[];
+  for (var offset = 0; offset < within && days.length < limit; offset++) {
+    final date = addDays(from, offset);
+    if (isFastDay(date)) days.add(date);
+  }
+  return days;
+}

@@ -5,7 +5,12 @@ import 'package:prosefchi/models/prayer.dart';
 import 'package:prosefchi/models/reminder.dart';
 import 'package:prosefchi/screens/reminders_screen.dart';
 import 'package:prosefchi/services/notification_service.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:prosefchi/services/calendar_repository.dart';
 import 'package:prosefchi/services/reminder_store.dart';
+
+import '../support/memory_calendar_store.dart';
 
 class _MemoryReminderStore implements ReminderStore {
   _MemoryReminderStore([Map<PrayerOccasion, Reminder>? initial])
@@ -25,9 +30,19 @@ class _MemoryReminderStore implements ReminderStore {
     _reminders[reminder.occasion] = reminder;
     written.add(reminder);
   }
+
+  FastingReminder fasting = const FastingReminder.initial();
+
+  @override
+  Future<FastingReminder> readFasting() async => fasting;
+
+  @override
+  Future<void> writeFasting(FastingReminder reminder) async =>
+      fasting = reminder;
 }
 
 class _RecordingScheduler implements ReminderScheduler {
+  List<({DateTime date, String body})> fastingDays = const [];
   _RecordingScheduler({this.granted = true});
 
   final bool granted;
@@ -51,6 +66,16 @@ class _RecordingScheduler implements ReminderScheduler {
     applied.add(reminder);
     titles.add(title);
   }
+
+  @override
+  Future<void> applyFasting(
+    FastingReminder reminder, {
+    required List<({DateTime date, String body})> days,
+    required String channelName,
+    required String title,
+  }) async {
+    fastingDays = reminder.enabled ? days : const [];
+  }
 }
 
 Future<void> settle(WidgetTester tester) async {
@@ -67,7 +92,15 @@ Widget harness(
   locale: locale,
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
-  home: RemindersScreen(store: store, scheduler: scheduler),
+  home: RemindersScreen(
+    store: store,
+    scheduler: scheduler,
+    calendars: CalendarRepository(
+      baseUrl: Uri.parse('https://example.test/'),
+      client: MockClient((_) async => http.Response('nope', 503)),
+      store: MemoryCalendarStore(),
+    ),
+  ),
 );
 
 void main() {
@@ -79,7 +112,8 @@ void main() {
 
     expect(
       find.byType(SwitchListTile),
-      findsNWidgets(PrayerOccasion.values.length),
+      // The prayer rules, plus the fasting reminder below them.
+      findsNWidgets(PrayerOccasion.values.length + 1),
     );
   });
 
@@ -186,6 +220,69 @@ void main() {
     await settle(tester);
 
     expect(find.text('Off'), findsNWidgets(PrayerOccasion.values.length));
+  });
+
+  testWidgets('offers a fasting reminder alongside the prayer rules', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      harness(_MemoryReminderStore(), _RecordingScheduler()),
+    );
+    await settle(tester);
+
+    expect(find.text('Fasting'), findsOneWidget);
+    expect(find.text('Only on the days that fast'), findsWidgets);
+  });
+
+  testWidgets('switching fasting on schedules the days that fast', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    // It is a block of one-off notifications rather than a repeating alarm,
+    // because it must not fire on the days between.
+    final store = _MemoryReminderStore();
+    final scheduler = _RecordingScheduler();
+    await tester.pumpWidget(harness(store, scheduler));
+    await settle(tester);
+
+    await tester.ensureVisible(find.text('Fasting'));
+    await settle(tester);
+    await tester.tap(find.text('Fasting'));
+    await settle(tester);
+
+    expect(store.fasting.enabled, isTrue);
+    expect(scheduler.fastingDays, isNotEmpty);
+    expect(scheduler.permissionRequests, 1);
+  });
+
+  testWidgets('switching fasting off clears the whole block', (tester) async {
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    final store = _MemoryReminderStore()
+      ..fasting = const FastingReminder.initial().copyWith(enabled: true);
+    final scheduler = _RecordingScheduler();
+    await tester.pumpWidget(harness(store, scheduler));
+    await settle(tester);
+
+    await tester.ensureVisible(find.text('Fasting'));
+    await settle(tester);
+    await tester.tap(find.text('Fasting'));
+    await settle(tester);
+
+    expect(store.fasting.enabled, isFalse);
+    expect(scheduler.fastingDays, isEmpty);
+  });
+
+  testWidgets('defaults the fasting reminder to off, at six', (tester) async {
+    // A fast is kept from waking, so a reminder after breakfast has missed it.
+    const initial = FastingReminder.initial();
+
+    expect(initial.enabled, isFalse);
+    expect(initial.hour, 6);
+    expect(initial.minute, 0);
   });
 
   testWidgets('labels the occasions in Greek under the el locale', (

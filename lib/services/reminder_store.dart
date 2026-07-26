@@ -15,6 +15,8 @@ import '../models/reminder.dart';
 abstract interface class ReminderStore {
   Future<Map<PrayerOccasion, Reminder>> readAll();
   Future<void> write(Reminder reminder);
+  Future<FastingReminder> readFasting();
+  Future<void> writeFasting(FastingReminder reminder);
 }
 
 /// Reads and writes through SharedPreferences, one key per occasion.
@@ -23,6 +25,8 @@ abstract interface class ReminderStore {
 /// costs the user that one reminder rather than all of them.
 class PreferencesReminderStore implements ReminderStore {
   static String _keyFor(PrayerOccasion occasion) => 'reminder.${occasion.slug}';
+
+  static const _fastingKey = 'reminder.fasting';
 
   @override
   Future<Map<PrayerOccasion, Reminder>> readAll() async {
@@ -40,6 +44,24 @@ class PreferencesReminderStore implements ReminderStore {
       _keyFor(reminder.occasion),
       jsonEncode(reminder.toJson()),
     );
+  }
+
+  @override
+  Future<FastingReminder> readFasting() async {
+    final raw = (await SharedPreferences.getInstance()).getString(_fastingKey);
+    if (raw == null) return const FastingReminder.initial();
+    try {
+      return FastingReminder.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } on Object catch (error) {
+      debugPrint('reminders: could not read fasting ($error)');
+      return const FastingReminder.initial();
+    }
+  }
+
+  @override
+  Future<void> writeFasting(FastingReminder reminder) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_fastingKey, jsonEncode(reminder.toJson()));
   }
 
   Reminder _read(SharedPreferences preferences, PrayerOccasion occasion) {

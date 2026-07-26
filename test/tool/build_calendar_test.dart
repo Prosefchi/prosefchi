@@ -43,6 +43,7 @@ void main() {
         const Feed(
           url: 'x',
           fastingPattern: r'\bFast\b',
+          fastFreePattern: 'Fast Free',
           markers: {
             Section.saints: ['Saints and Feasts:'],
             Section.gospel: ['Gospel Reading:'],

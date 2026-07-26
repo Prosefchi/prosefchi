@@ -30,6 +30,7 @@ class Feed {
     required this.url,
     required this.markers,
     required this.fastingPattern,
+    required this.fastFreePattern,
     this.tones = const {},
     this.eothina = const {},
   });
@@ -55,6 +56,14 @@ class Feed {
   /// there is occasionally a feast name and rendering it as the fasting rule
   /// states something false about the day.
   final String fastingPattern;
+
+  /// Recognises a rule that lifts the fast entirely.
+  ///
+  /// Greek needs care: Κατάλυσις means a release, and appears in
+  /// "Κατάλυσις οἴνου καί ἐλαίου" and "Κατάλυσις ἰχθύος", which are fast days
+  /// with an allowance. Only Κατάλυσις Πάντων, a release of everything, is
+  /// fast free.
+  final String fastFreePattern;
 }
 
 const feeds = <String, Feed>{
@@ -83,6 +92,7 @@ const feeds = <String, Feed>{
       'Plagal of the Fourth Tone': 8,
     },
     fastingPattern: r'\bFast\b|\bAbstain|Allowed',
+    fastFreePattern: 'Fast Free',
     eothina: {
       'First Orthros Gospel': 1,
       'Second Orthros Gospel': 2,
@@ -122,6 +132,7 @@ const feeds = <String, Feed>{
     },
     fastingPattern:
         r'Νηστεί|νηστεί|Κατάλυσ|κατάλυσ|ξηροφαγ|ξεροφαγ|Ἀποχή|Αποχή',
+    fastFreePattern: 'Κατάλυσις Πάντων',
     eothina: {
       "Εωθ. Α'": 1,
       "Εωθ. Β'": 2,
@@ -306,6 +317,12 @@ parseEvents(String ics, Feed feed) {
       marks: headline.marks,
       saints: saints.saints,
       fasting: saints.fasting,
+      // Decided here rather than in the app: the phrasings are upstream's
+      // vocabulary and the app should never have to interpret them. No rule
+      // stated means an ordinary day, which does not fast.
+      fasts:
+          saints.fasting != null &&
+          !RegExp(feed.fastFreePattern).hasMatch(saints.fasting!),
       tone: saints.tone,
       eothinon: saints.eothinon,
       epistle: readingFrom(parts[Section.epistle]),

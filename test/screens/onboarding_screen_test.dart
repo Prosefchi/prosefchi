@@ -57,9 +57,19 @@ class _MemoryReminderStore implements ReminderStore {
   @override
   Future<void> write(Reminder reminder) async =>
       _reminders[reminder.occasion] = reminder;
+
+  FastingReminder fasting = const FastingReminder.initial();
+
+  @override
+  Future<FastingReminder> readFasting() async => fasting;
+
+  @override
+  Future<void> writeFasting(FastingReminder reminder) async =>
+      fasting = reminder;
 }
 
 class _RecordingScheduler implements ReminderScheduler {
+  List<({DateTime date, String body})> fastingDays = const [];
   _RecordingScheduler({this.granted = true});
 
   final bool granted;
@@ -79,6 +89,16 @@ class _RecordingScheduler implements ReminderScheduler {
     required String title,
     required String body,
   }) async => applied.add(reminder);
+
+  @override
+  Future<void> applyFasting(
+    FastingReminder reminder, {
+    required List<({DateTime date, String body})> days,
+    required String channelName,
+    required String title,
+  }) async {
+    fastingDays = reminder.enabled ? days : const [];
+  }
 }
 
 const welcomeEn = '''
@@ -167,7 +187,8 @@ void main() {
 
     expect(
       find.byType(SwitchListTile),
-      findsNWidgets(PrayerOccasion.values.length),
+      // The prayer rules, plus the fasting reminder below them.
+      findsNWidgets(PrayerOccasion.values.length + 1),
     );
   });
 

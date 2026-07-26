@@ -24,6 +24,17 @@ abstract interface class ReminderScheduler {
     required String title,
     required String body,
   });
+
+  /// Replaces the fasting reminders with one per day in [days].
+  ///
+  /// The whole block is cancelled first, so this both refills the schedule and
+  /// clears it when the reminder is switched off.
+  Future<void> applyFasting(
+    FastingReminder reminder, {
+    required List<({DateTime date, String body})> days,
+    required String channelName,
+    required String title,
+  });
 }
 
 /// Schedules the daily prayer reminders on the device.
@@ -161,6 +172,60 @@ class NotificationService implements ReminderScheduler {
       // Repeat daily at the same wall-clock time.
       matchDateTimeComponents: DateTimeComponents.time,
     );
+  }
+
+  @override
+  Future<void> applyFasting(
+    FastingReminder reminder, {
+    required List<({DateTime date, String body})> days,
+    required String channelName,
+    required String title,
+  }) async {
+    await initialize();
+
+    // Clear the whole block rather than the days about to be rescheduled: the
+    // previous refill may have covered dates this one does not, and those
+    // would otherwise fire with stale text.
+    for (var i = 0; i < FastingReminder.idCapacity; i++) {
+      await _plugin.cancel(id: FastingReminder.idBase + i);
+    }
+    if (!reminder.enabled) return;
+
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        reminder.channelId,
+        channelName,
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
+        color: const Color(0xFFBB0602),
+      ),
+      iOS: DarwinNotificationDetails(threadIdentifier: reminder.channelId),
+    );
+
+    for (var i = 0; i < days.length && i < FastingReminder.idCapacity; i++) {
+      final day = days[i];
+      final at = tz.TZDateTime(
+        tz.local,
+        day.date.year,
+        day.date.month,
+        day.date.day,
+        reminder.hour,
+        reminder.minute,
+      );
+      // Today's may already have passed by the time the app is opened.
+      if (!at.isAfter(tz.TZDateTime.now(tz.local))) continue;
+
+      await _plugin.zonedSchedule(
+        id: FastingReminder.idBase + i,
+        title: title,
+        body: day.body,
+        scheduledDate: at,
+        notificationDetails: details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        // Deliberately no matchDateTimeComponents: each of these fires once,
+        // on its own day, and is replaced at the next refill.
+      );
+    }
   }
 
   Future<void> cancel(Reminder reminder) async {

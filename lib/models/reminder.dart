@@ -99,3 +99,67 @@ class Reminder {
   String toString() =>
       'Reminder(${occasion.slug}, ${enabled ? "on" : "off"}, $formatted)';
 }
+
+/// A daily reminder on the days that fast.
+///
+/// Deliberately not a [PrayerOccasion]: it is not a prayer rule, it would show
+/// up in the prayers list if it were one, and unlike the others it fires on
+/// some days and not others.
+class FastingReminder {
+  const FastingReminder({
+    required this.enabled,
+    required this.hour,
+    required this.minute,
+  });
+
+  factory FastingReminder.fromJson(Map<String, dynamic> json) {
+    const fallback = FastingReminder.initial();
+    return FastingReminder(
+      enabled: json['enabled'] as bool? ?? fallback.enabled,
+      hour: (json['hour'] as int?)?.clamp(0, 23) ?? fallback.hour,
+      minute: (json['minute'] as int?)?.clamp(0, 59) ?? fallback.minute,
+    );
+  }
+
+  /// Off, like every reminder, and set for early morning: a fast is kept from
+  /// waking, so a reminder that arrives after breakfast has missed its moment.
+  const FastingReminder.initial() : enabled = false, hour = 6, minute = 0;
+
+  final bool enabled;
+  final int hour;
+  final int minute;
+
+  /// Well clear of the prayer reminders, which take their ids from
+  /// [PrayerOccasion] and so occupy the low numbers.
+  static const idBase = 1000;
+
+  /// Scheduling one notification per fasting day means a block of ids rather
+  /// than one, and the whole block is cancelled before each refill so none is
+  /// left behind.
+  static const idCapacity = 64;
+
+  String get channelId => 'fasting';
+
+  FastingReminder copyWith({bool? enabled, int? hour, int? minute}) =>
+      FastingReminder(
+        enabled: enabled ?? this.enabled,
+        hour: hour ?? this.hour,
+        minute: minute ?? this.minute,
+      );
+
+  Map<String, dynamic> toJson() => {
+    'enabled': enabled,
+    'hour': hour,
+    'minute': minute,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is FastingReminder &&
+      other.enabled == enabled &&
+      other.hour == hour &&
+      other.minute == minute;
+
+  @override
+  int get hashCode => Object.hash(enabled, hour, minute);
+}
