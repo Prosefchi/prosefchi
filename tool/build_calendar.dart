@@ -26,13 +26,24 @@ enum Section { saints, epistle, gospel, matinsGospel, oldTestament }
 /// carries a handful of readings English lacks — so each is parsed on its own
 /// terms and joined only by date.
 class Feed {
-  const Feed({required this.url, required this.markers});
+  const Feed({
+    required this.url,
+    required this.markers,
+    this.tones = const {},
+    this.eothina = const {},
+  });
 
   final String url;
 
   /// Headers per section, in the order they should be tried. Upstream writes
   /// the Old Testament header both singular and plural, so both are listed.
   final Map<Section, List<String>> markers;
+
+  /// The eight Octoechos tones as upstream names them, to their number.
+  final Map<String, int> tones;
+
+  /// The eleven resurrectional Matins gospels as upstream names them.
+  final Map<String, int> eothina;
 }
 
 const feeds = <String, Feed>{
@@ -50,6 +61,29 @@ const feeds = <String, Feed>{
         'Old Testament Reading:',
       ],
     },
+    tones: {
+      'Tone One': 1,
+      'Tone Two': 2,
+      'Tone Three': 3,
+      'Tone Four': 4,
+      'Plagal of the First Tone': 5,
+      'Plagal of the Second Tone': 6,
+      'Grave Tone': 7,
+      'Plagal of the Fourth Tone': 8,
+    },
+    eothina: {
+      'First Orthros Gospel': 1,
+      'Second Orthros Gospel': 2,
+      'Third Orthros Gospel': 3,
+      'Fourth Orthros Gospel': 4,
+      'Fifth Orthros Gospel': 5,
+      'Sixth Orthros Gospel': 6,
+      'Seventh Orthros Gospel': 7,
+      'Eighth Orthros Gospel': 8,
+      'Ninth Orthros Gospel': 9,
+      'Tenth Orthros Gospel': 10,
+      'Eleventh Orthros Gospel': 11,
+    },
   ),
   'el': Feed(
     url:
@@ -61,6 +95,31 @@ const feeds = <String, Feed>{
       Section.gospel: ['Ἀνάγνωσις Εὐαγγελίου:'],
       Section.matinsGospel: ['Ἀνάγνωσις Εὐαγγελίου Ὄρθρου:'],
       Section.oldTestament: ['Ἀνάγνωσις Παλαιᾱς Διαθήκης:'],
+    },
+    // Byzantine numbering: the four authentic tones, then the four plagal,
+    // of which the seventh is called grave rather than plagal of the third.
+    tones: {
+      "Ηχος α'": 1,
+      "Ηχος β'": 2,
+      "Ηχος γ'": 3,
+      "Ηχος δ'": 4,
+      "Ηχος πλ. α'": 5,
+      "Ηχος πλ. β'": 6,
+      'Ηχος βαρύς': 7,
+      "Ηχος πλ. δ'": 8,
+    },
+    eothina: {
+      "Εωθ. Α'": 1,
+      "Εωθ. Β'": 2,
+      "Εωθ. Γ'": 3,
+      "Εωθ. Δ'": 4,
+      "Εωθ. Ε'": 5,
+      "Εωθ. ΣΤ'": 6,
+      "Εωθ. Ζ'": 7,
+      "Εωθ. Η'": 8,
+      "Εωθ. Θ'": 9,
+      "Εωθ. Ι'": 10,
+      "Εωθ. ΙΑ'": 11,
     },
   ),
 };
@@ -206,7 +265,7 @@ Future<String> _load(String url, String lang, {required bool useCache}) async {
 
     final parts = sections(unescapeIcs(description), feed);
     final headline = DayMark.split(unescapeIcs(summary));
-    final saints = commemorations(parts[Section.saints]);
+    final saints = commemorations(parts[Section.saints], feed);
 
     result[date] = CalendarDay(
       date: DateTime.parse(date),
@@ -214,6 +273,8 @@ Future<String> _load(String url, String lang, {required bool useCache}) async {
       marks: headline.marks,
       saints: saints.saints,
       fasting: saints.fasting,
+      tone: saints.tone,
+      eothinon: saints.eothinon,
       epistle: readingFrom(parts[Section.epistle]),
       gospel: readingFrom(parts[Section.gospel]),
       matinsGospel: readingFrom(parts[Section.matinsGospel]),
@@ -223,21 +284,47 @@ Future<String> _load(String url, String lang, {required bool useCache}) async {
   return (days: result, sourceUpdatedAt: sourceUpdatedAt);
 }
 
-/// Splits the saints section into the commemorations and the fasting rule.
+/// Splits the saints section into everything upstream packs into it.
 ///
-/// Only the first paragraph is a list of commemorations. What follows is the
-/// fasting rule in words, and splitting the whole section on `;` glued it onto
-/// the last saint — and in Greek, where `;` is the question mark, chopped any
-/// prose into fragments.
-({List<String> saints, String? fasting}) commemorations(String? body) {
-  if (body == null || body.isEmpty) return (saints: const [], fasting: null);
+/// Only the first paragraph lists commemorations. What follows is a handful of
+/// single-line facts about the day — the fasting rule, the tone, the eothinon —
+/// which have to be told apart line by line rather than lumped together:
+///
+///     Fast Day (Fish Allowed)
+///     Tone Three
+///     Sixth Orthros Gospel
+///
+/// Splitting the whole section on `;` glued all of it onto the last saint, and
+/// in Greek, where `;` is the question mark, chopped prose into fragments.
+({List<String> saints, String? fasting, int? tone, int? eothinon})
+commemorations(String? body, Feed feed) {
+  const empty = (saints: <String>[], fasting: null, tone: null, eothinon: null);
+  if (body == null || body.isEmpty) return empty;
 
   final paragraphs = body
       .split('\n\n')
       .map((p) => p.trim())
       .where((p) => p.isNotEmpty)
       .toList();
-  if (paragraphs.isEmpty) return (saints: const [], fasting: null);
+  if (paragraphs.isEmpty) return empty;
+
+  int? tone;
+  int? eothinon;
+  final fasting = <String>[];
+
+  for (final paragraph in paragraphs.skip(1)) {
+    for (final raw in paragraph.split('\n')) {
+      final line = raw.trim();
+      if (line.isEmpty) continue;
+      if (feed.tones[line] case final value?) {
+        tone = value;
+      } else if (feed.eothina[line] case final value?) {
+        eothinon = value;
+      } else {
+        fasting.add(line);
+      }
+    }
+  }
 
   return (
     saints: paragraphs.first
@@ -245,7 +332,9 @@ Future<String> _load(String url, String lang, {required bool useCache}) async {
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
         .toList(),
-    fasting: paragraphs.length > 1 ? paragraphs.sublist(1).join(' ') : null,
+    fasting: fasting.isEmpty ? null : fasting.join(' '),
+    tone: tone,
+    eothinon: eothinon,
   );
 }
 

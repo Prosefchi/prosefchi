@@ -81,6 +81,7 @@ void main() {
       // Splitting the whole section on ';' glued it onto the last saint.
       final result = commemorations(
         'Andrew; Peter; Paul\n\nFast Day (Wine and Oil Allowed)',
+        feeds['en']!,
       );
 
       expect(result.saints, ['Andrew', 'Peter', 'Paul']);
@@ -90,19 +91,52 @@ void main() {
     test('leaves Greek question marks alone', () {
       // ';' is the Greek question mark. Any prose reaching this function gets
       // chopped at every question, which is how the bug showed itself.
-      final result = commemorations('Γενέθλιον τοῦ Ιωάννου Προδρόμου');
+      final result = commemorations(
+        'Γενέθλιον τοῦ Ιωάννου Προδρόμου',
+        feeds['en']!,
+      );
 
       expect(result.saints, ['Γενέθλιον τοῦ Ιωάννου Προδρόμου']);
     });
 
     test('is empty for an absent section', () {
-      expect(commemorations(null).saints, isEmpty);
-      expect(commemorations(null).fasting, isNull);
-      expect(commemorations('').saints, isEmpty);
+      expect(commemorations(null, feeds['en']!).saints, isEmpty);
+      expect(commemorations(null, feeds['en']!).fasting, isNull);
+      expect(commemorations('', feeds['en']!).saints, isEmpty);
     });
 
     test('has no fasting rule when only commemorations are given', () {
-      expect(commemorations('Andrew; Peter').fasting, isNull);
+      expect(commemorations('Andrew; Peter', feeds['en']!).fasting, isNull);
+    });
+
+    test('tells the fasting rule, tone and eothinon apart', () {
+      // Upstream packs all three into one paragraph, one per line. Joining
+      // them put "Tone Three" into the fasting rule.
+      final result = commemorations(
+        'Andrew\n\nFast Day (Fish Allowed)\nTone Three\nSixth Orthros Gospel',
+        feeds['en']!,
+      );
+
+      expect(result.saints, ['Andrew']);
+      expect(result.fasting, 'Fast Day (Fish Allowed)');
+      expect(result.tone, 3);
+      expect(result.eothinon, 6);
+    });
+
+    test('reads the Byzantine tone names', () {
+      // The seventh is called grave rather than plagal of the third.
+      expect(commemorations('A\n\nGrave Tone', feeds['en']!).tone, 7);
+      expect(
+        commemorations('A\n\nPlagal of the Fourth Tone', feeds['en']!).tone,
+        8,
+      );
+      expect(commemorations("A\n\nΗχος βαρύς", feeds['el']!).tone, 7);
+      expect(commemorations("A\n\nΗχος πλ. δ'", feeds['el']!).tone, 8);
+    });
+
+    test('reads the Greek eothinon numerals', () {
+      expect(commemorations("A\n\nΕωθ. ΣΤ'", feeds['el']!).eothinon, 6);
+      expect(commemorations("A\n\nΕωθ. ΙΑ'", feeds['el']!).eothinon, 11);
     });
   });
 

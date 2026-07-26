@@ -87,6 +87,8 @@ class CalendarDay {
     this.saints = const [],
     this.marks = const [],
     this.fasting,
+    this.tone,
+    this.eothinon,
     this.epistle,
     this.gospel,
     this.matinsGospel,
@@ -106,6 +108,8 @@ class CalendarDay {
             .nonNulls
             .toList(),
         fasting: json['fasting'] as String?,
+        tone: json['tone'] as int?,
+        eothinon: json['eothinon'] as int?,
         epistle: _reading(json['epistle']),
         gospel: _reading(json['gospel']),
         matinsGospel: _reading(json['matinsGospel']),
@@ -134,6 +138,16 @@ class CalendarDay {
   /// strict fast or no fast at all. This says which.
   final String? fasting;
 
+  /// The Octoechos tone, 1 to 8, where upstream publishes it.
+  ///
+  /// Rarely: 86 days of the feed. The cycle is computable for any date, and
+  /// those days are what the computation was checked against.
+  final int? tone;
+
+  /// The eothinon, 1 to 11: which of the eleven resurrectional Matins gospels
+  /// is appointed. Published as rarely as [tone], and computable the same way.
+  final int? eothinon;
+
   final Reading? epistle;
   final Reading? gospel;
 
@@ -156,6 +170,8 @@ class CalendarDay {
     if (saints.isNotEmpty) 'saints': saints,
     if (marks.isNotEmpty) 'marks': [for (final mark in marks) mark.name],
     if (fasting != null) 'fasting': fasting,
+    if (tone != null) 'tone': tone,
+    if (eothinon != null) 'eothinon': eothinon,
     if (epistle != null) 'epistle': epistle!.toJson(),
     if (gospel != null) 'gospel': gospel!.toJson(),
     if (matinsGospel != null) 'matinsGospel': matinsGospel!.toJson(),
