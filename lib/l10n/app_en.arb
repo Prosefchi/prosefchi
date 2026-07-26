@@ -129,6 +129,71 @@
     "description": "Heading above the resurrectional gospel read at Matins, which is a different reading from the day’s Gospel."
   },
   "oldTestamentReading": "Old Testament",
+  "tone1": "Tone 1",
+  "@tone1": {
+    "description": "Liturgical label: tone1."
+  },
+  "tone2": "Tone 2",
+  "@tone2": {
+    "description": "Liturgical label: tone2."
+  },
+  "tone3": "Tone 3",
+  "@tone3": {
+    "description": "Liturgical label: tone3."
+  },
+  "tone4": "Tone 4",
+  "@tone4": {
+    "description": "Liturgical label: tone4."
+  },
+  "tone5": "Plagal 1",
+  "@tone5": {
+    "description": "Liturgical label: tone5."
+  },
+  "tone6": "Plagal 2",
+  "@tone6": {
+    "description": "Liturgical label: tone6."
+  },
+  "tone7": "Grave Tone",
+  "@tone7": {
+    "description": "Liturgical label: tone7."
+  },
+  "tone8": "Plagal 4",
+  "@tone8": {
+    "description": "Liturgical label: tone8."
+  },
+  "eothinon": "Eothinon {count}",
+  "@eothinon": {
+    "description": "Which of the eleven resurrectional Matins gospels the cycle stands at.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fastSeasonCheesefare": "Cheesefare",
+  "@fastSeasonCheesefare": {
+    "description": "Liturgical label: fastSeasonCheesefare."
+  },
+  "fastSeasonGreatLent": "Great Lent",
+  "@fastSeasonGreatLent": {
+    "description": "Liturgical label: fastSeasonGreatLent."
+  },
+  "fastSeasonApostles": "Apostles’ Fast",
+  "@fastSeasonApostles": {
+    "description": "Liturgical label: fastSeasonApostles."
+  },
+  "fastSeasonDormition": "Dormition Fast",
+  "@fastSeasonDormition": {
+    "description": "Liturgical label: fastSeasonDormition."
+  },
+  "fastSeasonNativity": "Nativity Fast",
+  "@fastSeasonNativity": {
+    "description": "Liturgical label: fastSeasonNativity."
+  },
+  "fastDay": "Fast day",
+  "@fastDay": {
+    "description": "Shown when the day fasts but falls in no named season, as an ordinary Wednesday or Friday does."
+  },
   "@oldTestamentReading": {
     "description": "Heading above the appointed Old Testament reading."
   },

@@ -21,6 +21,8 @@ String calendarJson({
   String gospelReference = 'Mark 5:24-34',
   String? fasting,
   bool matinsGospel = false,
+  int? tone,
+  int? eothinon,
 }) => jsonEncode({
   'language': language,
   'source': 'https://example.test/feed.ics',
@@ -33,6 +35,8 @@ String calendarJson({
       'saints': saints,
       'marks': marks,
       'fasting': ?fasting,
+      'tone': ?tone,
+      'eothinon': ?eothinon,
       if (matinsGospel)
         'matinsGospel': {
           'reference': 'Luke 1:39-49, 56',
@@ -226,6 +230,57 @@ void main() {
     expect(find.text('Matins Gospel'), findsOneWidget);
     expect(find.text('Mark 5:24-34'), findsOneWidget);
     expect(find.text('Luke 1:39-49, 56'), findsOneWidget);
+  });
+
+  testWidgets('shows the tone and eothinon the feed publishes', (tester) async {
+    await tester.pumpWidget(
+      harness(repositoryServing(calendarJson(tone: 7, eothinon: 6))),
+    );
+    await settle(tester);
+
+    // Named, not numbered: "Tone 7" is not what the seventh tone is called.
+    expect(find.text('Grave Tone'), findsOneWidget);
+    expect(find.text('Eothinon 6'), findsOneWidget);
+  });
+
+  testWidgets('computes the tone and eothinon when the feed omits them', (
+    tester,
+  ) async {
+    // Upstream publishes them on 86 days of 3287, so the computed cycle is
+    // what the screen shows almost always.
+    await tester.pumpWidget(harness(repositoryServing(calendarJson())));
+    await settle(tester);
+
+    // 2026-07-26 is 14 weeks after Thomas Sunday (19 April) and 7 after the
+    // Sunday of All Saints (7 June).
+    expect(find.text('Grave Tone'), findsOneWidget);
+    expect(find.text('Eothinon 8'), findsOneWidget);
+  });
+
+  testWidgets('falls back to the computed fast season past the feed', (
+    tester,
+  ) async {
+    // 2026-11-20 is inside the Nativity Fast and beyond the feed's end, so
+    // there is no published rule to use.
+    await tester.pumpWidget(
+      harness(repositoryServing(calendarJson()), date: DateTime(2026, 11, 20)),
+    );
+    await settle(tester);
+
+    expect(find.text('Nativity Fast'), findsOneWidget);
+  });
+
+  testWidgets('prefers the published fasting rule over the computed one', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      harness(
+        repositoryServing(calendarJson(fasting: 'Fast Day (Fish Allowed)')),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('Fast Day (Fish Allowed)'), findsOneWidget);
   });
 
   testWidgets('shows the distance from Pascha even with a full day', (

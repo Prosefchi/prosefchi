@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/app_localizations.dart';
+import '../l10n/liturgical_labels.dart';
+import '../liturgics/fasting.dart';
+import '../liturgics/octoechos.dart';
 import '../liturgics/paschalion.dart';
 import '../models/calendar.dart';
 import '../services/calendar_repository.dart';
@@ -94,6 +97,16 @@ class _TodayScreenState extends State<TodayScreen> {
       ? locale.languageCode
       : supportedLanguages.first;
 
+  /// The fasting rule worked out from the Paschalion, for days upstream does
+  /// not cover. Names the season where there is one, since that says more than
+  /// simply that the day fasts.
+  static String? _computedFasting(AppLocalizations l10n, DateTime date) {
+    if (fastSeasonFor(date) case final season?) {
+      return l10n.fastSeasonLabel(season);
+    }
+    return isFastDay(date) ? l10n.fastDay : null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -122,12 +135,20 @@ class _TodayScreenState extends State<TodayScreen> {
               locale: _language ?? 'en',
               title: day?.title,
               marks: day?.marks ?? const [],
-              fasting: day?.fasting,
+              // Upstream states the rule on most days it covers and is
+              // authoritative there. Past the end of the feed, and on the
+              // handful of days it puts something else in that slot, the
+              // computed season stands in.
+              fasting: day?.fasting ?? _computedFasting(l10n, _date),
             ),
-            // Computed, so it appears in every state. It also means the
+            // All computed, so this appears in every state. It also means the
             // no-data screen keeps the same shape as the ordinary one rather
             // than becoming a jarringly different page.
-            _PaschaLine(date: _date),
+            _LiturgicalStrip(
+              date: _date,
+              tone: day?.tone ?? toneFor(_date),
+              eothinon: day?.eothinon ?? eothinonFor(_date),
+            ),
             if (_loading)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 64),
@@ -282,6 +303,9 @@ class _FastingPill extends StatelessWidget {
         color: theme.colorScheme.surface.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(20),
       ),
+      // The rule can be a long sentence — "Fast Day (Dairy, Eggs, and Fish
+      // Allowed)" — and a Wrap gives its children unbounded width, so without
+      // Flexible the pill runs off the edge rather than wrapping inside it.
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -291,46 +315,79 @@ class _FastingPill extends StatelessWidget {
             color: theme.colorScheme.onSurface,
           ),
           const SizedBox(width: 6),
-          Text(rule, style: theme.textTheme.labelMedium),
+          Flexible(child: Text(rule, style: theme.textTheme.labelMedium)),
         ],
       ),
     );
   }
 }
 
-/// How far the day sits from Pascha.
+/// Where the day sits in the year: its distance from Pascha, the tone, and the
+/// eothinon.
 ///
-/// Needs no data at all, so it is the one thing the screen can always say,
-/// including after the published feed lapses.
-class _PaschaLine extends StatelessWidget {
-  const _PaschaLine({required this.date});
+/// All three need no data at all, so this is what the screen can always say,
+/// including after the published feed lapses. The tone is absent through
+/// Bright Week, where the Octoechos is set aside.
+class _LiturgicalStrip extends StatelessWidget {
+  const _LiturgicalStrip({
+    required this.date,
+    required this.tone,
+    required this.eothinon,
+  });
 
   final DateTime date;
+  final int? tone;
+  final int? eothinon;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final offset = daysBetween(orthodoxPascha(date.year), date);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 14, 4, 2),
-      child: Row(
+      child: Wrap(
+        spacing: 18,
+        runSpacing: 8,
         children: [
-          Icon(
-            Icons.brightness_2_outlined,
-            size: 16,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(width: 10),
-          Text(
-            offset >= 0
+          _Fact(
+            icon: Icons.brightness_2_outlined,
+            label: offset >= 0
                 ? l10n.daysAfterPascha(offset)
                 : l10n.daysUntilPascha(-offset),
-            style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
           ),
+          if (tone case final tone?)
+            _Fact(icon: Icons.music_note_outlined, label: l10n.toneLabel(tone)),
+          if (eothinon case final eothinon?)
+            _Fact(
+              icon: Icons.auto_stories_outlined,
+              label: l10n.eothinon(eothinon),
+            ),
         ],
       ),
+    );
+  }
+}
+
+class _Fact extends StatelessWidget {
+  const _Fact({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: theme.colorScheme.primary),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
+        ),
+      ],
     );
   }
 }
