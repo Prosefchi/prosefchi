@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/screens/about_section.dart';
 import '../support/pump.dart';
@@ -14,7 +15,7 @@ PackageInfo info({String version = '1.2.3', String build = '7'}) => PackageInfo(
 
 Widget harness({
   Future<PackageInfo> Function()? packageInfo,
-  Future<bool> Function(Uri)? launch,
+  Future<bool> Function(Uri, {LaunchMode mode})? launch,
   Locale locale = const Locale('en'),
 }) => MaterialApp(
   locale: locale,
@@ -25,7 +26,8 @@ Widget harness({
       children: [
         AboutSection(
           packageInfo: packageInfo ?? () async => info(),
-          launch: launch ?? (_) async => true,
+          launch:
+              launch ?? (_, {mode = LaunchMode.platformDefault}) async => true,
         ),
       ],
     ),
@@ -45,7 +47,7 @@ void main() {
     final opened = <Uri>[];
     await tester.pumpWidget(
       harness(
-        launch: (url) async {
+        launch: (url, {mode = LaunchMode.platformDefault}) async {
           opened.add(url);
           return true;
         },
@@ -61,7 +63,9 @@ void main() {
 
   testWidgets('says so when the link cannot be opened', (tester) async {
     // A device with no browser. Rare, but silence would look like a dead row.
-    await tester.pumpWidget(harness(launch: (_) async => false));
+    await tester.pumpWidget(
+      harness(launch: (_, {mode = LaunchMode.platformDefault}) async => false),
+    );
     await settle(tester);
 
     await tester.tap(find.text('Source code'));

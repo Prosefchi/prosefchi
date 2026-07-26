@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import 'link.dart';
@@ -18,7 +19,7 @@ class AboutSection extends StatefulWidget {
   /// Injectable: `package_info_plus` and `url_launcher` both go through
   /// platform channels, which are unavailable under `flutter test`.
   final Future<PackageInfo> Function()? packageInfo;
-  final Future<bool> Function(Uri url)? launch;
+  final Future<bool> Function(Uri url, {LaunchMode mode})? launch;
 
   @override
   State<AboutSection> createState() => _AboutSectionState();
@@ -43,8 +44,15 @@ class _AboutSectionState extends State<AboutSection> {
     }
   }
 
-  Future<void> _openRepository() =>
-      openLink(context, repositoryUrl, launch: widget.launch);
+  /// Deliberately not the in-app browser the prayer texts use: the repository
+  /// is somewhere to go and act — sign in, clone, open an issue — rather than
+  /// something to read and come back from.
+  Future<void> _openRepository() => openLink(
+    context,
+    repositoryUrl,
+    mode: LaunchMode.externalApplication,
+    launch: widget.launch,
+  );
 
   @override
   Widget build(BuildContext context) {

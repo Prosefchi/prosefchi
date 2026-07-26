@@ -81,5 +81,18 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+
+        <!-- A source link in a prayer opens in a Custom Tab, which means
+             resolving which installed app can show an https page. From Android
+             11 an app cannot see another it has not declared an interest in, so
+             without this the resolution finds nothing: the link does not open,
+             and the failure looks like a device with no browser rather than a
+             manifest that never asked. url_launcher contributes its
+             WebViewActivity at merge time but no queries entry, so this is the
+             app's to declare. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
     </queries>
 </manifest>

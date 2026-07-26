@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/markup.dart';
 import 'link.dart';
@@ -15,7 +16,7 @@ class MarkupParagraph extends StatelessWidget {
   /// screens do not thread this through: building a link touches no channel,
   /// so only a test that taps one needs it, and such a test can build this
   /// widget directly.
-  final Future<bool> Function(Uri url)? launch;
+  final Future<bool> Function(Uri url, {LaunchMode mode})? launch;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +40,7 @@ class _LinkedParagraph extends StatefulWidget {
 
   final List<MarkupSpan> spans;
   final TextStyle? style;
-  final Future<bool> Function(Uri url)? launch;
+  final Future<bool> Function(Uri url, {LaunchMode mode})? launch;
 
   @override
   State<_LinkedParagraph> createState() => _LinkedParagraphState();
