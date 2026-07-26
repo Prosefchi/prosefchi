@@ -1,0 +1,177 @@
+name: Release
+
+# Builds the APK for a published GitHub release and attaches it, together with
+# a signed provenance attestation, as release assets. Because nothing is built
+# on a maintainer's machine, the attestation is a claim anyone downloading the
+# APK can check for themselves:
+#
+#   gh attestation verify prosefchi-0.0.1.apk --repo Prosefchi/prosefchi
+
+on:
+  release:
+    types: [published]
+  # A failed upload would otherwise mean deleting and recreating the release,
+  # which changes its timestamp and notifies watchers a second time.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of an existing release to build and attach to
+        required: true
+
+permissions:
+  contents: write # attach assets to the release
+  id-token: write # mint the short-lived Sigstore signing certificate
+  attestations: write # record the attestation against the repository
+
+# Queue rather than cancel: a superseded run here leaves a release published
+# with no APK on it. Same reasoning as the calendar workflow, the opposite of
+# the test one.
+concurrency:
+  group: release-${{ inputs.tag || github.event.release.tag_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ inputs.tag || github.event.release.tag_name }}
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # A release event already points GITHUB_REF at the tag, but a manual
+          # run would otherwise build whichever branch the UI defaulted to.
+          ref: ${{ env.TAG }}
+
+      # First, so a missing secret costs seconds rather than failing after the
+      # SDK setup, the tests and a three-minute build. The keystore is held as
+      # an organisation secret and only ever exists in the runner's temp
+      # directory, never in the workspace where it could be picked up by a
+      # later step or an artifact upload.
+      - name: Decode the release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret ANDROID_$name is not available to this repository"
+              exit 1
+            fi
+          done
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      # Matches sourceCompatibility/targetCompatibility in
+      # android/app/build.gradle.kts. The runner image carries several JDKs and
+      # its default has moved before now; pinning stops that from quietly
+      # changing what a release was built with.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # pubspec.yaml's version: is the only place the version lives, and Flutter
+      # feeds it to both platforms. A tag that disagrees with it would ship an
+      # APK reporting a version nobody released, and the about section reads
+      # that value back out of the bundle. Fail before the build, not after the
+      # assets are already attached.
+      - name: Check the tag matches pubspec
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)"
+          if [ "$version" != "${TAG#v}" ]; then
+            echo "::error::Release $TAG does not match pubspec version $version"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      # Cheap on a job that already has the SDK warm, and this is the one build
+      # whose output cannot be quietly replaced once people have downloaded it.
+      - run: flutter test
+
+      # The signing material is scoped to this one step rather than exported for
+      # the whole job. android/app/build.gradle.kts reads these four and falls
+      # back to the debug key when they are absent, which is why the step below
+      # exists.
+      - name: Build the APK
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: flutter build apk --release
+
+      # The one failure this whole arrangement exists to prevent, and the one
+      # that hides best: a debug-signed APK installs and runs perfectly, and
+      # only announces itself at the *next* release, which will not install over
+      # it. By then it has shipped. Assert on the signer rather than trusting
+      # that the environment reached Gradle.
+      - name: Check the APK is signed with the release key
+        run: |
+          set -euo pipefail
+          apksigner="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          certs="$("$apksigner" verify --print-certs \
+            build/app/outputs/flutter-apk/app-release.apk)"
+          echo "$certs"
+          if grep -q 'CN=Android Debug' <<<"$certs"; then
+            echo "::error::The release APK is signed with the debug key"
+            exit 1
+          fi
+          echo "SIGNER=$(grep -m1 'SHA-256 digest' <<<"$certs" | awk '{print $NF}')" \
+            >> "$GITHUB_ENV"
+
+      # The attestation records the subject by name, so name the file before
+      # attesting rather than after: the asset on the release and the subject in
+      # the attestation should read the same.
+      - name: Name the artifact after the release
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/prosefchi-$VERSION.apk"
+
+      - id: attest
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/prosefchi-${{ env.VERSION }}.apk
+
+      - name: Attach the APK and its attestation to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp "${{ steps.attest.outputs.bundle-path }}" "dist/prosefchi-$VERSION.apk.sigstore.json"
+          # --clobber so re-running a partially failed publish replaces the
+          # assets instead of failing on the ones already there.
+          gh release upload "$TAG" \
+            "dist/prosefchi-$VERSION.apk" \
+            "dist/prosefchi-$VERSION.apk.sigstore.json" \
+            --clobber
+
+      - name: Report what was published
+        run: |
+          set -euo pipefail
+          {
+            echo "### prosefchi-$VERSION.apk"
+            echo
+            echo '```'
+            (cd dist && sha256sum "prosefchi-$VERSION.apk")
+            echo "signing certificate  $SIGNER"
+            echo '```'
+            echo
+            echo 'Check the download against this build:'
+            echo
+            echo '```'
+            echo "gh attestation verify prosefchi-$VERSION.apk --repo $GITHUB_REPOSITORY"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
