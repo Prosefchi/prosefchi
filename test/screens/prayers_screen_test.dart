@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/prayer.dart';
+import 'package:prosefchi/screens/occasion_ui.dart';
 import 'package:prosefchi/screens/prayers_screen.dart';
 import 'package:prosefchi/services/prayer_repository.dart';
 
@@ -66,9 +67,44 @@ void main() {
     expect(find.text('Evening'), findsOneWidget);
   });
 
+  testWidgets('gives every rule its own icon', (tester) async {
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(harness({'res/prayers/morning_en.md': morning}));
+    await settle(tester);
+
+    final icons = PrayerOccasion.values.map(occasionIcon).toSet();
+    expect(
+      icons,
+      hasLength(PrayerOccasion.values.length),
+      reason: 'a shared icon would make two rules look like the same thing',
+    );
+    for (final icon in icons) {
+      expect(find.byIcon(icon), findsOneWidget);
+    }
+  });
+
+  testWidgets('groups the rules the way the reminders screen does', (
+    tester,
+  ) async {
+    await tester.pumpWidget(harness({'res/prayers/morning_en.md': morning}));
+    await settle(tester);
+
+    expect(find.text('Daily'), findsOneWidget);
+    expect(find.text('Liturgy'), findsOneWidget);
+  });
+
   testWidgets('marks a rule with no text unavailable and does not open it', (
     tester,
   ) async {
+    // Group headings make the list taller than the default 800x600 surface,
+    // and a ListView does not build rows it cannot show.
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
     // A stub must never be presented as though it were an abbreviated prayer.
     await tester.pumpWidget(
       harness({
@@ -128,6 +164,12 @@ void main() {
   });
 
   testWidgets('labels the rules in Greek under the el locale', (tester) async {
+    // Group headings make the list taller than the default 800x600 surface,
+    // and a ListView does not build rows it cannot show.
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(
       harness({
         'res/prayers/morning_el.md': '# Πρωινὲς Προσευχές\n\nἈμήν.\n',

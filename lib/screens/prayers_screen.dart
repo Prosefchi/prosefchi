@@ -5,6 +5,7 @@ import '../l10n/occasion_labels.dart';
 import '../models/prayer.dart';
 import '../services/calendar_repository.dart' show supportedLanguages;
 import '../services/prayer_repository.dart';
+import 'occasion_ui.dart';
 import 'settings_screen.dart';
 
 /// Lists the rules and opens one to read.
@@ -74,12 +75,21 @@ class _PrayersScreenState extends State<PrayersScreen> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
-                for (final occasion in PrayerOccasion.values)
+                for (final occasion in PrayerOccasion.values) ...[
+                  if (occasion.index == 0 ||
+                      PrayerOccasion.values[occasion.index - 1].group !=
+                          occasion.group)
+                    GroupHeading(
+                      label: l10n.groupLabel(occasion.group),
+                      first: occasion.index == 0,
+                    ),
                   _PrayerTile(
+                    icon: occasionIcon(occasion),
                     label: l10n.occasionLabel(occasion),
                     set: _sets[occasion],
                     unavailable: l10n.prayerNotAvailable,
                   ),
+                ],
               ],
             ),
     );
@@ -88,11 +98,13 @@ class _PrayersScreenState extends State<PrayersScreen> {
 
 class _PrayerTile extends StatelessWidget {
   const _PrayerTile({
+    required this.icon,
     required this.label,
     required this.set,
     required this.unavailable,
   });
 
+  final IconData icon;
   final String label;
   final PrayerSet? set;
   final String unavailable;
@@ -105,6 +117,10 @@ class _PrayerTile extends StatelessWidget {
     final ready = set != null && set!.hasContent;
 
     return ListTile(
+      // ListTile greys the leading icon along with the text when disabled, so
+      // an unavailable rule reads as one thing rather than a bright icon
+      // beside faded words.
+      leading: Icon(icon),
       title: Text(label),
       subtitle: ready ? null : Text(unavailable),
       enabled: ready,
