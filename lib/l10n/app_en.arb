@@ -1,116 +1,109 @@
 {
   "@@locale": "en",
-
   "appTitle": "Prosefchi",
   "@appTitle": {
     "description": "The application name, shown in the task switcher."
   },
-
   "today": "Today",
   "@today": {
     "description": "Title of the main screen."
   },
-
   "prayers": "Prayers",
   "@prayers": {
     "description": "Title of the prayers section, and its navigation label."
   },
-
   "prayerMorning": "Morning",
   "@prayerMorning": {
     "description": "The morning rule."
   },
-
   "prayerMidday": "Midday",
   "@prayerMidday": {
     "description": "The midday rule."
   },
-
   "prayerNight": "Evening",
   "@prayerNight": {
     "description": "The evening rule."
   },
-
   "prayerCompline": "Small Compline",
   "@prayerCompline": {
     "description": "The office of Small Compline, said before sleep."
   },
-
   "prayerBeforeMeal": "Before a Meal",
   "@prayerBeforeMeal": {
     "description": "The blessing said before eating."
   },
-
   "prayerAfterMeal": "After a Meal",
   "@prayerAfterMeal": {
     "description": "The thanksgiving said after eating."
   },
-
   "prayerBeforeCommunion": "Before Holy Communion",
   "@prayerBeforeCommunion": {
     "description": "Prayers of preparation before receiving Communion."
   },
-
   "prayerAfterCommunion": "After Holy Communion",
   "@prayerAfterCommunion": {
     "description": "Prayers of thanksgiving after receiving Communion."
   },
-
   "prayerNotAvailable": "Not yet available",
   "@prayerNotAvailable": {
     "description": "Shown for a rule whose text has not been added yet."
   },
-
+  "reminders": "Reminders",
+  "@reminders": {
+    "description": "Screen where each prayer reminder is switched on or off and timed."
+  },
+  "reminderBody": "Time to pray",
+  "@reminderBody": {
+    "description": "Body of the reminder notification. The title is the name of the occasion."
+  },
+  "reminderPermissionDenied": "Notifications are turned off. Enable them in system settings to be reminded.",
+  "@reminderPermissionDenied": {
+    "description": "Shown when the user declined the notification permission."
+  },
+  "reminderOff": "Off",
+  "@reminderOff": {
+    "description": "Shown in place of a time when a reminder is disabled."
+  },
   "commemorations": "Saints and Feasts",
   "@commemorations": {
     "description": "Heading above the list of the day's commemorations."
   },
-
   "epistleReading": "Epistle",
   "@epistleReading": {
     "description": "Heading above the appointed epistle reading."
   },
-
   "gospelReading": "Gospel",
   "@gospelReading": {
     "description": "Heading above the appointed gospel reading."
   },
-
   "markMajorFeast": "Great feast",
   "@markMajorFeast": {
     "description": "Label for a day of major rank."
   },
-
   "markWineAndOil": "Wine and oil",
   "@markWineAndOil": {
     "description": "Fasting label: wine and oil are permitted."
   },
-
   "markFish": "Fish",
   "@markFish": {
     "description": "Fasting label: fish is permitted."
   },
-
   "markDairy": "Dairy",
   "@markDairy": {
     "description": "Fasting label: dairy is permitted."
   },
-
   "noEntryForDay": "No entry for this day",
   "@noEntryForDay": {
     "description": "Shown when the calendar is present but does not cover the selected date, which happens past the end of the published feed."
   },
-
   "calendarNotDownloaded": "The calendar has not been downloaded yet",
   "@calendarNotDownloaded": {
     "description": "Shown on a first launch before any successful fetch."
   },
-
   "retry": "Retry",
   "@retry": {
     "description": "Button that attempts the download again."
   },
-
   "daysUntilPascha": "{count, plural, =0{Pascha} =1{1 day until Pascha} other{{count} days until Pascha}}",
   "@daysUntilPascha": {
     "description": "How far off Pascha is, shown when no calendar entry is available.",
@@ -120,7 +113,6 @@
       }
     }
   },
-
   "daysAfterPascha": "{count, plural, =1{1 day after Pascha} other{{count} days after Pascha}}",
   "@daysAfterPascha": {
     "description": "How long since Pascha, shown when no calendar entry is available.",

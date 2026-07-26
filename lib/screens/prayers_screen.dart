@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../models/prayer.dart';
 import '../services/calendar_repository.dart' show supportedLanguages;
 import '../services/prayer_repository.dart';
+import 'reminders_screen.dart';
 
 /// Lists the rules and opens one to read.
 class PrayersScreen extends StatefulWidget {
@@ -56,14 +57,25 @@ class _PrayersScreenState extends State<PrayersScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.prayers)),
+      appBar: AppBar(
+        title: Text(l10n.prayers),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: l10n.reminders,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const RemindersScreen()),
+            ),
+          ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
                 for (final occasion in PrayerOccasion.values)
                   _PrayerTile(
-                    label: _label(l10n, occasion),
+                    label: labelFor(l10n, occasion),
                     set: _sets[occasion],
                     unavailable: l10n.prayerNotAvailable,
                   ),
@@ -71,18 +83,6 @@ class _PrayersScreenState extends State<PrayersScreen> {
             ),
     );
   }
-
-  static String _label(AppLocalizations l10n, PrayerOccasion occasion) =>
-      switch (occasion) {
-        PrayerOccasion.morning => l10n.prayerMorning,
-        PrayerOccasion.midday => l10n.prayerMidday,
-        PrayerOccasion.night => l10n.prayerNight,
-        PrayerOccasion.compline => l10n.prayerCompline,
-        PrayerOccasion.beforeMeal => l10n.prayerBeforeMeal,
-        PrayerOccasion.afterMeal => l10n.prayerAfterMeal,
-        PrayerOccasion.beforeCommunion => l10n.prayerBeforeCommunion,
-        PrayerOccasion.afterCommunion => l10n.prayerAfterCommunion,
-      };
 }
 
 class _PrayerTile extends StatelessWidget {
