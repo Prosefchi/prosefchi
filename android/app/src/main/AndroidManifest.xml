@@ -1,4 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Scheduled alarms do not survive a restart. Without this and the
+         receiver below, every reminder silently disappears the first time the
+         phone reboots, which for a reminder app is the whole product failing
+         quietly.
+
+         POST_NOTIFICATIONS and VIBRATE are not declared here: the
+         flutter_local_notifications manifest already contributes them at merge
+         time. SCHEDULE_EXACT_ALARM is deliberately absent, since reminders are
+         scheduled inexactly to avoid a permission the user must grant by hand
+         and which Play policy restricts to alarm and calendar apps. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:label="prosefchi"
         android:name="${applicationName}"
@@ -25,6 +37,20 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Reschedules pending reminders after a reboot or an app update.
+             MY_PACKAGE_REPLACED matters as much as BOOT_COMPLETED: updating
+             through the store also clears scheduled alarms. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
