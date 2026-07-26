@@ -5,79 +5,11 @@ import 'package:prosefchi/models/prayer.dart';
 import 'package:prosefchi/models/reminder.dart';
 import 'package:prosefchi/screens/reminders_screen.dart';
 import 'package:prosefchi/services/notification_service.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
-import 'package:prosefchi/services/calendar_repository.dart';
 import 'package:prosefchi/services/reminder_store.dart';
 
 import '../support/memory_calendar_store.dart';
 import '../support/pump.dart';
-
-class _MemoryReminderStore implements ReminderStore {
-  _MemoryReminderStore([Map<PrayerOccasion, Reminder>? initial])
-    : _reminders = {
-        for (final occasion in PrayerOccasion.values)
-          occasion: initial?[occasion] ?? Reminder.defaultFor(occasion),
-      };
-
-  final Map<PrayerOccasion, Reminder> _reminders;
-  final List<Reminder> written = [];
-
-  @override
-  Future<Map<PrayerOccasion, Reminder>> readAll() async => {..._reminders};
-
-  @override
-  Future<void> write(Reminder reminder) async {
-    _reminders[reminder.occasion] = reminder;
-    written.add(reminder);
-  }
-
-  FastingReminder fasting = const FastingReminder.initial();
-
-  @override
-  Future<FastingReminder> readFasting() async => fasting;
-
-  @override
-  Future<void> writeFasting(FastingReminder reminder) async =>
-      fasting = reminder;
-}
-
-class _RecordingScheduler implements ReminderScheduler {
-  List<({DateTime date, String body})> fastingDays = const [];
-  _RecordingScheduler({this.granted = true});
-
-  final bool granted;
-  final List<Reminder> applied = [];
-  final List<String> titles = [];
-  int permissionRequests = 0;
-
-  @override
-  Future<bool> requestPermission() async {
-    permissionRequests++;
-    return granted;
-  }
-
-  @override
-  Future<void> apply(
-    Reminder reminder, {
-    required String channelName,
-    required String title,
-    required String body,
-  }) async {
-    applied.add(reminder);
-    titles.add(title);
-  }
-
-  @override
-  Future<void> applyFasting(
-    FastingReminder reminder, {
-    required List<({DateTime date, String body})> days,
-    required String channelName,
-    required String title,
-  }) async {
-    fastingDays = reminder.enabled ? days : const [];
-  }
-}
+import '../support/reminder_doubles.dart';
 
 Widget harness(
   ReminderStore store,
@@ -90,18 +22,14 @@ Widget harness(
   home: RemindersScreen(
     store: store,
     scheduler: scheduler,
-    calendars: CalendarRepository(
-      baseUrl: Uri.parse('https://example.test/'),
-      client: MockClient((_) async => http.Response('nope', 503)),
-      store: MemoryCalendarStore(),
-    ),
+    calendars: offlineCalendars(),
   ),
 );
 
 void main() {
   testWidgets('lists every occasion with its own switch', (tester) async {
     await tester.pumpWidget(
-      harness(_MemoryReminderStore(), _RecordingScheduler()),
+      harness(MemoryReminderStore(), RecordingScheduler()),
     );
     await settle(tester);
 
@@ -114,7 +42,7 @@ void main() {
 
   testWidgets('every reminder starts off', (tester) async {
     await tester.pumpWidget(
-      harness(_MemoryReminderStore(), _RecordingScheduler()),
+      harness(MemoryReminderStore(), RecordingScheduler()),
     );
     await settle(tester);
 
@@ -129,8 +57,8 @@ void main() {
     tester,
   ) async {
     // The whole point of a channel per occasion: they move independently.
-    final store = _MemoryReminderStore();
-    final scheduler = _RecordingScheduler();
+    final store = MemoryReminderStore();
+    final scheduler = RecordingScheduler();
     await tester.pumpWidget(harness(store, scheduler));
     await settle(tester);
 
@@ -149,8 +77,8 @@ void main() {
   ) async {
     // apply is responsible for cancelling a disabled reminder, so it must be
     // called rather than skipped.
-    final scheduler = _RecordingScheduler();
-    final store = _MemoryReminderStore({
+    final scheduler = RecordingScheduler();
+    final store = MemoryReminderStore({
       PrayerOccasion.morning: Reminder.defaultFor(
         PrayerOccasion.morning,
       ).copyWith(enabled: true),
@@ -166,8 +94,8 @@ void main() {
   });
 
   testWidgets('asks permission only when switching on', (tester) async {
-    final scheduler = _RecordingScheduler();
-    final store = _MemoryReminderStore({
+    final scheduler = RecordingScheduler();
+    final store = MemoryReminderStore({
       PrayerOccasion.morning: Reminder.defaultFor(
         PrayerOccasion.morning,
       ).copyWith(enabled: true),
@@ -188,8 +116,8 @@ void main() {
     tester,
   ) async {
     // Showing a reminder as enabled that can never fire is a lie.
-    final store = _MemoryReminderStore();
-    final scheduler = _RecordingScheduler(granted: false);
+    final store = MemoryReminderStore();
+    final scheduler = RecordingScheduler(granted: false);
     await tester.pumpWidget(harness(store, scheduler));
     await settle(tester);
 
@@ -210,7 +138,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      harness(_MemoryReminderStore(), _RecordingScheduler()),
+      harness(MemoryReminderStore(), RecordingScheduler()),
     );
     await settle(tester);
 
@@ -221,7 +149,7 @@ void main() {
     // Communion is not a daily rule: someone who receives monthly wants it on
     // a different footing from a morning one.
     await tester.pumpWidget(
-      harness(_MemoryReminderStore(), _RecordingScheduler()),
+      harness(MemoryReminderStore(), RecordingScheduler()),
     );
     await settle(tester);
 
@@ -235,7 +163,7 @@ void main() {
     // The enum is ordered so each group is contiguous, so one heading per
     // group rather than one per row.
     await tester.pumpWidget(
-      harness(_MemoryReminderStore(), _RecordingScheduler()),
+      harness(MemoryReminderStore(), RecordingScheduler()),
     );
     await settle(tester);
 
@@ -253,7 +181,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      harness(_MemoryReminderStore(), _RecordingScheduler()),
+      harness(MemoryReminderStore(), RecordingScheduler()),
     );
     await settle(tester);
 
@@ -269,8 +197,8 @@ void main() {
     addTearDown(tester.view.reset);
     // It is a block of one-off notifications rather than a repeating alarm,
     // because it must not fire on the days between.
-    final store = _MemoryReminderStore();
-    final scheduler = _RecordingScheduler();
+    final store = MemoryReminderStore();
+    final scheduler = RecordingScheduler();
     await tester.pumpWidget(harness(store, scheduler));
     await settle(tester);
 
@@ -288,9 +216,9 @@ void main() {
     tester.view.physicalSize = const Size(1170, 2600);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
-    final store = _MemoryReminderStore()
+    final store = MemoryReminderStore()
       ..fasting = const FastingReminder.initial().copyWith(enabled: true);
-    final scheduler = _RecordingScheduler();
+    final scheduler = RecordingScheduler();
     await tester.pumpWidget(harness(store, scheduler));
     await settle(tester);
 
@@ -317,8 +245,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       harness(
-        _MemoryReminderStore(),
-        _RecordingScheduler(),
+        MemoryReminderStore(),
+        RecordingScheduler(),
         locale: const Locale('el'),
       ),
     );

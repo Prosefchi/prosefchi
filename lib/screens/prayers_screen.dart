@@ -21,7 +21,7 @@ class PrayersScreen extends StatefulWidget {
 
 class _PrayersScreenState extends State<PrayersScreen> {
   late final PrayerRepository _repository =
-      widget.repository ?? PrayerRepository();
+      widget.repository ?? sharedPrayerRepository;
 
   String? _language;
   Map<PrayerOccasion, PrayerSet?> _sets = {};

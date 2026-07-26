@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/home_shell.dart';
 import 'screens/onboarding_screen.dart';
+import 'services/reminder_refresh.dart';
 import 'services/settings_controller.dart';
 
 Future<void> main() async {
@@ -12,6 +13,17 @@ Future<void> main() async {
   // then switches to another.
   final settings = SettingsController();
   await settings.load();
+
+  // Neither kind of reminder is a standing alarm, so opening the app has to
+  // re-arm them. Owned here rather than by a screen: it is not a navigation
+  // concern, and a screen would only cover the states in which it is mounted —
+  // the app opens on the welcome flow until that is done, and reminders can be
+  // switched on there.
+  //
+  // Not held in a variable and not awaited. Its lifecycle listener registers
+  // with the binding, which keeps both alive for as long as the app runs, and
+  // nothing on the first frame depends on the refresh finishing.
+  ReminderRefresher(settings: settings).start();
 
   runApp(ProsefchiApp(settings: settings));
 }

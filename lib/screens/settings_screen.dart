@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import '../l10n/occasion_labels.dart';
-import '../services/calendar_repository.dart' show supportedLanguages;
+import '../services/calendar_repository.dart';
 import '../services/notification_service.dart';
+import '../services/reminder_refresh.dart';
 import '../services/reminder_store.dart';
 import '../services/settings_controller.dart';
 import 'about_section.dart';
@@ -16,6 +16,7 @@ class SettingsScreen extends StatelessWidget {
     super.key,
     this.reminderStore,
     this.scheduler,
+    this.calendars,
     this.about,
   });
 
@@ -23,6 +24,10 @@ class SettingsScreen extends StatelessWidget {
   /// the whole settings flow without platform channels.
   final ReminderStore? reminderStore;
   final ReminderScheduler? scheduler;
+
+  /// Read when the language changes, so the rescheduled fasting reminders carry
+  /// the Archdiocese's wording in the language now selected.
+  final CalendarRepository? calendars;
 
   /// Substituted in tests, where the about section's platform channels are
   /// unavailable.
@@ -67,8 +72,11 @@ class SettingsScreen extends StatelessWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
-                builder: (_) =>
-                    RemindersScreen(store: reminderStore, scheduler: scheduler),
+                builder: (_) => RemindersScreen(
+                  store: reminderStore,
+                  scheduler: scheduler,
+                  calendars: calendars,
+                ),
               ),
             ),
           ),
@@ -102,28 +110,25 @@ class SettingsScreen extends StatelessWidget {
   /// the user happened to toggle it. The strings for the new language are
   /// loaded directly from the delegate rather than waiting for a rebuild, so
   /// this does not depend on frame timing.
+  ///
+  /// Reschedules through the shared refresh rather than looping over the prayer
+  /// reminders here, which used to leave the fasting block in the old language
+  /// until the next launch.
   Future<void> _setLanguage(BuildContext context, String? language) async {
     final settings = SettingsScope.of(context);
     if (language == settings.language) return;
 
     await settings.setLanguage(language);
 
-    final l10n = await AppLocalizations.delegate.load(
-      Locale(settings.effectiveLanguage),
+    await refreshReminders(
+      store: reminderStore ?? PreferencesReminderStore(),
+      calendars: calendars ?? sharedCalendarRepository,
+      scheduler: scheduler ?? sharedReminderScheduler,
+      language: settings.effectiveLanguage,
+      l10n: await AppLocalizations.delegate.load(
+        Locale(settings.effectiveLanguage),
+      ),
     );
-    final store = reminderStore ?? PreferencesReminderStore();
-    final notifications = scheduler ?? NotificationService();
-
-    for (final reminder in (await store.readAll()).values) {
-      if (!reminder.enabled) continue;
-      final label = l10n.occasionLabel(reminder.occasion);
-      await notifications.apply(
-        reminder,
-        channelName: label,
-        title: label,
-        body: l10n.reminderBody,
-      );
-    }
   }
 
   static String _languageName(AppLocalizations l10n, String language) =>

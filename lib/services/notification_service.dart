@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:ui' show Color;
 
@@ -35,7 +36,31 @@ abstract interface class ReminderScheduler {
     required String channelName,
     required String title,
   });
+
+  /// Reminders tapped while the app is running.
+  ///
+  /// A broadcast stream, and it only carries taps the plugin can report — see
+  /// [takeLaunchTarget] for the other half, which is the common case.
+  Stream<ReminderTarget> get taps;
+
+  /// The reminder that launched the app, or null if something else did.
+  ///
+  /// Separate from [taps] because a tap that starts the process has nobody
+  /// listening yet: the platform records it against the launch intent instead,
+  /// and this reads it back. Answers once — the platform keeps returning the
+  /// same launch for the life of the process, so a second caller would send the
+  /// reader somewhere they did not ask to go a second time.
+  Future<ReminderTarget?> takeLaunchTarget();
 }
+
+/// The scheduler used wherever one is not injected.
+///
+/// Shared for the same reason as [sharedCalendarRepository]: the initialization
+/// memo below is per-instance, and it guards process-wide state. A screen
+/// building its own would copy a 1.9 MB timezone blob and rebuild every
+/// location again, and would briefly leave the local zone set back to UTC while
+/// it did. Lives as long as the app, so nothing disposes it.
+final sharedReminderScheduler = NotificationService();
 
 /// Schedules the daily prayer reminders on the device.
 ///
@@ -56,6 +81,30 @@ class NotificationService implements ReminderScheduler {
   /// though the icon itself is reduced to a plain cross.
   static const _brandColour = Color(0xFFBB0602);
 
+  /// Registers the channel now rather than leaving it to the first delivery.
+  ///
+  /// The plugin creates a channel when it first *posts* to one, so without this
+  /// a reminder that is switched on but has not fired yet appears nowhere in the
+  /// system notification settings — the app looks as though it declares no
+  /// notifications at all. It also means the per-rule control this app promises
+  /// is not actually there until each rule has fired once.
+  ///
+  /// Safe to repeat: re-creating an existing channel updates its name, which is
+  /// what a language change wants, and Android deliberately ignores importance
+  /// changes afterwards so it cannot undo the user's own choices. Resolves to
+  /// null off Android, where channels do not exist.
+  Future<void> _ensureChannel(String id, String name) async => _plugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >()
+      ?.createNotificationChannel(
+        AndroidNotificationChannel(
+          id,
+          name,
+          importance: Importance.defaultImportance,
+        ),
+      );
+
   /// How every notification this app posts is presented. Stated once: the two
   /// kinds differ in how they are scheduled, not in how they look.
   NotificationDetails _detailsFor(String channelId, String channelName) =>
@@ -70,14 +119,41 @@ class NotificationService implements ReminderScheduler {
         iOS: DarwinNotificationDetails(threadIdentifier: channelId),
       );
 
-  bool _initialized = false;
+  /// The initialization itself, not a flag that it happened. A bool set at the
+  /// end of [_initialize] would let a second caller in while the first was
+  /// still inside it, and both would do the work. Holding the future means the
+  /// second caller waits on the first one's.
+  Future<void>? _initialization;
 
   /// Reminders are wall-clock events: 7am stays 7am across a daylight saving
   /// change and when the user travels. That needs a real timezone database
   /// rather than UTC offsets, which is what the timezone package provides.
-  Future<void> initialize() async {
-    if (_initialized) return;
+  Future<void> initialize() => _initialization ??= _initialize();
 
+  /// Broadcast, because both the shell and a test may want to watch, and
+  /// unclosed, because this lives as long as the app does.
+  final _taps = StreamController<ReminderTarget>.broadcast();
+
+  @override
+  Stream<ReminderTarget> get taps => _taps.stream;
+
+  bool _launchTargetTaken = false;
+
+  @override
+  Future<ReminderTarget?> takeLaunchTarget() async {
+    if (_launchTargetTaken) return null;
+    _launchTargetTaken = true;
+
+    // Deliberately without [initialize]. This is a single channel call the
+    // platform answers from the launch intent, so asking costs nothing on the
+    // ordinary launch, where copying the timezone database would be the most
+    // expensive thing the app did before its first frame.
+    final launch = await _plugin.getNotificationAppLaunchDetails();
+    if (launch?.didNotificationLaunchApp != true) return null;
+    return ReminderTarget.parse(launch?.notificationResponse?.payload);
+  }
+
+  Future<void> _initialize() async {
     tz_data.initializeTimeZones();
     try {
       final zone = await FlutterTimezone.getLocalTimezone();
@@ -108,9 +184,14 @@ class NotificationService implements ReminderScheduler {
           requestSoundPermission: false,
         ),
       ),
+      // Taps arriving while the app is already running. A tap that starts the
+      // process is not reported here; `takeLaunchTarget` covers that.
+      onDidReceiveNotificationResponse: (response) {
+        if (ReminderTarget.parse(response.payload) case final target?) {
+          _taps.add(target);
+        }
+      },
     );
-
-    _initialized = true;
   }
 
   /// Asks for permission to post notifications.
@@ -149,6 +230,11 @@ class NotificationService implements ReminderScheduler {
 
   /// Schedules [reminder] if it is enabled, or cancels it if not.
   ///
+  /// **This does not install a standing daily alarm**, however much
+  /// [DateTimeComponents.time] below reads like one. It arms tomorrow and
+  /// nothing further; see `refreshReminders`, which exists because of that and
+  /// has to be called for these to keep firing.
+  ///
   /// The text is passed in rather than resolved here so the service stays free
   /// of localization. It is baked into the scheduled notification, so callers
   /// must reschedule when the language changes.
@@ -163,19 +249,25 @@ class NotificationService implements ReminderScheduler {
     await _plugin.cancel(id: reminder.notificationId);
     if (!reminder.enabled) return;
 
+    await _ensureChannel(reminder.channelId, channelName);
     await _plugin.zonedSchedule(
       id: reminder.notificationId,
       title: title,
       body: body,
       scheduledDate: nextOccurrence(reminder.hour, reminder.minute),
       notificationDetails: _detailsFor(reminder.channelId, channelName),
+      // So a tap can open the rule this is reminding them of.
+      payload: PrayerTarget(reminder.occasion).payload,
       // Inexact deliberately. Exact alarms need SCHEDULE_EXACT_ALARM, which
       // the user must grant in system settings, or USE_EXACT_ALARM, which Play
       // policy restricts to alarm and calendar apps. A reminder that may drift
       // a few minutes is a fair trade for neither of those; revisit if the
       // drift turns out to be worse in practice.
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      // Repeat daily at the same wall-clock time.
+      // Arms the *next* occurrence at this wall-clock time, not a repeating
+      // alarm: the plugin schedules one one-shot and its broadcast receiver
+      // arms the following one when that fires. So this is a chain that has to
+      // be re-armed, not a subscription that keeps itself going.
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
@@ -198,6 +290,7 @@ class NotificationService implements ReminderScheduler {
     ]);
     if (!reminder.enabled) return;
 
+    await _ensureChannel(reminder.channelId, channelName);
     final details = _detailsFor(reminder.channelId, channelName);
 
     for (var i = 0; i < days.length && i < FastingReminder.idCapacity; i++) {
@@ -219,6 +312,7 @@ class NotificationService implements ReminderScheduler {
         body: day.body,
         scheduledDate: at,
         notificationDetails: details,
+        payload: const FastingTarget().payload,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         // Deliberately no matchDateTimeComponents: each of these fires once,
         // on its own day, and is replaced at the next refill.

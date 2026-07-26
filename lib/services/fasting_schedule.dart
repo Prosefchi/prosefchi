@@ -23,15 +23,15 @@ typedef FastingDay = ({DateTime date, String? rule});
 /// follows. The calendar's own emoji markers are no use here: they record an
 /// allowance, and all 843 strict fast days in the feed carry none.
 ///
-/// [limit] exists because iOS keeps at most 64 pending notifications for an app
-/// and silently drops the rest. Through Great Lent every day fasts, so a
-/// [within] of 60 would ask for 51 at once and crowd out the prayer reminders
-/// sharing that budget.
+/// [limit] is the size of the id block the scheduler cancels and refills, so it
+/// defaults to that one constant rather than repeating the number — see
+/// [FastingReminder.idCapacity] for why it is 30. Through Great Lent every day
+/// fasts, so a [within] of 60 would otherwise ask for 51 at once.
 List<FastingDay> fastingDaysFrom(
   DateTime from, {
   Calendar? calendar,
   int within = 60,
-  int limit = 30,
+  int limit = FastingReminder.idCapacity,
 }) {
   final days = <FastingDay>[];
 
@@ -51,10 +51,11 @@ List<FastingDay> fastingDaysFrom(
 
 /// Rebuilds the fasting reminder schedule.
 ///
-/// Shared by the reminders screen and by app launch, because the schedule is a
-/// finite horizon rather than a repeating alarm: without a refill it simply
-/// runs out. Cheap to call — it replaces the block whether or not anything has
-/// changed.
+/// The single path that applies [fastingDaysFrom]: used by the reminders screen
+/// when the switch is touched, and by `refreshReminders` for every other
+/// occasion. The schedule is a finite horizon rather than a repeating alarm, so
+/// without a refill it simply runs out. It replaces the whole block whether or
+/// not anything has changed.
 Future<void> refreshFastingReminders({
   required FastingReminder reminder,
   required CalendarRepository calendars,

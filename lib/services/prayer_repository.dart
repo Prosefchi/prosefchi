@@ -13,6 +13,13 @@ import 'document_repository.dart';
 /// A thin naming layer over [DocumentRepository], which already does the
 /// reading, the caching and the English fallback. All this adds is the mapping
 /// from an occasion to its two candidate paths.
+/// The repository used wherever one is not injected.
+///
+/// Shared for the same reason as the calendar's: the cache is per-instance, so
+/// the prayers list and the notification-tap route each building their own would
+/// read and parse the same eight assets twice.
+final sharedPrayerRepository = PrayerRepository();
+
 class PrayerRepository {
   PrayerRepository({AssetBundle? bundle, DocumentRepository? documents})
     : _documents = documents ?? DocumentRepository(bundle: bundle);

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/prayer.dart';
-import 'package:prosefchi/models/reminder.dart';
 import 'package:prosefchi/screens/onboarding_screen.dart';
 import 'package:prosefchi/services/document_repository.dart';
 import 'package:prosefchi/services/notification_service.dart';
@@ -10,6 +9,7 @@ import 'package:prosefchi/services/reminder_store.dart';
 import 'package:prosefchi/services/settings_controller.dart';
 import '../support/pump.dart';
 import '../support/fake_bundle.dart';
+import '../support/reminder_doubles.dart';
 
 class _MemorySettingsStore implements SettingsStore {
   _MemorySettingsStore({this.language});
@@ -28,62 +28,6 @@ class _MemorySettingsStore implements SettingsStore {
 
   @override
   Future<void> writeOnboardingSeen(bool seen) async => onboardingSeen = seen;
-}
-
-class _MemoryReminderStore implements ReminderStore {
-  final Map<PrayerOccasion, Reminder> _reminders = {
-    for (final occasion in PrayerOccasion.values)
-      occasion: Reminder.defaultFor(occasion),
-  };
-
-  @override
-  Future<Map<PrayerOccasion, Reminder>> readAll() async => {..._reminders};
-
-  @override
-  Future<void> write(Reminder reminder) async =>
-      _reminders[reminder.occasion] = reminder;
-
-  FastingReminder fasting = const FastingReminder.initial();
-
-  @override
-  Future<FastingReminder> readFasting() async => fasting;
-
-  @override
-  Future<void> writeFasting(FastingReminder reminder) async =>
-      fasting = reminder;
-}
-
-class _RecordingScheduler implements ReminderScheduler {
-  List<({DateTime date, String body})> fastingDays = const [];
-  _RecordingScheduler({this.granted = true});
-
-  final bool granted;
-  int permissionRequests = 0;
-  final List<Reminder> applied = [];
-
-  @override
-  Future<bool> requestPermission() async {
-    permissionRequests++;
-    return granted;
-  }
-
-  @override
-  Future<void> apply(
-    Reminder reminder, {
-    required String channelName,
-    required String title,
-    required String body,
-  }) async => applied.add(reminder);
-
-  @override
-  Future<void> applyFasting(
-    FastingReminder reminder, {
-    required List<({DateTime date, String body})> days,
-    required String channelName,
-    required String title,
-  }) async {
-    fastingDays = reminder.enabled ? days : const [];
-  }
 }
 
 const welcomeEn = '''
@@ -119,8 +63,8 @@ Future<Widget> harness(
               'res/welcome_el.md': welcomeEl,
             }),
           ),
-          reminderStore: reminderStore ?? _MemoryReminderStore(),
-          scheduler: scheduler ?? _RecordingScheduler(),
+          reminderStore: reminderStore ?? MemoryReminderStore(),
+          scheduler: scheduler ?? RecordingScheduler(),
         ),
       ),
     ),
@@ -190,7 +134,7 @@ void main() {
   ) async {
     // The whole reason reminders ship off: the prompt arrives when the user
     // asks for a notification, not before.
-    final scheduler = _RecordingScheduler();
+    final scheduler = RecordingScheduler();
     await tester.pumpWidget(
       await harness(
         SettingsController(store: _MemorySettingsStore()),
@@ -214,7 +158,7 @@ void main() {
   testWidgets('does not enable a reminder when permission is declined', (
     tester,
   ) async {
-    final scheduler = _RecordingScheduler(granted: false);
+    final scheduler = RecordingScheduler(granted: false);
     await tester.pumpWidget(
       await harness(
         SettingsController(store: _MemorySettingsStore()),

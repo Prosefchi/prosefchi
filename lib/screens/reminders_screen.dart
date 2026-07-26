@@ -7,6 +7,7 @@ import '../models/reminder.dart';
 import '../services/calendar_repository.dart';
 import '../services/fasting_schedule.dart';
 import '../services/notification_service.dart';
+import '../services/reminder_refresh.dart';
 import '../services/reminder_store.dart';
 import 'occasion_ui.dart';
 
@@ -49,7 +50,7 @@ class ReminderList extends StatefulWidget {
 class _ReminderListState extends State<ReminderList> {
   late final ReminderStore _store = widget.store ?? PreferencesReminderStore();
   late final ReminderScheduler _scheduler =
-      widget.scheduler ?? NotificationService();
+      widget.scheduler ?? sharedReminderScheduler;
   late final CalendarRepository _calendars =
       widget.calendars ?? sharedCalendarRepository;
 
@@ -144,7 +145,6 @@ class _ReminderListState extends State<ReminderList> {
   /// nothing on disk to explain it.
   Future<void> _update(Reminder reminder) async {
     final l10n = AppLocalizations.of(context);
-    final label = l10n.occasionLabel(reminder.occasion);
 
     if (reminder.enabled &&
         !_reminders[reminder.occasion]!.enabled &&
@@ -156,12 +156,9 @@ class _ReminderListState extends State<ReminderList> {
     setState(() => _reminders = {..._reminders, reminder.occasion: reminder});
 
     await _store.write(reminder);
-    await _scheduler.apply(
-      reminder,
-      channelName: label,
-      title: label,
-      body: l10n.reminderBody,
-    );
+    // Through the shared helper, so the wording here and the wording the daily
+    // refresh reschedules with cannot drift apart.
+    await applyPrayerReminder(_scheduler, reminder, l10n);
   }
 
   Future<void> _pickTime(Reminder reminder) async {

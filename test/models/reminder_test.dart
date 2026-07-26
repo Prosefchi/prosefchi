@@ -134,4 +134,37 @@ void main() {
       '06:05',
     );
   });
+
+  group('notification payloads', () {
+    // A payload is written when a notification is scheduled and read when it is
+    // tapped, days later and possibly by a newer build. If it stops round
+    // tripping, taps silently stop opening anything.
+    test('every target survives the round trip', () {
+      for (final occasion in PrayerOccasion.values) {
+        final target = PrayerTarget(occasion);
+        expect(ReminderTarget.parse(target.payload), target);
+      }
+      expect(
+        ReminderTarget.parse(const FastingTarget().payload),
+        const FastingTarget(),
+      );
+    });
+
+    test('the fasting payload cannot be mistaken for a rule', () {
+      // Both kinds share one payload space, so the fasting slug has to stay
+      // clear of every occasion's.
+      expect(
+        PrayerOccasion.values.map((occasion) => occasion.slug),
+        isNot(contains(FastingTarget.slug)),
+      );
+      expect(ReminderTarget.parse(FastingTarget.slug), isA<FastingTarget>());
+    });
+
+    test('an unrecognised or absent payload opens nothing', () {
+      // A notification left over from a build that named things differently.
+      expect(ReminderTarget.parse('vespers'), isNull);
+      expect(ReminderTarget.parse(''), isNull);
+      expect(ReminderTarget.parse(null), isNull);
+    });
+  });
 }

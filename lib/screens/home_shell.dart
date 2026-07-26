@@ -1,69 +1,98 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import '../services/calendar_repository.dart';
-import '../services/fasting_schedule.dart';
+import '../models/reminder.dart';
+import '../services/calendar_repository.dart' show languageFor;
 import '../services/notification_service.dart';
-import '../services/reminder_store.dart';
-import '../services/settings_controller.dart';
+import '../services/prayer_repository.dart';
 import 'prayers_screen.dart';
 import 'today_screen.dart';
 
-/// Holds the two top-level destinations.
+/// Holds the two top-level destinations, and answers a tapped reminder.
 ///
 /// The screens are kept alive in an IndexedStack rather than rebuilt on each
 /// switch, so moving between them neither re-reads the calendar nor loses a
 /// reading position part way down a prayer.
+///
+/// Tap routing lives here because it is navigation — unlike keeping the schedule
+/// alive, which is `ReminderRefresher`'s job and deliberately not a screen's.
 class HomeShell extends StatefulWidget {
-  const HomeShell({
-    super.key,
-    this.reminderStore,
-    this.scheduler,
-    this.calendars,
-  });
+  const HomeShell({super.key, this.scheduler, this.prayers});
 
-  /// Injectable so a test can drive the launch refill without touching
-  /// preferences or platform channels.
-  final ReminderStore? reminderStore;
+  /// Injectable so a test can deliver a tap without a platform channel.
   final ReminderScheduler? scheduler;
-  final CalendarRepository? calendars;
+  final PrayerRepository? prayers;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
 
 class _HomeShellState extends State<HomeShell> {
-  int _index = 0;
-  bool _refilled = false;
+  static const _today = 0;
+  static const _prayers = 1;
+
+  int _index = _today;
+
+  late final ReminderScheduler _scheduler =
+      widget.scheduler ?? sharedReminderScheduler;
+  late final PrayerRepository _repository =
+      widget.prayers ?? sharedPrayerRepository;
+
+  StreamSubscription<ReminderTarget>? _taps;
+  bool _listening = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Once per launch, after the locale is available. The fasting reminder is
-    // a bounded run of one-off notifications rather than a repeating alarm, so
-    // without a refill it quietly runs out after a month or so.
-    if (_refilled) return;
-    _refilled = true;
-    _refillFastingReminders();
+    // Here rather than initState because opening a rule needs the locale, and
+    // once rather than on every dependency change.
+    if (_listening) return;
+    _listening = true;
+    _taps = _scheduler.taps.listen(_open);
+    _openLaunchTarget();
   }
 
-  Future<void> _refillFastingReminders() async {
-    final l10n = AppLocalizations.of(context);
-    final language = SettingsScope.of(context).effectiveLanguage;
-    final store = widget.reminderStore ?? PreferencesReminderStore();
+  @override
+  void dispose() {
+    _taps?.cancel();
+    super.dispose();
+  }
 
-    final reminder = await store.readFasting();
-    // Nothing to schedule and nothing stale to clear, so do not wake the
-    // notification plugin at all on the overwhelmingly common path.
-    if (!reminder.enabled) return;
+  /// A tap that started the app, which arrives before anything is listening.
+  Future<void> _openLaunchTarget() async {
+    if (await _scheduler.takeLaunchTarget() case final target?) _open(target);
+  }
 
-    await refreshFastingReminders(
-      reminder: reminder,
-      calendars: widget.calendars ?? sharedCalendarRepository,
-      scheduler: widget.scheduler ?? NotificationService(),
-      language: language,
-      l10n: l10n,
-    );
+  /// Opens what the reminder was reminding them of.
+  Future<void> _open(ReminderTarget target) async {
+    if (!mounted) return;
+
+    switch (target) {
+      // The day is where the fasting rule is shown, so the tab is the whole
+      // answer here.
+      case FastingTarget():
+        setState(() => _index = _today);
+
+      case PrayerTarget(:final occasion):
+        // The tab first, so the rule is read with its list behind it and Back
+        // lands somewhere sensible rather than on the day.
+        setState(() => _index = _prayers);
+
+        final set = await _repository.load(
+          occasion,
+          languageFor(Localizations.localeOf(context)),
+        );
+        if (!mounted) return;
+        // A rule whose text is still awaited would open an empty page. The list
+        // disables those, and leaving them on it is the same answer.
+        if (set == null || !set.hasContent) return;
+
+        await Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => PrayerScreen(set: set)));
+    }
   }
 
   @override

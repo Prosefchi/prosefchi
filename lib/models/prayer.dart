@@ -51,4 +51,14 @@ enum PrayerOccasion {
   final PrayerGroup group;
 
   String assetPath(String language) => 'res/prayers/${slug}_$language.md';
+
+  static final Map<String, PrayerOccasion> _bySlug = {
+    for (final occasion in values) occasion.slug: occasion,
+  };
+
+  /// The occasion with this [slug], or null if none has it.
+  ///
+  /// For reading a slug back out of somewhere it was stored — a notification
+  /// payload written days earlier, possibly by an older build.
+  static PrayerOccasion? bySlug(String slug) => _bySlug[slug];
 }

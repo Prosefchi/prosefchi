@@ -61,17 +61,20 @@ class CalendarRepository {
   final http.Client _client;
   final CalendarStore _store;
 
-  /// Parsing a year of Greek readings is not free. Holds nulls too, so a
-  /// missing calendar is not re-read on every widget rebuild.
-  final Map<String, Calendar?> _cache = {};
+  /// Parsing a few hundred kilobytes of Greek readings is not free. Holds nulls
+  /// too, so a missing calendar is not re-read on every widget rebuild.
+  ///
+  /// The *future* rather than the value, so that callers arriving while a read
+  /// is still in flight wait on it instead of starting their own. A language
+  /// switch has two — the Today screen and the reminder refresh — in the same
+  /// turn of the event loop.
+  final Map<String, Future<Calendar?>> _cache = {};
 
   /// The stored calendar for [language], or null if none has been kept yet.
   ///
   /// Never touches the network.
-  Future<Calendar?> load(String language) async {
-    if (_cache.containsKey(language)) return _cache[language];
-    return _cache[language] = await _readStored(language);
-  }
+  Future<Calendar?> load(String language) =>
+      _cache[language] ??= _readStored(language);
 
   /// The entry for [date], or null if nothing is stored or the calendar does
   /// not reach that far.
@@ -123,7 +126,7 @@ class CalendarRepository {
         await _store.delete(_etagName(language));
       }
 
-      _cache[language] = calendar;
+      _cache[language] = Future.value(calendar);
       return true;
     } on Object catch (error) {
       // Offline, DNS failure, TLS problem, malformed payload: all the same

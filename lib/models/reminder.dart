@@ -1,5 +1,65 @@
 import 'prayer.dart';
 
+/// What a reminder was reminding the reader about, so a tap can open it.
+///
+/// Travels as the notification's payload, which means it is written when the
+/// notification is scheduled and read when it is tapped — possibly days later,
+/// and possibly by a newer build of the app. So it is a short stable string
+/// rather than an index or anything else that could shift underneath it.
+sealed class ReminderTarget {
+  const ReminderTarget();
+
+  /// What to schedule the notification with.
+  String get payload;
+
+  /// The target [payload] names, or null if it is absent or unrecognised.
+  ///
+  /// Unrecognised is an ordinary outcome, not a bug: a notification scheduled
+  /// by an earlier build can still be sitting in the shade after an update.
+  /// Callers treat null as "just open the app".
+  static ReminderTarget? parse(String? payload) {
+    if (payload == null) return null;
+    if (payload == FastingTarget.slug) return const FastingTarget();
+    final occasion = PrayerOccasion.bySlug(payload);
+    return occasion == null ? null : PrayerTarget(occasion);
+  }
+}
+
+/// A prayer rule: tapping it opens that rule to read.
+final class PrayerTarget extends ReminderTarget {
+  const PrayerTarget(this.occasion);
+
+  final PrayerOccasion occasion;
+
+  @override
+  String get payload => occasion.slug;
+
+  @override
+  bool operator ==(Object other) =>
+      other is PrayerTarget && other.occasion == occasion;
+
+  @override
+  int get hashCode => occasion.hashCode;
+}
+
+/// The fasting reminder: tapping it opens the day, where the rule is shown.
+final class FastingTarget extends ReminderTarget {
+  const FastingTarget();
+
+  /// Distinct from every [PrayerOccasion.slug], which is what lets one payload
+  /// space hold both. `test/models/reminder_test.dart` pins that.
+  static const slug = 'fasting';
+
+  @override
+  String get payload => slug;
+
+  @override
+  bool operator ==(Object other) => other is FastingTarget;
+
+  @override
+  int get hashCode => slug.hashCode;
+}
+
 /// A daily reminder for one prayer occasion.
 ///
 /// Each occasion is separately switchable and separately timed, and each gets
@@ -133,10 +193,19 @@ class FastingReminder {
   /// [PrayerOccasion] and so occupy the low numbers.
   static const idBase = 1000;
 
+  /// How many days the block covers, and so how many ids it occupies.
+  ///
   /// Scheduling one notification per fasting day means a block of ids rather
   /// than one, and the whole block is cancelled before each refill so none is
-  /// left behind.
-  static const idCapacity = 64;
+  /// left behind. One number for both the scheduling and the cancelling: when
+  /// this was larger than the horizon actually scheduled, every refresh spent
+  /// two thirds of its platform calls cancelling ids nothing had ever used.
+  ///
+  /// 30 because **iOS keeps at most 64 pending notifications per app** and
+  /// drops the rest without saying so. Through Great Lent every day fasts, so
+  /// an unbounded block would ask for 51 at once and crowd out the eight prayer
+  /// reminders sharing that budget.
+  static const idCapacity = 30;
 
   String get channelId => 'fasting';
 

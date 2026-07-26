@@ -7,7 +7,9 @@ import 'package:prosefchi/screens/settings_screen.dart';
 import 'package:prosefchi/services/notification_service.dart';
 import 'package:prosefchi/services/reminder_store.dart';
 import 'package:prosefchi/services/settings_controller.dart';
+import '../support/memory_calendar_store.dart';
 import '../support/pump.dart';
+import '../support/reminder_doubles.dart';
 
 class _MemorySettingsStore implements SettingsStore {
   _MemorySettingsStore([this.language]);
@@ -32,58 +34,6 @@ class _MemorySettingsStore implements SettingsStore {
   Future<void> writeOnboardingSeen(bool seen) async => onboardingSeen = seen;
 }
 
-class _MemoryReminderStore implements ReminderStore {
-  _MemoryReminderStore([Map<PrayerOccasion, Reminder>? initial])
-    : _reminders = {
-        for (final occasion in PrayerOccasion.values)
-          occasion: initial?[occasion] ?? Reminder.defaultFor(occasion),
-      };
-
-  final Map<PrayerOccasion, Reminder> _reminders;
-
-  @override
-  Future<Map<PrayerOccasion, Reminder>> readAll() async => {..._reminders};
-
-  @override
-  Future<void> write(Reminder reminder) async =>
-      _reminders[reminder.occasion] = reminder;
-
-  FastingReminder fasting = const FastingReminder.initial();
-
-  @override
-  Future<FastingReminder> readFasting() async => fasting;
-
-  @override
-  Future<void> writeFasting(FastingReminder reminder) async =>
-      fasting = reminder;
-}
-
-class _RecordingScheduler implements ReminderScheduler {
-  List<({DateTime date, String body})> fastingDays = const [];
-  final List<String> titles = [];
-
-  @override
-  Future<bool> requestPermission() async => true;
-
-  @override
-  Future<void> apply(
-    Reminder reminder, {
-    required String channelName,
-    required String title,
-    required String body,
-  }) async => titles.add(title);
-
-  @override
-  Future<void> applyFasting(
-    FastingReminder reminder, {
-    required List<({DateTime date, String body})> days,
-    required String channelName,
-    required String title,
-  }) async {
-    fastingDays = reminder.enabled ? days : const [];
-  }
-}
-
 Future<Widget> harness(
   SettingsController controller, {
   ReminderStore? reminderStore,
@@ -101,6 +51,9 @@ Future<Widget> harness(
         home: SettingsScreen(
           reminderStore: reminderStore,
           scheduler: scheduler,
+          // Without this the language switch would reach the real file store
+          // and http.Client, whose futures never complete under FakeAsync.
+          calendars: offlineCalendars(),
           // The real one reaches for package_info_plus and url_launcher,
           // neither of which has a platform channel under flutter test.
           about: const SizedBox.shrink(key: Key('about')),
@@ -131,8 +84,8 @@ void main() {
     await tester.pumpWidget(
       await harness(
         SettingsController(store: store),
-        reminderStore: _MemoryReminderStore(),
-        scheduler: _RecordingScheduler(),
+        reminderStore: MemoryReminderStore(),
+        scheduler: RecordingScheduler(),
       ),
     );
     await settle(tester);
@@ -152,11 +105,11 @@ void main() {
   ) async {
     // Notification text is baked in at schedule time, so without this every
     // pending reminder would stay in the old language until it was toggled.
-    final scheduler = _RecordingScheduler();
+    final scheduler = RecordingScheduler();
     await tester.pumpWidget(
       await harness(
         SettingsController(store: _MemorySettingsStore()),
-        reminderStore: _MemoryReminderStore({
+        reminderStore: MemoryReminderStore({
           for (final occasion in [PrayerOccasion.morning, PrayerOccasion.night])
             occasion: Reminder.defaultFor(occasion).copyWith(enabled: true),
         }),
@@ -172,8 +125,8 @@ void main() {
   });
 
   testWidgets('leaves disabled reminders alone', (tester) async {
-    final scheduler = _RecordingScheduler();
-    final reminders = _MemoryReminderStore({
+    final scheduler = RecordingScheduler();
+    final reminders = MemoryReminderStore({
       for (final occasion in PrayerOccasion.values)
         occasion: Reminder.defaultFor(occasion).copyWith(enabled: false),
     });
@@ -218,8 +171,8 @@ void main() {
     await tester.pumpWidget(
       await harness(
         SettingsController(store: _MemorySettingsStore()),
-        reminderStore: _MemoryReminderStore(),
-        scheduler: _RecordingScheduler(),
+        reminderStore: MemoryReminderStore(),
+        scheduler: RecordingScheduler(),
       ),
     );
     await settle(tester);
@@ -250,8 +203,8 @@ void main() {
     await tester.pumpWidget(
       await harness(
         SettingsController(store: _MemorySettingsStore()),
-        reminderStore: _MemoryReminderStore(),
-        scheduler: _RecordingScheduler(),
+        reminderStore: MemoryReminderStore(),
+        scheduler: RecordingScheduler(),
       ),
     );
     await settle(tester);
