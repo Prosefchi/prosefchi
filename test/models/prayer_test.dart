@@ -48,6 +48,69 @@ who are everywhere present and fill all things.
       );
     });
 
+    test('reads a rubric whether or not a space follows the marker', () {
+      // Markdown makes the space optional. Requiring it meant `>Τρίς.` fell
+      // through to a paragraph and was rendered as words to be said aloud,
+      // with the marker still visible in front of them.
+      final set = PrayerSet.parse('# Set\n\n>Say three times.\n');
+
+      expect(
+        (set.blocks.single as PrayerRubric).text,
+        'Say three times.',
+        reason: 'a rubric, not a paragraph beginning with >',
+      );
+    });
+
+    test('joins a hard-wrapped rubric into one', () {
+      // Every rubric is padded away from what precedes it, so a sentence split
+      // across two of them rendered with a gap in the middle. The welcome page
+      // shipped exactly this.
+      final set = PrayerSet.parse('''
+# Set
+
+> The saints, feasts, and readings are sourced from the calendar of the Greek
+> Orthodox Archdiocese of America.
+''');
+
+      expect(set.blocks, hasLength(1));
+      expect(
+        (set.blocks.single as PrayerRubric).text,
+        'The saints, feasts, and readings are sourced from the calendar of the '
+        'Greek Orthodox Archdiocese of America.',
+      );
+    });
+
+    test('continues a rubric onto a line that lost its marker', () {
+      final set = PrayerSet.parse(
+        '# Set\n\n> On rising from sleep,\nmake the sign of the Cross.\n',
+      );
+
+      expect(set.blocks, hasLength(1));
+      expect(
+        (set.blocks.single as PrayerRubric).text,
+        'On rising from sleep, make the sign of the Cross.',
+      );
+    });
+
+    test('separates two rubrics on a blank line', () {
+      final set = PrayerSet.parse('# Set\n\n> First.\n\n> Second.\n');
+
+      expect(set.blocks.whereType<PrayerRubric>().map((b) => b.text), [
+        'First.',
+        'Second.',
+      ]);
+    });
+
+    test('ends a rubric at a heading', () {
+      // No blank line, so only the heading separates them.
+      final set = PrayerSet.parse(
+        '# Set\n\n> Say three times.\n## Trisagion\n',
+      );
+
+      expect(set.blocks, [isA<PrayerRubric>(), isA<PrayerHeading>()]);
+      expect((set.blocks.last as PrayerHeading).text, 'Trisagion');
+    });
+
     test('separates paragraphs on a blank line', () {
       final set = PrayerSet.parse('# Set\n\nFirst line.\n\nSecond line.\n');
 
@@ -55,6 +118,86 @@ who are everywhere present and fill all things.
         'First line.',
         'Second line.',
       ]);
+    });
+
+    test('reads a link out of a paragraph', () {
+      final set = PrayerSet.parse(
+        '# Set\n\n[Source](https://orthodox-prayer-book.org/en/proimiaki/)\n',
+      );
+
+      final spans = (set.blocks.single as PrayerText).spans;
+      expect(spans, hasLength(1));
+      expect((spans.single as MarkupLink).text, 'Source');
+      expect(
+        (spans.single as MarkupLink).url,
+        'https://orthodox-prayer-book.org/en/proimiaki/',
+      );
+    });
+
+    test('keeps the words around a link', () {
+      final set = PrayerSet.parse(
+        '# Set\n\nFrom [there](https://x.org) only.\n',
+      );
+      final block = set.blocks.single as PrayerText;
+
+      expect(block.spans.map((s) => s.text), ['From ', 'there', ' only.']);
+      expect(
+        block.text,
+        'From there only.',
+        reason: 'the plain reading drops the markup, not the label',
+      );
+    });
+
+    test('reads a link that was hard-wrapped across two lines', () {
+      // Links are parsed once the run is joined, so wrapping the source is as
+      // safe here as it is in a paragraph.
+      final set = PrayerSet.parse(
+        '# Set\n\nSee [the\nsource](https://x.org).\n',
+      );
+
+      final link = (set.blocks.single as PrayerText).spans[1] as MarkupLink;
+      expect(link.text, 'the source');
+      expect(link.url, 'https://x.org');
+    });
+
+    test('leaves a placeholder marker alone', () {
+      // `[Awaiting text: …]` is a bracket with no target after it, and it has
+      // to stay plain or hasPlaceholder stops recognising it.
+      final set = PrayerSet.parse('# Set\n\n> [Awaiting text: the rule.]\n');
+
+      expect(
+        (set.blocks.single as PrayerRubric).spans.single,
+        isA<MarkupPlain>(),
+      );
+      expect(set.hasPlaceholder, isTrue);
+    });
+
+    test('reads a thematic break', () {
+      final set = PrayerSet.parse(
+        '# Set\n\nAmen.\n\n---\n\n[Source](https://x.org)\n',
+      );
+
+      expect(set.blocks, [
+        isA<PrayerText>(),
+        isA<PrayerDivider>(),
+        isA<PrayerText>(),
+      ]);
+    });
+
+    test('ends a rubric at a thematic break', () {
+      // No blank line between them, so only the rule separates them.
+      final set = PrayerSet.parse('# Set\n\n> Say three times.\n---\n');
+
+      expect(set.blocks, [isA<PrayerRubric>(), isA<PrayerDivider>()]);
+    });
+
+    test('does not take a divider for a heading', () {
+      // In Markdown proper, `---` under a line of text makes it a heading. Here
+      // it stays a rule, so a divider drawn under a paragraph cannot eat it.
+      final set = PrayerSet.parse('# Set\n\nAmen.\n---\n');
+
+      expect(set.blocks, [isA<PrayerText>(), isA<PrayerDivider>()]);
+      expect((set.blocks.first as PrayerText).text, 'Amen.');
     });
 
     test('drops maintainer comments', () {

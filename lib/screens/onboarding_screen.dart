@@ -6,6 +6,7 @@ import '../services/document_repository.dart';
 import '../services/notification_service.dart';
 import '../services/reminder_store.dart';
 import '../services/settings_controller.dart';
+import 'markup_paragraph.dart';
 import 'reminders_screen.dart';
 
 /// The welcome flow, shown once on first launch and replayable from settings.
@@ -160,22 +161,26 @@ class _WelcomePage extends StatelessWidget {
                   ),
                 ),
               ),
-              MarkupNote(:final text) => Padding(
+              MarkupNote(:final spans) => Padding(
                 padding: const EdgeInsets.only(top: 20),
-                child: Text(
-                  text,
+                child: MarkupParagraph(
+                  spans,
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontStyle: FontStyle.italic,
                     color: theme.hintColor,
                   ),
                 ),
               ),
-              MarkupText(:final text) => Padding(
+              MarkupText(:final spans) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  text,
+                child: MarkupParagraph(
+                  spans,
                   style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
                 ),
+              ),
+              MarkupDivider() => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Divider(),
               ),
             },
         ],

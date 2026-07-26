@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/occasion_labels.dart';
 import '../models/prayer.dart';
+import 'markup_paragraph.dart';
 import '../services/calendar_repository.dart' show languageFor;
 import '../services/prayer_repository.dart';
 import 'occasion_ui.dart';
@@ -161,22 +162,26 @@ class PrayerScreen extends StatelessWidget {
           ),
           // Rubrics are instructions, not words to be said. Styling them
           // apart is the whole reason for the distinction.
-          PrayerRubric(:final text) => Padding(
+          PrayerRubric(:final spans) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              text,
+            child: MarkupParagraph(
+              spans,
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontStyle: FontStyle.italic,
                 color: theme.hintColor,
               ),
             ),
           ),
-          PrayerText(:final text) => Padding(
+          PrayerText(:final spans) => Padding(
             padding: const EdgeInsets.only(bottom: 14),
-            child: Text(
-              text,
+            child: MarkupParagraph(
+              spans,
               style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
             ),
+          ),
+          PrayerDivider() => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Divider(),
           ),
         },
       ),

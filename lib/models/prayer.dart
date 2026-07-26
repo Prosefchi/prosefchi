@@ -12,6 +12,7 @@ typedef PrayerSet = MarkupDocument;
 typedef PrayerHeading = MarkupHeading;
 typedef PrayerRubric = MarkupNote;
 typedef PrayerText = MarkupText;
+typedef PrayerDivider = MarkupDivider;
 
 /// What kind of occasion a prayer rule belongs to.
 ///

@@ -7,10 +7,9 @@ import 'package:prosefchi/services/calendar_repository.dart'
 
 /// Checks the authored prayer files themselves, not the parser.
 ///
-/// The parser is deliberately forgiving: anything it does not recognise falls
-/// through and renders as literal text. That is the right behaviour at runtime
-/// but a poor way to find out you wrote `**Lord**` and shipped the asterisks,
-/// so the mistakes are caught here instead.
+/// That every occasion has a file, that each one parses to something with a
+/// title, that an unfinished rule says so, and that the files are reachable as
+/// bundled assets at all.
 void main() {
   final files =
       Directory('res/prayers')
@@ -35,31 +34,6 @@ void main() {
       final set = PrayerSet.parse(file.readAsStringSync());
       expect(set.isEmpty, isFalse, reason: '${file.path} parsed to nothing');
       expect(set.title, isNotEmpty, reason: '${file.path} has no title');
-    }
-  });
-
-  test('no file uses markup the parser silently ignores', () {
-    // Each of these renders as literal characters in the middle of a prayer.
-    final unsupported = <String, RegExp>{
-      'bold or italic markers': RegExp(r'\*'),
-      'underscore emphasis': RegExp(r'(?<!\w)_{2}'),
-      'a heading deeper than ##': RegExp(r'^#{3,}\s', multiLine: true),
-      'a link': RegExp(r'\[[^\]]*\]\('),
-      'a list item': RegExp(r'^\s*([-+]|\d+\.)\s', multiLine: true),
-      'a code span': RegExp('`'),
-    };
-
-    for (final file in files) {
-      final source = file.readAsStringSync();
-      unsupported.forEach((description, pattern) {
-        expect(
-          pattern.hasMatch(source),
-          isFalse,
-          reason:
-              '${file.path} contains $description, which the parser does not '
-              'understand and will render literally',
-        );
-      });
     }
   });
 

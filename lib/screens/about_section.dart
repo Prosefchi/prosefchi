@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
+import 'link.dart';
 
 /// Where the repository lives.
 final repositoryUrl = Uri.parse('https://github.com/Prosefchi/prosefchi');
@@ -43,19 +43,8 @@ class _AboutSectionState extends State<AboutSection> {
     }
   }
 
-  Future<void> _openRepository() async {
-    final l10n = AppLocalizations.of(context);
-    final opened = await (widget.launch ?? _launch)(repositoryUrl);
-    if (opened || !mounted) return;
-
-    // A device with no browser, which is rare but not impossible on Android.
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.couldNotOpenLink)));
-  }
-
-  static Future<bool> _launch(Uri url) =>
-      launchUrl(url, mode: LaunchMode.externalApplication);
+  Future<void> _openRepository() =>
+      openLink(context, repositoryUrl, launch: widget.launch);
 
   @override
   Widget build(BuildContext context) {

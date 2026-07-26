@@ -24,6 +24,16 @@ const placeholderMidday = '''
 > [Awaiting text: the midday rule.]
 ''';
 
+const attributed = '''
+# Morning Prayers
+
+Amen.
+
+---
+
+[Source](https://example.org/rule/)
+''';
+
 Widget harness(
   Map<String, String> assets, {
   Locale locale = const Locale('en'),
@@ -138,6 +148,22 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('renders a source attribution under a rule', (tester) async {
+    await tester.pumpWidget(harness({'res/prayers/morning_en.md': attributed}));
+    await settle(tester);
+
+    await tester.tap(find.text('Morning'));
+    await settle(tester);
+
+    expect(find.byType(Divider), findsOneWidget);
+    expect(
+      find.text('Source'),
+      findsOneWidget,
+      reason: 'the label, not the bracketed form around it',
+    );
+    expect(find.textContaining('https://'), findsNothing);
   });
 
   testWidgets('labels the rules in Greek under the el locale', (tester) async {
