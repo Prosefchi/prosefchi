@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../l10n/occasion_labels.dart';
 import '../models/prayer.dart';
 import '../services/calendar_repository.dart' show supportedLanguages;
 import '../services/prayer_repository.dart';
-import 'reminders_screen.dart';
+import 'settings_screen.dart';
 
 /// Lists the rules and opens one to read.
 class PrayersScreen extends StatefulWidget {
@@ -61,10 +62,10 @@ class _PrayersScreenState extends State<PrayersScreen> {
         title: Text(l10n.prayers),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            tooltip: l10n.reminders,
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: l10n.settings,
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const RemindersScreen()),
+              MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
             ),
           ),
         ],
@@ -75,7 +76,7 @@ class _PrayersScreenState extends State<PrayersScreen> {
               children: [
                 for (final occasion in PrayerOccasion.values)
                   _PrayerTile(
-                    label: labelFor(l10n, occasion),
+                    label: l10n.occasionLabel(occasion),
                     set: _sets[occasion],
                     unavailable: l10n.prayerNotAvailable,
                   ),

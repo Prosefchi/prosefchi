@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../l10n/occasion_labels.dart';
 import '../models/prayer.dart';
 import '../models/reminder.dart';
 import '../services/notification_service.dart';
@@ -54,7 +55,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
   /// nothing on disk to explain it.
   Future<void> _update(Reminder reminder) async {
     final l10n = AppLocalizations.of(context);
-    final label = labelFor(l10n, reminder.occasion);
+    final label = l10n.occasionLabel(reminder.occasion);
 
     // Ask only when switching one on, so the prompt arrives attached to an
     // action whose purpose is obvious.
@@ -114,7 +115,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                       value: reminder.enabled,
                       onChanged: (enabled) =>
                           _update(reminder.copyWith(enabled: enabled)),
-                      title: Text(labelFor(l10n, occasion)),
+                      title: Text(l10n.occasionLabel(occasion)),
                       subtitle: Text(
                         reminder.enabled
                             ? _formatTime(context, reminder)
@@ -140,19 +141,3 @@ class _RemindersScreenState extends State<RemindersScreen> {
         alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
       );
 }
-
-/// The display name of an occasion.
-///
-/// Shared with the prayers list so the two never disagree about what a rule is
-/// called, which would be visible when a notification arrives.
-String labelFor(AppLocalizations l10n, PrayerOccasion occasion) =>
-    switch (occasion) {
-      PrayerOccasion.morning => l10n.prayerMorning,
-      PrayerOccasion.midday => l10n.prayerMidday,
-      PrayerOccasion.night => l10n.prayerNight,
-      PrayerOccasion.compline => l10n.prayerCompline,
-      PrayerOccasion.beforeMeal => l10n.prayerBeforeMeal,
-      PrayerOccasion.afterMeal => l10n.prayerAfterMeal,
-      PrayerOccasion.beforeCommunion => l10n.prayerBeforeCommunion,
-      PrayerOccasion.afterCommunion => l10n.prayerAfterCommunion,
-    };

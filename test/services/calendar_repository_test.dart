@@ -188,6 +188,61 @@ void main() {
     });
   });
 
+  group('switching language', () {
+    test('fetches the new language without discarding the old', () async {
+      // Changing language must refetch, but the previous language is still
+      // paid for and still correct. Throwing it away would cost the user a
+      // download to switch back, offline or not.
+      final repository = repositoryWith(
+        MockClient(
+          (request) async => http.Response(
+            calendarJson(
+              language: request.url.path.contains('.el.') ? 'el' : 'en',
+            ),
+            200,
+            headers: {'etag': '"${request.url.path}"'},
+          ),
+        ),
+      );
+
+      await repository.refresh('en');
+      await repository.refresh('el');
+
+      expect(
+        store.entries.keys,
+        containsAll(['calendar.en.json', 'calendar.el.json']),
+      );
+      expect(await repository.load('en'), isNotNull);
+      expect(await repository.load('el'), isNotNull);
+    });
+
+    test('switching back costs a 304 rather than a download', () async {
+      final bodies = <String>[];
+      final repository = repositoryWith(
+        MockClient((request) async {
+          if (request.headers.containsKey('If-None-Match')) {
+            return http.Response('', 304);
+          }
+          bodies.add(request.url.path);
+          return http.Response(
+            calendarJson(),
+            200,
+            headers: {'etag': '"${request.url.path}"'},
+          );
+        }),
+      );
+
+      await repository.refresh('en');
+      await repository.refresh('el');
+      await repository.refresh('en');
+
+      expect(bodies, [
+        '/calendar.en.json',
+        '/calendar.el.json',
+      ], reason: 'the second visit to en is conditional');
+    });
+  });
+
   test('exposes Greek as el, the code intl expects', () {
     expect(supportedLanguages, contains('el'));
     expect(supportedLanguages, isNot(contains('gr')));

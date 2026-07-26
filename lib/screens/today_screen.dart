@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../liturgics/paschalion.dart';
 import '../models/calendar.dart';
 import '../services/calendar_repository.dart';
+import 'settings_screen.dart';
 
 /// The main screen: who is commemorated today, and the appointed readings.
 ///
@@ -98,7 +99,18 @@ class _TodayScreenState extends State<TodayScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.today)),
+      appBar: AppBar(
+        title: Text(l10n.today),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: l10n.settings,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+            ),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _retry,
         child: ListView(

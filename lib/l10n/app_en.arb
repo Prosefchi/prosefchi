@@ -64,6 +64,30 @@
   "@reminderOff": {
     "description": "Shown in place of a time when a reminder is disabled."
   },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Title of the settings screen."
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Heading above the language choices."
+  },
+  "languageSystem": "System default",
+  "@languageSystem": {
+    "description": "Language option that follows the device setting rather than choosing one."
+  },
+  "languageEnglish": "English",
+  "@languageEnglish": {
+    "description": "Name of the English language, always written in English."
+  },
+  "languageGreek": "Ελληνικά",
+  "@languageGreek": {
+    "description": "Name of the Greek language, always written in Greek so it is readable to a Greek speaker whatever the current language."
+  },
+  "remindersSubtitle": "Choose which prayers to be reminded of, and when",
+  "@remindersSubtitle": {
+    "description": "Subtitle on the row that opens the reminders screen."
+  },
   "commemorations": "Saints and Feasts",
   "@commemorations": {
     "description": "Heading above the list of the day's commemorations."
