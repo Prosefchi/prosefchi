@@ -1,16 +1,17 @@
-<!-- Shown once on first launch, and again from Settings. Keep it short: the
-     point is to get out of the way. -->
-
 # Welcome
 
-Prosefchi keeps the day's commemoration and the appointed readings to hand, and can remind you to pray.
+Glory to God. This app keeps the feast of the day and the readings handy and can
+remind you to pray.
 
 ## Today
 
-Each day shows the saints and feasts being kept, with the epistle and gospel appointed for it.
+Each day shows the saints and feasts, along with the Epistle and Gospel of the
+day. It informs you if the day is a fast day.
 
 ## Offline
 
-Once the calendar has been downloaded it stays on the device, so the day's saint is there on the metro, on a plane, and anywhere else with no signal.
+Once the calendar is downloaded, it stays on the device, so the saint of the day
+is available even without an internet connection.
 
-> The saints, feasts and readings come from the calendar published by the Greek Orthodox Archdiocese.
+> The saints, feasts, and readings are sourced from the calendar of the Greek
+> Orthodox Archdiocese of America.
