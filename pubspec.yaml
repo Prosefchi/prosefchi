@@ -65,6 +65,10 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+  # Generates the platform icon sets from assets/icon/. Run after changing
+  # them: dart run flutter_launcher_icons
+  flutter_launcher_icons: ^0.14.4
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -117,3 +121,26 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Source images live in assets/icon/ and are deliberately not declared under
+# flutter.assets above: they are build inputs for the icon generator, not
+# something the app loads at runtime.
+flutter_launcher_icons:
+  image_path: assets/icon/icon.png
+
+  android: true
+  # The flag full bleed, for the legacy launcher icon on older Android.
+  # Adaptive icons get the two layers instead, because a circular mask cuts
+  # straight through the firesteels when the flag runs edge to edge.
+  adaptive_icon_background: "#BB0602"
+  # The artwork is inset in the source as well as by the 16% the generator
+  # writes into the adaptive XML. Belt and braces, but it is what looks right
+  # on a real launcher: the emblem reads as a seal rather than crowding the
+  # mask edge.
+  adaptive_icon_foreground: assets/icon/adaptive_foreground.png
+  # Same artwork again as the monochrome layer for themed icons on Android 13+.
+  adaptive_icon_monochrome: assets/icon/adaptive_foreground.png
+
+  ios: true
+  # iOS forbids transparency in app icons and rejects builds that carry it.
+  remove_alpha_ios: true
