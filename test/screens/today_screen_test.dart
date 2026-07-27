@@ -7,7 +7,9 @@ import 'package:http/testing.dart';
 import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/screens/today_screen.dart';
 import 'package:prosefchi/services/calendar_repository.dart';
+import 'package:prosefchi/services/prayer_repository.dart';
 
+import '../support/fake_bundle.dart';
 import '../support/memory_calendar_store.dart';
 import '../support/pump.dart';
 
@@ -67,12 +69,17 @@ void main() {
     CalendarRepository repository, {
     Locale locale = const Locale('en'),
     DateTime? date,
+    Map<String, String> prayers = const {},
   }) => MaterialApp(
     locale: locale,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: TodayScreen(
       repository: repository,
+      prayers: PrayerRepository(bundle: FakeBundle(prayers)),
+      // Midnight unless a test says otherwise, which belongs to no prayer
+      // window, so the current-prayer button stays out of the way of the tests
+      // that are not about it.
       date: date ?? DateTime(2026, 7, 26),
     ),
   );
@@ -290,6 +297,54 @@ void main() {
     await settle(tester);
 
     expect(find.text('Fast Day (Fish Allowed)'), findsOneWidget);
+  });
+
+  testWidgets('offers the rule the hour belongs to, under the day facts', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      harness(
+        repositoryServing(calendarJson()),
+        date: DateTime(2026, 7, 26, 8),
+        prayers: const {
+          'res/prayers/morning_en.md': '# Morning Prayers\n\nAmen.\n',
+        },
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('Pray now'), findsOne);
+    expect(find.text('Morning'), findsOne);
+
+    // Below everything the day *is* — the commemoration and where the day sits
+    // in the year — rather than above it.
+    final button = tester.getTopLeft(find.text('Pray now')).dy;
+    expect(
+      button,
+      greaterThan(
+        tester.getTopLeft(find.text('Paraskeve the Righteous Martyr').first).dy,
+      ),
+    );
+    expect(
+      button,
+      greaterThan(tester.getTopLeft(find.text('105 days after Pascha')).dy),
+      reason: 'under the tone and Pascha strip, not between it and the header',
+    );
+  });
+
+  testWidgets('leaves the day alone outside those hours', (tester) async {
+    await tester.pumpWidget(
+      harness(
+        repositoryServing(calendarJson()),
+        date: DateTime(2026, 7, 26, 16),
+        prayers: const {
+          'res/prayers/morning_en.md': '# Morning Prayers\n\nAmen.\n',
+        },
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('Pray now'), findsNothing);
   });
 
   testWidgets('shows the distance from Pascha even with a full day', (

@@ -248,6 +248,51 @@ Amen.
     });
   });
 
+  group('PrayerOccasion.forTime', () {
+    PrayerOccasion? at(int hour, [int minute = 0]) =>
+        PrayerOccasion.forTime(DateTime(2026, 7, 26, hour, minute));
+
+    test('names the rule each window belongs to', () {
+      expect(at(6), PrayerOccasion.morning);
+      expect(at(9, 30), PrayerOccasion.morning);
+      expect(at(12), PrayerOccasion.midday);
+      expect(at(14, 59), PrayerOccasion.midday);
+      expect(at(18), PrayerOccasion.night);
+      expect(at(21, 59), PrayerOccasion.night);
+    });
+
+    test('gives a boundary to the window it opens', () {
+      // Half-open, so noon is the midday rule rather than the last minute of
+      // the morning. Every boundary is a whole hour, which is what lets this
+      // read the hour alone.
+      expect(at(11, 59), PrayerOccasion.morning);
+      expect(at(12), PrayerOccasion.midday);
+      expect(at(15), isNull);
+      expect(at(22), isNull);
+    });
+
+    test('names no rule between the windows', () {
+      // The gaps are the point: offering the morning rule at four in the
+      // afternoon would be worse than offering nothing.
+      expect(at(0), isNull);
+      expect(at(5, 59), isNull);
+      expect(at(16), isNull);
+      expect(at(23, 59), isNull);
+    });
+
+    test('is not the reminder the user set', () {
+      // A reminder is the moment someone asked to be nudged at, and the
+      // defaults sit outside these windows on purpose — the compline one at
+      // 22:00 belongs to no window at all.
+      expect(at(22), isNull);
+      expect(
+        at(7),
+        PrayerOccasion.morning,
+        reason: 'the hour decides, not what any reminder is set to',
+      );
+    });
+  });
+
   group('PrayerOccasion', () {
     test('builds the asset path from the slug, not the identifier', () {
       expect(

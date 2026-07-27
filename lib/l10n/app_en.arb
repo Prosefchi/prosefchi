@@ -44,6 +44,10 @@
   "@prayerAfterCommunion": {
     "description": "Prayers of thanksgiving after receiving Communion."
   },
+  "prayNow": "Pray now",
+  "@prayNow": {
+    "description": "Above the name of the rule on the day screen's button, which opens the rule the current hour belongs to. Supplies the verb: the name alone would read as a label rather than as somewhere to go."
+  },
   "prayerNotAvailable": "Not yet available",
   "prayerGroupDaily": "Daily",
   "@prayerGroupDaily": {

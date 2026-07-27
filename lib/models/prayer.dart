@@ -62,4 +62,28 @@ enum PrayerOccasion {
   /// For reading a slug back out of somewhere it was stored — a notification
   /// payload written days earlier, possibly by an older build.
   static PrayerOccasion? bySlug(String slug) => _bySlug[slug];
+
+  /// The rule the hour of [time] belongs to, or null where none does.
+  ///
+  ///     06:00–12:00  morning
+  ///     12:00–15:00  midday
+  ///     18:00–22:00  night
+  ///
+  /// Fixed here rather than read from the reminders, which answer a different
+  /// question. A reminder is the moment someone asked to be nudged at, and
+  /// setting the evening one for 21:00 does not make 21:00 the evening; this is
+  /// which rule the hour itself belongs to, so it is the app's to decide.
+  ///
+  /// The windows are half-open, so a boundary opens one rather than closing
+  /// one: noon is the midday rule, not the last minute of the morning.
+  ///
+  /// The gaps between them are deliberate and this says so by returning null:
+  /// the afternoon and the small hours belong to no rule, and offering the
+  /// morning one at four in the afternoon would be worse than offering nothing.
+  static PrayerOccasion? forTime(DateTime time) => switch (time.hour) {
+    >= 6 && < 12 => morning,
+    >= 12 && < 15 => midday,
+    >= 18 && < 22 => night,
+    _ => null,
+  };
 }

@@ -8,6 +8,8 @@ import '../liturgics/octoechos.dart';
 import '../liturgics/paschalion.dart';
 import '../models/calendar.dart';
 import '../services/calendar_repository.dart';
+import '../services/prayer_repository.dart';
+import 'current_prayer_button.dart';
 import 'settings_screen.dart';
 
 /// The main screen: who is commemorated today, and the appointed readings.
@@ -17,12 +19,18 @@ import 'settings_screen.dart';
 /// first launch, or a date past the end of the published feed — it falls back
 /// to what the Paschalion can compute without any data at all.
 class TodayScreen extends StatefulWidget {
-  const TodayScreen({super.key, this.repository, this.date});
+  const TodayScreen({super.key, this.repository, this.prayers, this.date});
 
   /// Injectable so tests need neither a network nor a real filesystem.
   final CalendarRepository? repository;
 
+  /// Injectable so a test of the current-prayer button needs no asset bundle.
+  final PrayerRepository? prayers;
+
   /// Injectable so tests are not tied to the day they run on.
+  ///
+  /// It carries a time as well as a date, and doubles as the clock the
+  /// current-prayer button reads, so fixing it fixes the hour too.
   final DateTime? date;
 
   @override
@@ -142,6 +150,16 @@ class _TodayScreenState extends State<TodayScreen> {
               date: _date,
               tone: day?.tone ?? toneFor(_date),
               eothinon: day?.eothinon ?? eothinonFor(_date),
+            ),
+            // Under everything the day *is* — its commemoration and where it
+            // sits in the year — and above the readings, which is where doing
+            // something about the day begins. Absent outside the hours a rule
+            // belongs to, which is why nothing here reserves space for it.
+            CurrentPrayerButton(
+              // The live clock unless a date was injected, in which case its
+              // time of day is the hour under test.
+              clock: () => widget.date ?? DateTime.now(),
+              repository: widget.prayers,
             ),
             if (_loading)
               const Padding(
