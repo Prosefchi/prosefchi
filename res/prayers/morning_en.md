@@ -1,6 +1,6 @@
 # Morning Prayers
 
-> As you arise from bed, stand with reverance and fear of God and say:
+> As you arise from bed, stand with reverence and fear of God and say:
 
 In the Name of the Father, and of the Son, and of the Holy Spirit. Amen.
 
