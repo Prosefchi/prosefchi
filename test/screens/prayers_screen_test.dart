@@ -236,20 +236,31 @@ void main() {
         }
       });
 
-      testWidgets('stays a fixed circle whatever the text size', (
+      testWidgets('stays small, however much room it is offered', (
         tester,
       ) async {
-        // It is chrome saying where the reader is, not text to be read, and
-        // the circle is a fixed size — a figure that grew with the setting
-        // would spill out of it.
+        // It shipped once taking the whole screen: nothing inside it
+        // shrink-wrapped, so it grew to whatever the caller offered and
+        // covered the rule. Bounded absolutely rather than compared against
+        // itself, which is a check that passes when both are full-screen.
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Stack(children: [ScrollProgressBubble(fraction: 1.0)]),
+          ),
+        );
+
+        final size = tester.getSize(find.byType(ScrollProgressBubble));
+        expect(size.height, lessThan(60));
+        expect(size.width, lessThan(90));
+      });
+
+      testWidgets('does not grow with the reader\'s text size', (tester) async {
         await pumpBubble(tester, 0.5);
         final plain = tester.getSize(find.byType(ScrollProgressBubble));
-        final plainText = tester.getSize(find.text('50%'));
 
         await pumpBubble(tester, 0.5, scaler: const TextScaler.linear(1.8));
 
         expect(tester.getSize(find.byType(ScrollProgressBubble)), plain);
-        expect(tester.getSize(find.text('50%')), plainText);
       });
     });
 

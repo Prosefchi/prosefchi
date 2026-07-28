@@ -234,16 +234,21 @@ class ScrollProgressBubble extends StatelessWidget {
           minWidth: _height,
           minHeight: _height,
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Center(
+        // The factors are load-bearing. Without them this takes the largest
+        // size offered, and the caller offers the whole screen, so the bubble
+        // covered the rule instead of sitting beside it.
+        child: Center(
+          widthFactor: 1,
+          heightFactor: 1,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Text(
               '${(fraction.clamp(0.0, 1.0) * 100).round()}%',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: scheme.onPrimary,
                 fontWeight: FontWeight.w600,
               ),
-              // The circle is a fixed size, so the figure inside it must not
+              // The shape is a fixed size, so the figure inside it must not
               // grow with the reader's text size and spill out of it. This is
               // chrome telling them where they are, not text to be read.
               textScaler: TextScaler.noScaling,
