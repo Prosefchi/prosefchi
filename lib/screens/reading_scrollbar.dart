@@ -160,14 +160,6 @@ class _ReadingScrollbarState extends RawScrollbarState<ReadingScrollbar> {
   }
 }
 
-/// How far through the text the pill has been dragged, beside the pill.
-///
-/// Tracks the position and places [ScrollProgressBubble] beside the pill.
-///
-/// Takes the controller rather than looking for a [Scrollable]: this is stacked
-/// *beside* the bar, so the scrollable is not above it in the tree. Rebuilds on
-/// the position so the figure keeps up with the drag rather than with the
-/// parent's rebuilds.
 /// How far through the text the reader is, pinned beside the middle of the bar.
 ///
 /// Deliberately does not follow the pill. Tracking it means reproducing the
