@@ -108,8 +108,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             _PageDots(count: _pageCount, current: _page),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // OverflowBar rather than a Row, which hands its children
+              // unbounded width: at the larger text sizes these two labels are
+              // wider than a narrow phone and ran off the edge. Greek breaks
+              // first and breaks at the middle size, not only the largest.
+              // This is the pair of actions OverflowBar exists for, and it
+              // stacks them rather than clipping when they will not fit.
+              child: OverflowBar(
+                alignment: MainAxisAlignment.spaceBetween,
+                overflowAlignment: OverflowBarAlignment.end,
+                overflowSpacing: 8,
                 children: [
                   TextButton(
                     onPressed: isLast ? null : _finish,

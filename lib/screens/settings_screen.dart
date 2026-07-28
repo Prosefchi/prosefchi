@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/text_size.dart';
 import '../services/calendar_repository.dart';
 import '../services/notification_service.dart';
 import '../services/reminder_refresh.dart';
@@ -59,6 +60,40 @@ class SettingsScreen extends StatelessWidget {
                   RadioListTile<String?>(
                     value: language,
                     title: Text(_languageName(l10n, language)),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(height: 32),
+          _Heading(l10n.textSize),
+          RadioGroup<TextSize>(
+            groupValue: settings.textSize,
+            onChanged: (value) {
+              if (value != null) settings.setTextSize(value);
+            },
+            child: Column(
+              children: [
+                for (final size in TextSize.values)
+                  RadioListTile<TextSize>(
+                    value: size,
+                    // Each option drawn at the size it selects, so the choice
+                    // shows what it does rather than describing it. The one
+                    // that reads comfortably is the one to pick.
+                    //
+                    // Composed onto the platform's own size through the same
+                    // method the app scales by, rather than set to a bare
+                    // multiple of it. An explicit scaler replaces the
+                    // inherited one instead of building on it, so a reader
+                    // with a large system size would have seen "Small" drawn
+                    // smaller than the words around it — the preview reporting
+                    // something other than what choosing it does, to the
+                    // reader it matters to most.
+                    title: Text(
+                      _textSizeName(l10n, size),
+                      textScaler: size.over(
+                        TextSize.platformBase(MediaQuery.textScalerOf(context)),
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -135,6 +170,13 @@ class SettingsScreen extends StatelessWidget {
       switch (language) {
         'el' => l10n.languageGreek,
         _ => l10n.languageEnglish,
+      };
+
+  static String _textSizeName(AppLocalizations l10n, TextSize size) =>
+      switch (size) {
+        TextSize.small => l10n.textSizeSmall,
+        TextSize.medium => l10n.textSizeMedium,
+        TextSize.large => l10n.textSizeLarge,
       };
 }
 

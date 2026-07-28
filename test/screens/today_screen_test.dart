@@ -1,70 +1,15 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/screens/today_screen.dart';
 import 'package:prosefchi/services/calendar_repository.dart';
 import 'package:prosefchi/services/prayer_repository.dart';
 
 import '../support/fake_bundle.dart';
-import '../support/memory_calendar_store.dart';
+import '../support/calendar_fixture.dart';
 import '../support/pump.dart';
 
-String calendarJson({
-  String language = 'en',
-  String title = 'Paraskeve the Righteous Martyr',
-  List<String> saints = const [
-    'Paraskeve the Righteous Martyr',
-    'Hermolaos the Holy Martyr',
-  ],
-  List<String> marks = const ['majorFeast'],
-  String gospelReference = 'Mark 5:24-34',
-  String? fasting,
-  bool matinsGospel = false,
-  int? tone,
-  int? eothinon,
-}) => jsonEncode({
-  'language': language,
-  'source': 'https://example.test/feed.ics',
-  'generatedAt': '2026-07-26',
-  'start': '2026-07-01',
-  'end': '2026-08-31',
-  'days': {
-    '2026-07-26': {
-      'title': title,
-      'saints': saints,
-      'marks': marks,
-      'fasting': ?fasting,
-      'tone': ?tone,
-      'eothinon': ?eothinon,
-      if (matinsGospel)
-        'matinsGospel': {
-          'reference': 'Luke 1:39-49, 56',
-          'text': 'At that time Mary arose and went into the hill country.',
-        },
-      'gospel': {
-        'reference': gospelReference,
-        'text':
-            'At that time, a great crowd followed him and thronged about him.',
-      },
-    },
-  },
-});
-
 void main() {
-  CalendarRepository repositoryServing(String? body) => CalendarRepository(
-    baseUrl: Uri.parse('https://example.test/'),
-    client: MockClient(
-      (_) async => body == null
-          ? http.Response('nope', 503)
-          : http.Response.bytes(utf8.encode(body), 200),
-    ),
-    store: MemoryCalendarStore(),
-  );
-
   Widget harness(
     CalendarRepository repository, {
     Locale locale = const Locale('en'),
@@ -85,7 +30,7 @@ void main() {
   );
 
   testWidgets('shows the commemoration, marks and reading', (tester) async {
-    await tester.pumpWidget(harness(repositoryServing(calendarJson())));
+    await tester.pumpWidget(harness(calendarsServing(calendarJson())));
     await settle(tester);
 
     // Once as the headline, once in the commemorations list.
@@ -103,7 +48,7 @@ void main() {
   testWidgets('renders Greek labels under the el locale', (tester) async {
     await tester.pumpWidget(
       harness(
-        repositoryServing(
+        calendarsServing(
           calendarJson(
             language: 'el',
             title: 'Παρασκευή η Οσιομάρτυς',
@@ -129,7 +74,7 @@ void main() {
   ) async {
     // A first launch with no network: the app must still say something rather
     // than show an error, because the Paschalion needs no data at all.
-    await tester.pumpWidget(harness(repositoryServing(null)));
+    await tester.pumpWidget(harness(calendarsServing(null)));
     await settle(tester);
 
     // Pascha 2026 is 12 April; 26 July is 105 days after it.
@@ -147,7 +92,7 @@ void main() {
     // The published feed stops at 2026-08-31, so dates past it are a normal
     // state with a different message from "nothing downloaded".
     await tester.pumpWidget(
-      harness(repositoryServing(calendarJson()), date: DateTime(2026, 9, 15)),
+      harness(calendarsServing(calendarJson()), date: DateTime(2026, 9, 15)),
     );
     await settle(tester);
 
@@ -160,7 +105,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       harness(
-        repositoryServing(
+        calendarsServing(
           calendarJson(saints: const ['Paraskeve the Righteous Martyr']),
         ),
       ),
@@ -180,7 +125,7 @@ void main() {
   ) async {
     // Two passages of several hundred words each is what turned this page
     // into a slab. The citation is what people scan for.
-    await tester.pumpWidget(harness(repositoryServing(calendarJson())));
+    await tester.pumpWidget(harness(calendarsServing(calendarJson())));
     await settle(tester);
 
     const passage =
@@ -201,7 +146,7 @@ void main() {
     // the same thing less precisely, so showing both labels the day twice.
     await tester.pumpWidget(
       harness(
-        repositoryServing(calendarJson(fasting: 'Fast Day (Fish Allowed)')),
+        calendarsServing(calendarJson(fasting: 'Fast Day (Fish Allowed)')),
       ),
     );
     await settle(tester);
@@ -219,7 +164,7 @@ void main() {
     // A separate reading from the Gospel, not a variant of it. Conflating them
     // showed the wrong reading on 648 days of the feed.
     await tester.pumpWidget(
-      harness(repositoryServing(calendarJson(matinsGospel: true))),
+      harness(calendarsServing(calendarJson(matinsGospel: true))),
     );
     await settle(tester);
 
@@ -231,7 +176,7 @@ void main() {
 
   testWidgets('shows the tone and eothinon the feed publishes', (tester) async {
     await tester.pumpWidget(
-      harness(repositoryServing(calendarJson(tone: 7, eothinon: 6))),
+      harness(calendarsServing(calendarJson(tone: 7, eothinon: 6))),
     );
     await settle(tester);
 
@@ -245,7 +190,7 @@ void main() {
   ) async {
     // Upstream publishes them on 86 days of 3287, so the computed cycle is
     // what the screen shows almost always.
-    await tester.pumpWidget(harness(repositoryServing(calendarJson())));
+    await tester.pumpWidget(harness(calendarsServing(calendarJson())));
     await settle(tester);
 
     // 2026-07-26 is 14 weeks after Thomas Sunday (19 April) and 7 after the
@@ -258,7 +203,7 @@ void main() {
     // An empty slot is ambiguous between there being no fast and our not
     // knowing, which are not the same answer for someone checking.
     // 2026-07-26 is a Sunday outside every season.
-    await tester.pumpWidget(harness(repositoryServing(calendarJson())));
+    await tester.pumpWidget(harness(calendarsServing(calendarJson())));
     await settle(tester);
 
     expect(find.text('No fast'), findsOneWidget);
@@ -266,7 +211,7 @@ void main() {
 
   testWidgets('names an ordinary Wednesday as a fast day', (tester) async {
     await tester.pumpWidget(
-      harness(repositoryServing(calendarJson()), date: DateTime(2026, 10, 14)),
+      harness(calendarsServing(calendarJson()), date: DateTime(2026, 10, 14)),
     );
     await settle(tester);
 
@@ -279,7 +224,7 @@ void main() {
     // 2026-11-20 is inside the Nativity Fast and beyond the feed's end, so
     // there is no published rule to use.
     await tester.pumpWidget(
-      harness(repositoryServing(calendarJson()), date: DateTime(2026, 11, 20)),
+      harness(calendarsServing(calendarJson()), date: DateTime(2026, 11, 20)),
     );
     await settle(tester);
 
@@ -291,7 +236,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       harness(
-        repositoryServing(calendarJson(fasting: 'Fast Day (Fish Allowed)')),
+        calendarsServing(calendarJson(fasting: 'Fast Day (Fish Allowed)')),
       ),
     );
     await settle(tester);
@@ -304,7 +249,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       harness(
-        repositoryServing(calendarJson()),
+        calendarsServing(calendarJson()),
         date: DateTime(2026, 7, 26, 8),
         prayers: const {
           'res/prayers/morning_en.md': '# Morning Prayers\n\nAmen.\n',
@@ -335,7 +280,7 @@ void main() {
   testWidgets('leaves the day alone outside those hours', (tester) async {
     await tester.pumpWidget(
       harness(
-        repositoryServing(calendarJson()),
+        calendarsServing(calendarJson()),
         date: DateTime(2026, 7, 26, 16),
         prayers: const {
           'res/prayers/morning_en.md': '# Morning Prayers\n\nAmen.\n',
@@ -352,7 +297,7 @@ void main() {
   ) async {
     // Computed rather than fetched, so it is present in every state and the
     // no-data screen keeps the same shape as this one.
-    await tester.pumpWidget(harness(repositoryServing(calendarJson())));
+    await tester.pumpWidget(harness(calendarsServing(calendarJson())));
     await settle(tester);
 
     expect(find.text('105 days after Pascha'), findsOneWidget);

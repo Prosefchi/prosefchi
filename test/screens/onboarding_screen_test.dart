@@ -9,26 +9,8 @@ import 'package:prosefchi/services/reminder_store.dart';
 import 'package:prosefchi/services/settings_controller.dart';
 import '../support/pump.dart';
 import '../support/fake_bundle.dart';
+import '../support/memory_settings_store.dart';
 import '../support/reminder_doubles.dart';
-
-class _MemorySettingsStore implements SettingsStore {
-  _MemorySettingsStore({this.language});
-
-  String? language;
-  bool onboardingSeen = false;
-
-  @override
-  Future<String?> readLanguage() async => language;
-
-  @override
-  Future<void> writeLanguage(String? value) async => language = value;
-
-  @override
-  Future<bool> readOnboardingSeen() async => onboardingSeen;
-
-  @override
-  Future<void> writeOnboardingSeen(bool seen) async => onboardingSeen = seen;
-}
 
 const welcomeEn = '''
 # Welcome
@@ -76,7 +58,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      await harness(SettingsController(store: _MemorySettingsStore())),
+      await harness(SettingsController(store: MemorySettingsStore())),
     );
     await settle(tester);
 
@@ -90,7 +72,7 @@ void main() {
   testWidgets('renders the welcome in the chosen language', (tester) async {
     await tester.pumpWidget(
       await harness(
-        SettingsController(store: _MemorySettingsStore(language: 'el')),
+        SettingsController(store: MemorySettingsStore(language: 'el')),
       ),
     );
     await settle(tester);
@@ -101,7 +83,7 @@ void main() {
 
   testWidgets('swipes to the reminders page', (tester) async {
     await tester.pumpWidget(
-      await harness(SettingsController(store: _MemorySettingsStore())),
+      await harness(SettingsController(store: MemorySettingsStore())),
     );
     await settle(tester);
 
@@ -117,7 +99,7 @@ void main() {
 
   testWidgets('offers every reminder switched off', (tester) async {
     await tester.pumpWidget(
-      await harness(SettingsController(store: _MemorySettingsStore())),
+      await harness(SettingsController(store: MemorySettingsStore())),
     );
     await settle(tester);
     await tester.tap(find.text('Next'));
@@ -137,7 +119,7 @@ void main() {
     final scheduler = RecordingScheduler();
     await tester.pumpWidget(
       await harness(
-        SettingsController(store: _MemorySettingsStore()),
+        SettingsController(store: MemorySettingsStore()),
         scheduler: scheduler,
       ),
     );
@@ -161,7 +143,7 @@ void main() {
     final scheduler = RecordingScheduler(granted: false);
     await tester.pumpWidget(
       await harness(
-        SettingsController(store: _MemorySettingsStore()),
+        SettingsController(store: MemorySettingsStore()),
         scheduler: scheduler,
       ),
     );
@@ -175,7 +157,7 @@ void main() {
   });
 
   testWidgets('finishing marks the welcome as seen', (tester) async {
-    final store = _MemorySettingsStore();
+    final store = MemorySettingsStore();
     await tester.pumpWidget(await harness(SettingsController(store: store)));
     await settle(tester);
     await tester.tap(find.text('Next'));
@@ -190,7 +172,7 @@ void main() {
     tester,
   ) async {
     // Otherwise it would reappear on every launch until endured in full.
-    final store = _MemorySettingsStore();
+    final store = MemorySettingsStore();
     await tester.pumpWidget(await harness(SettingsController(store: store)));
     await settle(tester);
 
