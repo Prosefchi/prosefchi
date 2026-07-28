@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/models/prayer.dart';
@@ -158,21 +159,45 @@ void main() {
       return b.toString();
     }
 
-    ScrollPosition positionOf(WidgetTester tester) =>
-        tester.state<ScrollableState>(find.byType(Scrollable)).position;
-
-    /// Pumps a long rule, optionally wrapped in Material's bar instead, and
-    /// leaves it scrolled with the pill showing.
+    /// Pumps a long rule and leaves it scrolled, with the pill showing.
     Future<ScrollPosition> openLongRule(WidgetTester tester) async {
       surface(tester, narrowSurface);
-      final set = PrayerSet.parse(longRule());
-      await tester.pumpWidget(localizedApp(home: PrayerScreen(set: set)));
+      await tester.pumpWidget(
+        localizedApp(home: PrayerScreen(set: PrayerSet.parse(longRule()))),
+      );
       await tester.pump();
-      final position = positionOf(tester);
+      final position = tester
+          .state<ScrollableState>(find.byType(Scrollable))
+          .position;
       position.jumpTo(2000);
-      // The bar fades in, and its own hit test refuses a transparent thumb.
+      // Two pumps, not one. The scroll starts the fade-in, but a controller's
+      // first tick only starts its clock — one pump of 300ms leaves the thumb
+      // at zero opacity, and its own hit test refuses a transparent thumb, so
+      // every gesture aimed at it misses.
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       return position;
+    }
+
+    /// The thumb's centre in global coordinates, found through the painter so
+    /// it survives a change to the pill's length or margins.
+    Offset pillCentre(WidgetTester tester) {
+      final painter = find
+          .byType(CustomPaint)
+          .evaluate()
+          .map((e) => (e.widget as CustomPaint).foregroundPainter)
+          .whereType<ScrollbarPainter>()
+          .first;
+      final origin = tester.getTopLeft(find.byType(ReadingScrollbar));
+      final hits = <double>[
+        for (var y = 0.0; y < 744; y += 1)
+          if (painter.hitTestOnlyThumbInteractive(
+            Offset(352, y),
+            PointerDeviceKind.touch,
+          ))
+            y,
+      ];
+      return Offset(352, origin.dy + (hits.first + hits.last) / 2);
     }
 
     testWidgets('measures the rule exactly, so the pill does not drift', (
@@ -197,6 +222,37 @@ void main() {
         extents,
         hasLength(1),
         reason: 'the rule changed height while being scrolled through',
+      );
+    });
+
+    testWidgets('shows the progress only while the pill is held', (
+      tester,
+    ) async {
+      // The drag this feature exists for. It is drivable after all: the thumb
+      // has to be given a frame to fade in, and grabbed at global coordinates
+      // rather than the bar's own, since the app bar sits above it.
+      final position = await openLongRule(tester);
+      expect(find.byType(ScrollProgressBubble), findsNothing);
+
+      final grab = await tester.startGesture(pillCentre(tester));
+      await tester.pump();
+      expect(
+        find.byType(ScrollProgressBubble),
+        findsOneWidget,
+        reason: 'the figure appears when the pill is taken hold of',
+      );
+
+      final before = position.pixels;
+      await grab.moveBy(const Offset(0, 60));
+      await tester.pump();
+      expect(position.pixels, greaterThan(before), reason: 'dragging scrolls');
+
+      await grab.up();
+      await tester.pump();
+      expect(
+        find.byType(ScrollProgressBubble),
+        findsNothing,
+        reason: 'and goes again when it is let go',
       );
     });
 

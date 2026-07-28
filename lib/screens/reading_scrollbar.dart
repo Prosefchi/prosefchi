@@ -122,10 +122,10 @@ class _ReadingScrollbarState extends RawScrollbarState<ReadingScrollbar> {
   Widget build(BuildContext context) {
     final bar = super.build(context);
     if (!widget.showProgress) return bar;
-    return Stack(
-      textDirection: Directionality.of(context),
-      children: [bar, if (_dragging) _Progress(widget.controller!)],
-    );
+    // The Stack stays whenever showProgress, with only its second child
+    // coming and going. Guarding on _dragging instead would swap the widget
+    // type at this slot on every drag and remount the whole rule beneath it.
+    return Stack(children: [bar, if (_dragging) _Progress(widget.controller!)]);
   }
 
   @override
@@ -162,17 +162,23 @@ class _ReadingScrollbarState extends RawScrollbarState<ReadingScrollbar> {
 
 /// How far through the text the reader is, pinned beside the middle of the bar.
 ///
-/// Deliberately does not follow the pill. Tracking it means reproducing the
-/// painter's thumb geometry — the end margins, a length that depends on how
-/// much of the text fits on screen, and a centre that travels a shorter
-/// distance than the bar is tall — and getting any of it slightly wrong shows
-/// up as a bubble that sits above the pill at the top of a rule and below it
-/// at the bottom, worst at the large text size where the pill is longest.
-/// Fixed in one place it is always where the reader last saw it, and the
-/// figure is the thing being read rather than the position.
+/// It does not follow the pill, and that is a choice rather than a limit. A
+/// figure that holds still is easier to read than one moving under the finger,
+/// and the finger is on the pill anyway.
+///
+/// Following it is available if that is ever wanted:
+/// `ScrollbarPainter.getThumbScrollOffset()` is public and is what
+/// `RawScrollbarState` itself uses to find the thumb, so the position can be
+/// had exactly rather than reconstructed. Reconstructing it is what failed
+/// before — that version was right in every widget test and wrong on every
+/// phone, because it left out the safe-area padding that
+/// [updateScrollbarPainter] hands the painter a few lines above, which put the
+/// bubble about 33dp out at each end of a rule.
 ///
 /// Takes the controller rather than looking for a [Scrollable]: this is
 /// stacked beside the bar, so the scrollable is not above it in the tree.
+/// Rebuilds on the position, so the figure keeps up with the drag rather than
+/// with the parent's rebuilds.
 class _Progress extends StatelessWidget {
   const _Progress(this.controller);
 
@@ -180,6 +186,13 @@ class _Progress extends StatelessWidget {
 
   /// Clear of the pill and its touch target, so the finger dragging does not
   /// cover the number it is there to read.
+  ///
+  /// It is the outer edge of that target: 4 of crossAxisMargin, half of the
+  /// 12 the pill widens to while dragged, and half of the scrollbar's own 48dp
+  /// minimum. Hardcoded rather than derived, since two of those live in
+  /// [readingScrollbarTheme] and the third is private to the framework — but
+  /// widening the pill there without changing this puts the bubble under the
+  /// finger.
   static const _inset = 34.0;
 
   @override
@@ -211,9 +224,10 @@ class _Progress extends StatelessWidget {
 
 /// How far through a text the reader has scrolled, as a percentage.
 ///
-/// Separated from the bar so it can be shown and checked on its own: a thumb
-/// drag cannot be driven under `flutter_test`, so this is where the parts that
-/// can actually be wrong — the rounding and the fixed size — are pinned.
+/// Separated from the bar because the figure and where the figure goes change
+/// for different reasons, and because the parts of it that can be wrong — the
+/// rounding, and that it keeps its size whatever the reader's text size — are
+/// cheaper to check directly than through a drag.
 class ScrollProgressBubble extends StatelessWidget {
   const ScrollProgressBubble({super.key, required this.fraction});
 
@@ -225,7 +239,7 @@ class ScrollProgressBubble extends StatelessWidget {
   /// A fixed circle would have to be sized for the widest figure and so look
   /// oversized for every other one; a stadium is round at the common width and
   /// simply grows the one case that needs it.
-  static const _height = 44.0;
+  static const _size = 44.0;
 
   @override
   Widget build(BuildContext context) {
@@ -236,10 +250,7 @@ class ScrollProgressBubble extends StatelessWidget {
         shape: const StadiumBorder(),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          minWidth: _height,
-          minHeight: _height,
-        ),
+        constraints: const BoxConstraints(minWidth: _size, minHeight: _size),
         // The factors are load-bearing. Without them this takes the largest
         // size offered, and the caller offers the whole screen, so the bubble
         // covered the rule instead of sitting beside it.
