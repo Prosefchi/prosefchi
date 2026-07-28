@@ -42,12 +42,12 @@ void main() {
     await settle(tester);
     expect(find.byType(PrayerScreen), findsNothing);
 
-    scheduler.tap(const PrayerTarget(PrayerOccasion.compline));
+    scheduler.tap(const PrayerTarget(PrayerOccasion.beforeCommunion));
     await settle(tester);
 
     // The rule itself, not merely the list it is on.
     expect(find.byType(PrayerScreen), findsOne);
-    expect(find.text('compline'), findsOne);
+    expect(find.text('before_communion'), findsOne);
   });
 
   testWidgets('opens a rule when the tap launched the app', (tester) async {

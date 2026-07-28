@@ -10,9 +10,6 @@ IconData occasionIcon(PrayerOccasion occasion) => switch (occasion) {
   PrayerOccasion.morning => Icons.wb_twilight,
   PrayerOccasion.midday => Icons.light_mode_outlined,
   PrayerOccasion.night => Icons.nights_stay_outlined,
-  PrayerOccasion.compline => Icons.bedtime_outlined,
-  PrayerOccasion.beforeMeal => Icons.restaurant_outlined,
-  PrayerOccasion.afterMeal => Icons.restaurant_menu_outlined,
   PrayerOccasion.beforeCommunion => Icons.church_outlined,
   PrayerOccasion.afterCommunion => Icons.church,
 };

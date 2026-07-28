@@ -98,9 +98,6 @@ class Reminder {
       PrayerOccasion.morning => (7, 0),
       PrayerOccasion.midday => (12, 0),
       PrayerOccasion.night => (21, 0),
-      PrayerOccasion.compline => (22, 0),
-      PrayerOccasion.beforeMeal => (13, 0),
-      PrayerOccasion.afterMeal => (13, 30),
       PrayerOccasion.beforeCommunion => (6, 0),
       PrayerOccasion.afterCommunion => (11, 0),
     };

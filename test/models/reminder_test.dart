@@ -45,7 +45,7 @@ void main() {
       expect(PrayerOccasion.beforeCommunion.group, PrayerGroup.liturgy);
       expect(PrayerOccasion.afterCommunion.group, PrayerGroup.liturgy);
       expect(PrayerOccasion.morning.group, PrayerGroup.daily);
-      expect(PrayerOccasion.beforeMeal.group, PrayerGroup.daily);
+      expect(PrayerOccasion.night.group, PrayerGroup.daily);
     });
   });
 
@@ -82,9 +82,8 @@ void main() {
           'morning': 0,
           'midday': 1,
           'night': 2,
-          'compline': 3,
-          'before_meal': 4,
-          'after_meal': 5,
+          // 3, 4 and 5 retired with Small Compline and the mealtime rules.
+          // These two keep their ids rather than sliding down into the gap.
           'before_communion': 6,
           'after_communion': 7,
         },

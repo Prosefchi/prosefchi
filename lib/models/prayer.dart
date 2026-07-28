@@ -55,9 +55,9 @@ enum PrayerOccasion {
   morning('morning', 0, PrayerGroup.daily),
   midday('midday', 1, PrayerGroup.daily),
   night('night', 2, PrayerGroup.daily),
-  compline('compline', 3, PrayerGroup.daily),
-  beforeMeal('before_meal', 4, PrayerGroup.daily),
-  afterMeal('after_meal', 5, PrayerGroup.daily),
+  // 3, 4 and 5 were Small Compline and the two mealtime rules. Retired, not
+  // reused: these two keep the ids they were given rather than sliding down,
+  // which is the whole reason the id is stated rather than counted.
   beforeCommunion('before_communion', 6, PrayerGroup.liturgy),
   afterCommunion('after_communion', 7, PrayerGroup.liturgy);
 

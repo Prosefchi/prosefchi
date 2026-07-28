@@ -281,9 +281,9 @@ Amen.
     });
 
     test('is not the reminder the user set', () {
-      // A reminder is the moment someone asked to be nudged at, and the
-      // defaults sit outside these windows on purpose — the compline one at
-      // 22:00 belongs to no window at all.
+      // A reminder is the moment someone asked to be nudged at; the windows
+      // are the app's own and are not derived from any default. 22:00 belongs
+      // to no window however late someone sets their evening reminder.
       expect(at(22), isNull);
       expect(
         at(7),
@@ -300,8 +300,8 @@ Amen.
         'res/prayers/morning_el.md',
       );
       expect(
-        PrayerOccasion.beforeMeal.assetPath('en'),
-        'res/prayers/before_meal_en.md',
+        PrayerOccasion.beforeCommunion.assetPath('en'),
+        'res/prayers/before_communion_en.md',
         reason: 'camelCase identifier, snake_case filename',
       );
     });

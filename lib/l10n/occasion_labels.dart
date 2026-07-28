@@ -16,9 +16,6 @@ extension PrayerOccasionLabels on AppLocalizations {
     PrayerOccasion.morning => prayerMorning,
     PrayerOccasion.midday => prayerMidday,
     PrayerOccasion.night => prayerNight,
-    PrayerOccasion.compline => prayerCompline,
-    PrayerOccasion.beforeMeal => prayerBeforeMeal,
-    PrayerOccasion.afterMeal => prayerAfterMeal,
     PrayerOccasion.beforeCommunion => prayerBeforeCommunion,
     PrayerOccasion.afterCommunion => prayerAfterCommunion,
   };
