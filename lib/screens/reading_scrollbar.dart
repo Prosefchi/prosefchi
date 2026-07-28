@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -170,77 +168,48 @@ class _ReadingScrollbarState extends RawScrollbarState<ReadingScrollbar> {
 /// *beside* the bar, so the scrollable is not above it in the tree. Rebuilds on
 /// the position so the figure keeps up with the drag rather than with the
 /// parent's rebuilds.
-/// Where the centre of the pill sits, measured down the bar.
+/// How far through the text the reader is, pinned beside the middle of the bar.
 ///
-/// The same geometry `ScrollbarPainter` draws the thumb with: it travels
-/// inside [margin] at each end, it is at least [minThumbLength] long and
-/// otherwise proportional to how much of the text fits on screen, and it is
-/// its centre that moves rather than its edge. Placing anything level with it
-/// by [fraction] alone lands correctly only in the middle and is out by half a
-/// pill at either end.
-@visibleForTesting
-double pillCentre({
-  required double height,
-  required double fraction,
-  required double viewport,
-  required double content,
-  required double margin,
-  required double minThumbLength,
-}) {
-  final track = height - margin * 2;
-  final thumb = math.max(minThumbLength, track * viewport / content);
-  return margin + fraction.clamp(0.0, 1.0) * (track - thumb) + thumb / 2;
-}
-
+/// Deliberately does not follow the pill. Tracking it means reproducing the
+/// painter's thumb geometry — the end margins, a length that depends on how
+/// much of the text fits on screen, and a centre that travels a shorter
+/// distance than the bar is tall — and getting any of it slightly wrong shows
+/// up as a bubble that sits above the pill at the top of a rule and below it
+/// at the bottom, worst at the large text size where the pill is longest.
+/// Fixed in one place it is always where the reader last saw it, and the
+/// figure is the thing being read rather than the position.
+///
+/// Takes the controller rather than looking for a [Scrollable]: this is
+/// stacked beside the bar, so the scrollable is not above it in the tree.
 class _Progress extends StatelessWidget {
   const _Progress(this.controller);
 
   final ScrollController controller;
 
-  /// How far the bubble sits from the right edge, clear of the pill and its
-  /// touch target so the finger does not cover the number.
+  /// Clear of the pill and its touch target, so the finger dragging does not
+  /// cover the number it is there to read.
   static const _inset = 34.0;
 
   @override
   Widget build(BuildContext context) {
     if (!controller.hasClients) return const SizedBox.shrink();
     final position = controller.position;
-    final defaults = readingScrollbarTheme(Theme.of(context).colorScheme);
-    final theme = ScrollbarTheme.of(context);
-    final margin = theme.mainAxisMargin ?? defaults.mainAxisMargin!;
-    final minThumb = theme.minThumbLength ?? defaults.minThumbLength!;
-
     return ListenableBuilder(
       listenable: position,
       builder: (context, _) {
         if (!position.hasContentDimensions || position.maxScrollExtent <= 0) {
           return const SizedBox.shrink();
         }
-        final fraction = (position.pixels / position.maxScrollExtent).clamp(
-          0.0,
-          1.0,
-        );
-
-        return LayoutBuilder(
-          builder: (context, constraints) => Stack(
-            fit: StackFit.expand,
-            children: [
-              Positioned(
-                top:
-                    pillCentre(
-                      height: constraints.maxHeight,
-                      fraction: fraction,
-                      viewport: position.viewportDimension,
-                      content:
-                          position.maxScrollExtent + position.viewportDimension,
-                      margin: margin,
-                      minThumbLength: minThumb,
-                    ) -
-                    ScrollProgressBubble.height / 2,
-                right: _inset,
-                child: ScrollProgressBubble(fraction: fraction),
+        return Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: const EdgeInsets.only(right: _inset),
+            child: ScrollProgressBubble(
+              fraction: (position.pixels / position.maxScrollExtent).clamp(
+                0.0,
+                1.0,
               ),
-            ],
+            ),
           ),
         );
       },
@@ -264,8 +233,7 @@ class ScrollProgressBubble extends StatelessWidget {
   /// A fixed circle would have to be sized for the widest figure and so look
   /// oversized for every other one; a stadium is round at the common width and
   /// simply grows the one case that needs it.
-  /// Fixed, so the bar can centre the bubble on the pill.
-  static const height = 44.0;
+  static const _height = 44.0;
 
   @override
   Widget build(BuildContext context) {
@@ -276,7 +244,10 @@ class ScrollProgressBubble extends StatelessWidget {
         shape: const StadiumBorder(),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: height, minHeight: height),
+        constraints: const BoxConstraints(
+          minWidth: _height,
+          minHeight: _height,
+        ),
         // The factors are load-bearing. Without them this takes the largest
         // size offered, and the caller offers the whole screen, so the bubble
         // covered the rule instead of sitting beside it.
