@@ -68,13 +68,40 @@ void main() {
     });
 
     test('the id of an existing occasion never moves', () {
-      // Ids come from declaration order, and a scheduled notification is
-      // cancelled by id. Reordering the enum would orphan live reminders on
-      // devices, so occasions may only ever be appended.
-      expect(Reminder.defaultFor(PrayerOccasion.morning).notificationId, 0);
-      expect(Reminder.defaultFor(PrayerOccasion.midday).notificationId, 1);
-      expect(Reminder.defaultFor(PrayerOccasion.night).notificationId, 2);
-      expect(Reminder.defaultFor(PrayerOccasion.compline).notificationId, 3);
+      // A scheduled notification is cancelled by id, so an id that shifts
+      // reaches a reminder already on someone's phone and cannot address it
+      // again. Written out rather than derived, so that changing one is a
+      // visible edit to this list rather than a side effect of moving a line
+      // in the enum.
+      expect(
+        {
+          for (final occasion in PrayerOccasion.values)
+            occasion.slug: occasion.notificationId,
+        },
+        {
+          'morning': 0,
+          'midday': 1,
+          'night': 2,
+          'compline': 3,
+          'before_meal': 4,
+          'after_meal': 5,
+          'before_communion': 6,
+          'after_communion': 7,
+        },
+      );
+    });
+
+    test('no two occasions share an id', () {
+      final ids = PrayerOccasion.values.map((o) => o.notificationId).toSet();
+      expect(ids, hasLength(PrayerOccasion.values.length));
+    });
+
+    test('prayer ids stay clear of the fasting block', () {
+      // The fasting reminder occupies a separate range, and an overlap would
+      // have one kind of reminder cancelling the other.
+      for (final occasion in PrayerOccasion.values) {
+        expect(occasion.notificationId, lessThan(FastingReminder.idBase));
+      }
     });
   });
 
