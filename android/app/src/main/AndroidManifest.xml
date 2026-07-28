@@ -11,6 +11,19 @@
          and which Play policy restricts to alarm and calendar apps. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- The calendar is fetched at runtime rather than bundled, so this is the
+         app's own permission and not the tooling's. Flutter's template declares
+         it in the debug and profile source sets only, for hot reload, which is
+         why its absence survives every kind of local testing: debug and profile
+         builds have it and a release build does not.
+
+         Without it the app cannot resolve a hostname at all, and because
+         CalendarRepository.refresh treats every network failure as an ordinary
+         offline day and keeps whatever is stored, nothing surfaces. A release
+         build simply never acquires a calendar, which reads as a lapsed feed or
+         a broken deploy rather than as a missing permission. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"

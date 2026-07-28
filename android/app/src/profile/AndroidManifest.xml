@@ -1,7 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- The INTERNET permission is required for development. Specifically,
-         the Flutter tool needs it to communicate with the running application
-         to allow setting breakpoints, to provide hot reload, etc.
-    -->
-    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- INTERNET used to be declared here and in the debug source set, which is
+         what Flutter's template does for hot reload. The app needs it in every
+         build type, so the main manifest declares it and this source set has
+         nothing left to add. -->
 </manifest>
