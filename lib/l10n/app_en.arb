@@ -24,18 +24,6 @@
   "@prayerNight": {
     "description": "The evening rule."
   },
-  "prayerCompline": "Small Compline",
-  "@prayerCompline": {
-    "description": "The office of Small Compline, said before sleep."
-  },
-  "prayerBeforeMeal": "Before a Meal",
-  "@prayerBeforeMeal": {
-    "description": "The blessing said before eating."
-  },
-  "prayerAfterMeal": "After a Meal",
-  "@prayerAfterMeal": {
-    "description": "The thanksgiving said after eating."
-  },
   "prayerBeforeCommunion": "Before Holy Communion",
   "@prayerBeforeCommunion": {
     "description": "Prayers of preparation before receiving Communion."

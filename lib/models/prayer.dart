@@ -39,9 +39,6 @@ enum PrayerOccasion {
   morning('morning', PrayerGroup.daily),
   midday('midday', PrayerGroup.daily),
   night('night', PrayerGroup.daily),
-  compline('compline', PrayerGroup.daily),
-  beforeMeal('before_meal', PrayerGroup.daily),
-  afterMeal('after_meal', PrayerGroup.daily),
   beforeCommunion('before_communion', PrayerGroup.liturgy),
   afterCommunion('after_communion', PrayerGroup.liturgy);
 

@@ -45,7 +45,7 @@ void main() {
       expect(PrayerOccasion.beforeCommunion.group, PrayerGroup.liturgy);
       expect(PrayerOccasion.afterCommunion.group, PrayerGroup.liturgy);
       expect(PrayerOccasion.morning.group, PrayerGroup.daily);
-      expect(PrayerOccasion.beforeMeal.group, PrayerGroup.daily);
+      expect(PrayerOccasion.night.group, PrayerGroup.daily);
     });
   });
 
@@ -74,7 +74,10 @@ void main() {
       expect(Reminder.defaultFor(PrayerOccasion.morning).notificationId, 0);
       expect(Reminder.defaultFor(PrayerOccasion.midday).notificationId, 1);
       expect(Reminder.defaultFor(PrayerOccasion.night).notificationId, 2);
-      expect(Reminder.defaultFor(PrayerOccasion.compline).notificationId, 3);
+      expect(
+        Reminder.defaultFor(PrayerOccasion.beforeCommunion).notificationId,
+        3,
+      );
     });
   });
 
