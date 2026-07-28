@@ -17,6 +17,7 @@ Widget localizedApp({
   TransitionBuilder? builder,
 }) => MaterialApp(
   locale: locale,
+  builder: builder,
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
   home: home,
