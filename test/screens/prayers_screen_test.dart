@@ -148,8 +148,6 @@ void main() {
   });
 
   group('the scrollbar', () {
-    /// A rule long enough for the thumb to be a small pill against a tall
-    /// track, which is the shape both of these are about.
     String longRule() {
       final b = StringBuffer('# Evening Prayers\n\n');
       for (var i = 0; i < 120; i++) {
@@ -162,27 +160,35 @@ void main() {
       return b.toString();
     }
 
+    ScrollPosition positionOf(WidgetTester tester) =>
+        tester.state<ScrollableState>(find.byType(Scrollable)).position;
+
+    /// Pumps a long rule, optionally wrapped in Material's bar instead, and
+    /// leaves it scrolled with the pill showing.
     Future<ScrollPosition> openLongRule(WidgetTester tester) async {
       surface(tester, narrowSurface);
+      final set = PrayerSet.parse(longRule());
       await tester.pumpWidget(
         MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: PrayerScreen(set: PrayerSet.parse(longRule())),
+          home: PrayerScreen(set: set),
         ),
       );
       await tester.pump();
-      return tester.state<ScrollableState>(find.byType(Scrollable)).position;
+      final position = positionOf(tester);
+      position.jumpTo(2000);
+      // The bar fades in, and its own hit test refuses a transparent thumb.
+      await tester.pump(const Duration(milliseconds: 300));
+      return position;
     }
 
     testWidgets('measures the rule exactly, so the pill does not drift', (
       tester,
     ) async {
-      // A lazy list reports a total extent estimated from the children it has
-      // built, which changes as it goes. The thumb is drawn from that number,
-      // so it wandered and changed size while being read — on the longest rule
-      // the estimate was a third short and swung by a ninth. Laying the rule
-      // out in full makes the number exact and the pill still.
+      // A lazy viewport reports an extent estimated from the children it has
+      // built, which changes as it goes; the thumb is drawn from that number.
+      // See the note in prayers_screen.dart for the measurements.
       final position = await openLongRule(tester);
 
       final extents = <double>{position.maxScrollExtent};
@@ -203,12 +209,17 @@ void main() {
     });
 
     testWidgets('gives the rule a bar whose track is inert', (tester) async {
-      // Wiring rather than behaviour, deliberately. What ReadingScrollbar
-      // changes is that a tap on the track no longer pages the rule, and that
-      // cannot be driven here: under flutter_test the paging intent is not
-      // dispatched, so Material's Scrollbar does not page either and a test
-      // asserting "it did not scroll" passes whichever bar is used. This at
-      // least fails if the screen is put back on a plain Scrollbar.
+      // Wiring, not behaviour, and knowingly so. What ReadingScrollbar changes
+      // is that a tap on the track no longer pages the rule, and that could
+      // not be made to fail here by any route tried: through a gesture, and by
+      // calling handleTrackTapDown directly, with the override removed, the
+      // rule still did not move — Material's paging does not reach a
+      // ScrollPosition under flutter_test. So an assertion that it "did not
+      // scroll" is green either way and would be worse than nothing.
+      //
+      // This at least fails if the screen is put back on a plain Scrollbar.
+      // The behaviour itself needs a device, and rests on CupertinoScrollbar
+      // using the same override for the same purpose on iOS.
       await openLongRule(tester);
 
       expect(find.byType(ReadingScrollbar), findsOneWidget);

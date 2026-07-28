@@ -149,9 +149,9 @@ class PrayerScreen extends StatefulWidget {
 }
 
 class _PrayerScreenState extends State<PrayerScreen> {
-  /// Shared with the [Scrollbar], which is the only reason this screen holds
-  /// state: a bar that can be dragged has to drive the list it measures, and a
-  /// controller has to be disposed.
+  /// Shared with the [ReadingScrollbar], which is the only reason this screen
+  /// holds state: a bar that can be dragged has to drive the scrollable it
+  /// measures, and a controller has to be disposed.
   final _controller = ScrollController();
 
   @override
@@ -159,6 +159,47 @@ class _PrayerScreenState extends State<PrayerScreen> {
     _controller.dispose();
     super.dispose();
   }
+
+  /// One authored block as a widget.
+  ///
+  /// Out of the tree above so the arms are not indented past the width the
+  /// comments are wrapped to, and so the shape of the page stays readable.
+  /// [theme] is passed rather than re-read: the longest rule calls this 286
+  /// times.
+  Widget _block(ThemeData theme, PrayerBlock block) => switch (block) {
+    PrayerHeading(:final text) => Padding(
+      padding: const EdgeInsets.only(top: 28, bottom: 10),
+      child: Text(
+        text,
+        style: theme.textTheme.titleMedium?.copyWith(
+          color: theme.colorScheme.primary,
+        ),
+      ),
+    ),
+    // Rubrics are instructions, not words to be said. Styling them
+    // apart is the whole reason for the distinction.
+    PrayerRubric(:final spans) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: MarkupParagraph(
+        spans,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontStyle: FontStyle.italic,
+          color: theme.hintColor,
+        ),
+      ),
+    ),
+    PrayerText(:final spans) => Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: MarkupParagraph(
+        spans,
+        style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
+      ),
+    ),
+    PrayerDivider() => const Padding(
+      padding: EdgeInsets.symmetric(vertical: 20),
+      child: Divider(),
+    ),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -192,55 +233,25 @@ class _PrayerScreenState extends State<PrayerScreen> {
         child: ReadingScrollbar(
           controller: _controller,
           // Laid out in full rather than lazily, so the scrollbar has a real
-          // height to measure against. A ListView.builder only estimates the
-          // total from the average of the children it has built so far: on the
-          // longest rule that estimate came out 37% short and swung by a
-          // ninth as it scrolled, which the thumb faithfully reproduced as a
-          // pill that drifted and changed size under the finger. The rules are
-          // small enough for this to be the cheaper answer as well as the
-          // steadier one — the longest is 155 blocks.
+          // height to measure. A lazy viewport reports a total extent
+          // estimated from the children it has built so far: on the longest
+          // rule that estimate started 51% short and then ranged over a factor
+          // of six while scrolling, and the thumb is drawn straight from it,
+          // so the pill changed size under the finger.
+          //
+          // This is the dearer answer, not the cheaper one — measured at
+          // roughly three to five times the first frame and the scroll frame,
+          // and three times the elements. It is affordable only because the
+          // rules are a handful of authored files: the longest is
+          // before_communion_el at 286 blocks, about 45ms of layout. Cost is
+          // linear in block count, so a rule of six hundred or more would be
+          // worth revisiting.
           child: SingleChildScrollView(
             controller: _controller,
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 48),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final block in set.blocks)
-                  switch (block) {
-                    PrayerHeading(:final text) => Padding(
-                      padding: const EdgeInsets.only(top: 28, bottom: 10),
-                      child: Text(
-                        text,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                    // Rubrics are instructions, not words to be said. Styling them
-                    // apart is the whole reason for the distinction.
-                    PrayerRubric(:final spans) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: MarkupParagraph(
-                        spans,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontStyle: FontStyle.italic,
-                          color: theme.hintColor,
-                        ),
-                      ),
-                    ),
-                    PrayerText(:final spans) => Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: MarkupParagraph(
-                        spans,
-                        style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
-                      ),
-                    ),
-                    PrayerDivider() => const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Divider(),
-                    ),
-                  },
-              ],
+              children: [for (final block in set.blocks) _block(theme, block)],
             ),
           ),
         ),

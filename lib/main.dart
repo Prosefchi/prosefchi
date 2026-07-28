@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'l10n/app_localizations.dart';
+import 'screens/reading_scrollbar.dart';
 import 'screens/home_shell.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/reminder_refresh.dart';
@@ -47,36 +48,7 @@ ThemeData _theme(Brightness brightness) {
   final scheme = ColorScheme.fromSeed(seedColor: _seed, brightness: brightness);
   return ThemeData(
     colorScheme: scheme,
-    // A pill rather than Material's hairline. There is no separate widget for
-    // one: a Scrollbar becomes a pill by being thick, fully rounded and never
-    // allowed below a length a thumb can land on.
-    //
-    // The minimum length is what makes this work at the large text size. The
-    // thumb is drawn in proportion to the content, so the longest rule at the
-    // largest text would otherwise taper to a few unusable pixels — the point
-    // at which a scrollbar stops being a way through a document.
-    //
-    // It fattens while dragged, the way Cupertino's does, so the thing under
-    // the finger is the thing that answers. Material's default thumb is a flat
-    // grey that comes out near-white on the dark theme, where it reads as a
-    // foreign object laid over the page; drawing it from the scheme keeps it
-    // the app's own colour in both.
-    scrollbarTheme: ScrollbarThemeData(
-      thickness: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.dragged) ? 12 : 8,
-      ),
-      radius: const Radius.circular(12),
-      minThumbLength: 56,
-      mainAxisMargin: 8,
-      crossAxisMargin: 4,
-      thumbColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.dragged)) return scheme.primary;
-        if (states.contains(WidgetState.hovered)) {
-          return scheme.primary.withValues(alpha: 0.7);
-        }
-        return scheme.primary.withValues(alpha: 0.45);
-      }),
-    ),
+    scrollbarTheme: readingScrollbarTheme(scheme),
   );
 }
 

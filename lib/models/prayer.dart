@@ -9,6 +9,7 @@ export 'markup.dart';
 /// particular is worth preserving: in a prayer a note is a rubric, an
 /// instruction rather than words to be said.
 typedef PrayerSet = MarkupDocument;
+typedef PrayerBlock = MarkupBlock;
 typedef PrayerHeading = MarkupHeading;
 typedef PrayerRubric = MarkupNote;
 typedef PrayerText = MarkupText;
