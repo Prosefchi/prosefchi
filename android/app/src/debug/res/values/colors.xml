@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The adaptive icon's background, drained of colour for debug builds so
+         one installed beside the release is told apart at a glance rather than
+         by reading the label under it. The debug source set wins over main/
+         during resource merging.
+
+         This is the Rec. 709 grey of the brand red in main/, and the artwork
+         in drawable-*/ was greyscaled through the same conversion, so the flat
+         background and the emblem over it stay in step. Changing the red means
+         re-deriving both:
+
+             magick 'xc:#BB0602' -colorspace Gray -colorspace sRGB -depth 8 \
+                 -format '#%[hex:p{0,0}]' info:
+             magick <icon>.png -colorspace Gray -colorspace sRGB <out>.png
+
+         -depth 8 is not decoration. ImageMagick built Q16 prints four hex
+         digits per channel, and Android's colour parser takes #RGB, #ARGB,
+         #RRGGBB and #AARRGGBB and nothing else. -->
+    <color name="ic_launcher_background">#2C2C2C</color>
+</resources>

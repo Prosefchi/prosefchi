@@ -65,6 +65,20 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Android identifies an installed app by its application id, so a
+            // debug build sharing one with the release replaces it — and the
+            // two are signed by different keys, so the install is refused
+            // outright rather than upgraded. Suffixing the debug id makes them
+            // two apps: a working copy can sit beside the released one with its
+            // own reminders, settings and stored calendar.
+            //
+            // Only the application id moves. `namespace` stays put, which is
+            // what resolves `.MainActivity` and the R class, so nothing in the
+            // manifest or the Kotlin source has to know about this.
+            applicationIdSuffix = ".debug"
+        }
+
         release {
             // Falling back to the debug key keeps `flutter run --release`
             // working for anyone without the keystore. The release workflow
