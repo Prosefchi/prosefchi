@@ -282,5 +282,21 @@
   "couldNotOpenLink": "Could not open the link",
   "@couldNotOpenLink": {
     "description": "Shown when no browser is available to handle the repository link."
+  },
+  "textSize": "Text size",
+  "@textSize": {
+    "description": "Heading for the text size setting."
+  },
+  "textSizeSmall": "Small",
+  "@textSizeSmall": {
+    "description": "The text size the app has always drawn."
+  },
+  "textSizeMedium": "Medium",
+  "@textSizeMedium": {
+    "description": "A step up from the default text size."
+  },
+  "textSizeLarge": "Large",
+  "@textSizeLarge": {
+    "description": "The largest text size, for readers who need it."
   }
 }

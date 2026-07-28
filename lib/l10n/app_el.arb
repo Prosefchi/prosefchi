@@ -66,5 +66,9 @@
   "sourceCodeSubtitle": "Δείτε το έργο στο GitHub",
   "appVersion": "Έκδοση",
   "openSourceLicences": "Άδειες ανοιχτού κώδικα",
-  "couldNotOpenLink": "Δεν ήταν δυνατό το άνοιγμα του συνδέσμου"
+  "couldNotOpenLink": "Δεν ήταν δυνατό το άνοιγμα του συνδέσμου",
+  "textSize": "Μέγεθος κειμένου",
+  "textSizeSmall": "Μικρό",
+  "textSizeMedium": "Μεσαίο",
+  "textSizeLarge": "Μεγάλο"
 }

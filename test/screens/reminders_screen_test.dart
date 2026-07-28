@@ -192,9 +192,7 @@ void main() {
   testWidgets('switching fasting on schedules the days that fast', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1170, 2600);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.reset);
+    surface(tester, const Size(1170, 2600));
     // It is a block of one-off notifications rather than a repeating alarm,
     // because it must not fire on the days between.
     final store = MemoryReminderStore();
@@ -213,9 +211,7 @@ void main() {
   });
 
   testWidgets('switching fasting off clears the whole block', (tester) async {
-    tester.view.physicalSize = const Size(1170, 2600);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.reset);
+    surface(tester, const Size(1170, 2600));
     final store = MemoryReminderStore()
       ..fasting = const FastingReminder.initial().copyWith(enabled: true);
     final scheduler = RecordingScheduler();

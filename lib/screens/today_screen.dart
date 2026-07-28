@@ -369,14 +369,19 @@ class _Fact extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Flexible for the same reason as the pill above: a Wrap hands its
+    // children unbounded width, so at the larger text sizes "Fifty-two days
+    // after Pascha" runs off the edge instead of wrapping inside the strip.
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 16, color: theme.colorScheme.primary),
         const SizedBox(width: 8),
-        Text(
-          label,
-          style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
+        Flexible(
+          child: Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
+          ),
         ),
       ],
     );
@@ -410,10 +415,15 @@ class _SectionCard extends StatelessWidget {
               children: [
                 Icon(icon, size: 16, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: theme.colorScheme.primary,
+                // A section heading is a fixed string, but at the large text
+                // size it is wider than a narrow phone, so it has to be
+                // allowed to wrap rather than overflow.
+                Expanded(
+                  child: Text(
+                    label,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                 ),
               ],

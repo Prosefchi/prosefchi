@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/text_size.dart';
 import 'calendar_repository.dart' show languageFor, supportedLanguages;
 
 /// Persists the app-level settings.
@@ -13,11 +14,14 @@ abstract interface class SettingsStore {
   Future<void> writeLanguage(String? language);
   Future<bool> readOnboardingSeen();
   Future<void> writeOnboardingSeen(bool seen);
+  Future<String?> readTextSize();
+  Future<void> writeTextSize(String slug);
 }
 
 class PreferencesSettingsStore implements SettingsStore {
   static const _languageKey = 'settings.language';
   static const _onboardingKey = 'settings.onboardingSeen';
+  static const _textSizeKey = 'settings.textSize';
 
   @override
   Future<String?> readLanguage() async =>
@@ -40,6 +44,14 @@ class PreferencesSettingsStore implements SettingsStore {
   @override
   Future<void> writeOnboardingSeen(bool seen) async =>
       (await SharedPreferences.getInstance()).setBool(_onboardingKey, seen);
+
+  @override
+  Future<String?> readTextSize() async =>
+      (await SharedPreferences.getInstance()).getString(_textSizeKey);
+
+  @override
+  Future<void> writeTextSize(String slug) async =>
+      (await SharedPreferences.getInstance()).setString(_textSizeKey, slug);
 }
 
 /// Holds the settings the whole app reads, and notifies when they change.
@@ -55,6 +67,10 @@ class SettingsController extends ChangeNotifier {
 
   String? _language;
   bool _onboardingSeen = false;
+  TextSize _textSize = TextSize.small;
+
+  /// How large the app draws its text.
+  TextSize get textSize => _textSize;
 
   /// Whether the welcome flow has been completed.
   ///
@@ -80,6 +96,14 @@ class SettingsController extends ChangeNotifier {
     final stored = await _store.readLanguage();
     _language = supportedLanguages.contains(stored) ? stored : null;
     _onboardingSeen = await _store.readOnboardingSeen();
+    _textSize = TextSize.bySlug(await _store.readTextSize());
+    notifyListeners();
+  }
+
+  Future<void> setTextSize(TextSize size) async {
+    if (size == _textSize) return;
+    _textSize = size;
+    await _store.writeTextSize(size.slug);
     notifyListeners();
   }
 
