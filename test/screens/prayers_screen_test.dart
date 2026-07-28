@@ -150,6 +150,34 @@ void main() {
     );
   });
 
+  testWidgets('gives a rule a scrollbar that can be dragged', (tester) async {
+    await tester.pumpWidget(harness({'res/prayers/morning_en.md': morning}));
+    await settle(tester);
+
+    await tester.tap(find.text('Morning'));
+    await settle(tester);
+
+    final scrollbar = tester.widget<Scrollbar>(
+      find.ancestor(
+        of: find.byType(ListView),
+        matching: find.byType(Scrollbar),
+      ),
+    );
+    expect(scrollbar.interactive, isTrue, reason: 'draggable, not just shown');
+
+    // Left to fade rather than pinned: a rule short enough to fit has nothing
+    // to report, and a bar over a page that does not move reads as decoration.
+    expect(scrollbar.thumbVisibility, isNot(isTrue));
+
+    // The bar has to drive the same list it measures, or dragging it moves
+    // nothing.
+    expect(
+      scrollbar.controller,
+      same(tester.widget<ListView>(find.byType(ListView)).controller),
+      reason: 'the bar and the list it measures share a controller',
+    );
+  });
+
   testWidgets('renders a source attribution under a rule', (tester) async {
     await tester.pumpWidget(harness({'res/prayers/morning_en.md': attributed}));
     await settle(tester);

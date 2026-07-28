@@ -136,54 +136,82 @@ class _PrayerTile extends StatelessWidget {
 }
 
 /// Renders one rule.
-class PrayerScreen extends StatelessWidget {
+class PrayerScreen extends StatefulWidget {
   const PrayerScreen({super.key, required this.set});
 
   final PrayerSet set;
 
   @override
+  State<PrayerScreen> createState() => _PrayerScreenState();
+}
+
+class _PrayerScreenState extends State<PrayerScreen> {
+  /// Shared with the [Scrollbar], which is the only reason this screen holds
+  /// state: a bar that can be dragged has to drive the list it measures, and a
+  /// controller has to be disposed.
+  final _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final set = widget.set;
 
     return Scaffold(
       appBar: AppBar(title: Text(set.title)),
-      body: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 48),
-        itemCount: set.blocks.length,
-        itemBuilder: (context, index) => switch (set.blocks[index]) {
-          PrayerHeading(:final text) => Padding(
-            padding: const EdgeInsets.only(top: 28, bottom: 10),
-            child: Text(
-              text,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.primary,
+      // A rule runs to hundreds of blocks — the preparation for Communion is
+      // over eight hundred lines — so the bar says how much is left as much as
+      // it offers somewhere to drag, and it can be dragged rather than only
+      // watched. It is left to fade once the list is still: a rule short
+      // enough to fit has nothing to report, and a bar pinned over a page that
+      // does not move reads as part of the text.
+      body: Scrollbar(
+        controller: _controller,
+        interactive: true,
+        child: ListView.builder(
+          controller: _controller,
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 48),
+          itemCount: set.blocks.length,
+          itemBuilder: (context, index) => switch (set.blocks[index]) {
+            PrayerHeading(:final text) => Padding(
+              padding: const EdgeInsets.only(top: 28, bottom: 10),
+              child: Text(
+                text,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
               ),
             ),
-          ),
-          // Rubrics are instructions, not words to be said. Styling them
-          // apart is the whole reason for the distinction.
-          PrayerRubric(:final spans) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: MarkupParagraph(
-              spans,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontStyle: FontStyle.italic,
-                color: theme.hintColor,
+            // Rubrics are instructions, not words to be said. Styling them
+            // apart is the whole reason for the distinction.
+            PrayerRubric(:final spans) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: MarkupParagraph(
+                spans,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: theme.hintColor,
+                ),
               ),
             ),
-          ),
-          PrayerText(:final spans) => Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: MarkupParagraph(
-              spans,
-              style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
+            PrayerText(:final spans) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: MarkupParagraph(
+                spans,
+                style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
+              ),
             ),
-          ),
-          PrayerDivider() => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
-            child: Divider(),
-          ),
-        },
+            PrayerDivider() => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Divider(),
+            ),
+          },
+        ),
       ),
     );
   }
