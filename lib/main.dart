@@ -31,35 +31,17 @@ Future<void> main() async {
 /// The flag's crimson, which both themes are built out of.
 const _seed = Color(0xFF7B1113);
 
-/// Applies the chosen text size on top of the platform's own.
+/// Built once each, not per build.
 ///
-/// Multiplying rather than replacing is the point. Someone who has already set
-/// a system text size has said what they need, and an app that overwrites that
-/// with its own idea of "small" takes it away from exactly the reader this
-/// setting exists for.
-class _ScaledBy extends TextScaler {
-  const _ScaledBy(this.base, this.factor);
-
-  final TextScaler base;
-  final double factor;
-
-  @override
-  double scale(double fontSize) => base.scale(fontSize) * factor;
-
-  // Deprecated on TextScaler but still abstract there, so a subclass has to
-  // supply it. Nothing here calls it; [scale] is what does the work, and it is
-  // the one that stays correct if the platform ever scales non-linearly.
-  @override
-  // ignore: deprecated_member_use
-  double get textScaleFactor => base.textScaleFactor * factor;
-
-  @override
-  bool operator ==(Object other) =>
-      other is _ScaledBy && other.base == base && other.factor == factor;
-
-  @override
-  int get hashCode => Object.hash(base, factor);
-}
+/// Both are constant, and rebuilding them costs twice over: `ColorScheme
+/// .fromSeed` runs a palette quantizer, and the state-resolved scrollbar
+/// properties are closures that never compare equal, so a fresh `ThemeData`
+/// is never `==` the last one. `MaterialApp` reads that as a theme change and
+/// runs a 200ms `AnimatedTheme` transition — 26 extra relayouts of the page —
+/// every time a setting changes. Changing the text size is exactly when the
+/// page is most expensive to lay out.
+final _lightTheme = _theme(Brightness.light);
+final _darkTheme = _theme(Brightness.dark);
 
 ThemeData _theme(Brightness brightness) {
   final scheme = ColorScheme.fromSeed(seedColor: _seed, brightness: brightness);
@@ -120,8 +102,8 @@ class ProsefchiApp extends StatelessWidget {
         onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        theme: _theme(Brightness.light),
-        darkTheme: _theme(Brightness.dark),
+        theme: _lightTheme,
+        darkTheme: _darkTheme,
         // Wrapped around every route rather than applied on the prayer screen,
         // because a text size someone needs in order to read is not a
         // preference about prayers. It has to reach the settings screen that
@@ -130,7 +112,7 @@ class ProsefchiApp extends StatelessWidget {
           final media = MediaQuery.of(context);
           return MediaQuery(
             data: media.copyWith(
-              textScaler: _ScaledBy(media.textScaler, settings.textSize.scale),
+              textScaler: settings.textSize.over(media.textScaler),
             ),
             child: child!,
           );

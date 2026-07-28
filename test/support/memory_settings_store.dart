@@ -18,18 +18,11 @@ class MemorySettingsStore implements SettingsStore {
   bool onboardingSeen;
   String? textSize;
 
-  /// How many times the language has been written, for asserting that an
-  /// unchanged selection writes nothing.
-  int languageWrites = 0;
-
   @override
   Future<String?> readLanguage() async => language;
 
   @override
-  Future<void> writeLanguage(String? value) async {
-    language = value;
-    languageWrites++;
-  }
+  Future<void> writeLanguage(String? value) async => language = value;
 
   @override
   Future<bool> readOnboardingSeen() async => onboardingSeen;

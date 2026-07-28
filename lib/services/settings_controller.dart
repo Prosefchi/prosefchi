@@ -2,36 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/text_size.dart';
 import 'calendar_repository.dart' show languageFor, supportedLanguages;
-
-/// How large the app draws its text.
-///
-/// [small] is what the app drew before there was a choice, and stays the
-/// default, so nobody's app changes under them. [large] is meant to be enough
-/// for someone who needs it rather than merely bigger than medium, which is
-/// why the second step is the larger one.
-///
-/// A multiplier rather than a set of point sizes, so it composes with the text
-/// size the platform was already asked for instead of overruling it.
-enum TextSize {
-  small('small', 1.0),
-  medium('medium', 1.3),
-  large('large', 1.8);
-
-  const TextSize(this.slug, this.scale);
-
-  /// What is written to storage. A short stable string rather than the index,
-  /// since reordering or inserting a size would otherwise silently change what
-  /// a device already has.
-  final String slug;
-
-  final double scale;
-
-  /// The size [slug] names, or [small] if it names none — which is what a
-  /// value written by a later build should come back as on an older one.
-  static TextSize bySlug(String? slug) =>
-      values.firstWhere((size) => size.slug == slug, orElse: () => small);
-}
 
 /// Persists the app-level settings.
 ///

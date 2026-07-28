@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/prayer.dart';
+import 'package:prosefchi/models/text_size.dart';
 import 'package:prosefchi/models/reminder.dart';
 import 'package:prosefchi/screens/settings_screen.dart';
 import 'package:prosefchi/services/notification_service.dart';
@@ -41,23 +42,10 @@ Future<Widget> harness(
   );
 }
 
-/// The settings page is longer than the default 800x600 surface, and a
-/// ListView does not build what it cannot show. Made taller rather than
-/// scrolled, because a tap on a row below the fold misses silently and the
-/// failure reads as a state assertion. The text size options make it longer
-/// still: the largest is drawn at the size it selects.
-void tallSurface(WidgetTester tester) {
-  tester.view.physicalSize = const Size(1170, 5200);
-  tester.view.devicePixelRatio = 3.0;
-  addTearDown(tester.view.reset);
-}
-
 void main() {
   testWidgets('offers system default alongside each language', (tester) async {
     await tester.pumpWidget(
-      await harness(
-        SettingsController(store: MemorySettingsStore(onboardingSeen: true)),
-      ),
+      await harness(SettingsController(store: MemorySettingsStore())),
     );
     await settle(tester);
 
@@ -71,7 +59,7 @@ void main() {
   testWidgets('choosing Greek switches the interface immediately', (
     tester,
   ) async {
-    final store = MemorySettingsStore(onboardingSeen: true);
+    final store = MemorySettingsStore();
     await tester.pumpWidget(
       await harness(
         SettingsController(store: store),
@@ -99,7 +87,7 @@ void main() {
     final scheduler = RecordingScheduler();
     await tester.pumpWidget(
       await harness(
-        SettingsController(store: MemorySettingsStore(onboardingSeen: true)),
+        SettingsController(store: MemorySettingsStore()),
         reminderStore: MemoryReminderStore({
           for (final occasion in [PrayerOccasion.morning, PrayerOccasion.night])
             occasion: Reminder.defaultFor(occasion).copyWith(enabled: true),
@@ -123,7 +111,7 @@ void main() {
     });
     await tester.pumpWidget(
       await harness(
-        SettingsController(store: MemorySettingsStore(onboardingSeen: true)),
+        SettingsController(store: MemorySettingsStore()),
         reminderStore: reminders,
         scheduler: scheduler,
       ),
@@ -139,9 +127,7 @@ void main() {
   testWidgets('restores a previously chosen language on load', (tester) async {
     await tester.pumpWidget(
       await harness(
-        SettingsController(
-          store: MemorySettingsStore(language: 'el', onboardingSeen: true),
-        ),
+        SettingsController(store: MemorySettingsStore(language: 'el')),
       ),
     );
     await settle(tester);
@@ -155,7 +141,7 @@ void main() {
     // A downgrade, or a hand-edited preference. Falling back to the device is
     // better than crashing or showing an untranslated screen.
     final controller = SettingsController(
-      store: MemorySettingsStore(language: 'fr', onboardingSeen: true),
+      store: MemorySettingsStore(language: 'fr'),
     );
     await tester.pumpWidget(await harness(controller));
     await settle(tester);
@@ -165,8 +151,8 @@ void main() {
   });
 
   testWidgets('offers three text sizes, starting small', (tester) async {
-    tallSurface(tester);
-    final store = MemorySettingsStore(onboardingSeen: true);
+    surface(tester, tallSurface);
+    final store = MemorySettingsStore();
     await tester.pumpWidget(await harness(SettingsController(store: store)));
     await settle(tester);
 
@@ -187,8 +173,8 @@ void main() {
   });
 
   testWidgets('choosing a size stores its slug, not its index', (tester) async {
-    tallSurface(tester);
-    final store = MemorySettingsStore(onboardingSeen: true);
+    surface(tester, tallSurface);
+    final store = MemorySettingsStore();
     final controller = SettingsController(store: store);
     await tester.pumpWidget(await harness(controller));
     await settle(tester);
@@ -206,25 +192,25 @@ void main() {
     tester,
   ) async {
     final medium = SettingsController(
-      store: MemorySettingsStore(onboardingSeen: true, textSize: 'medium'),
+      store: MemorySettingsStore(textSize: 'medium'),
     );
     await medium.load();
     expect(medium.textSize, TextSize.medium);
 
     // Written by a later build than this one, or hand-edited.
     final unknown = SettingsController(
-      store: MemorySettingsStore(onboardingSeen: true, textSize: 'gigantic'),
+      store: MemorySettingsStore(textSize: 'gigantic'),
     );
     await unknown.load();
     expect(unknown.textSize, TextSize.small);
   });
 
   testWidgets('replays the welcome from the last row', (tester) async {
-    tallSurface(tester);
+    surface(tester, tallSurface);
 
     await tester.pumpWidget(
       await harness(
-        SettingsController(store: MemorySettingsStore(onboardingSeen: true)),
+        SettingsController(store: MemorySettingsStore()),
         reminderStore: MemoryReminderStore(),
         scheduler: RecordingScheduler(),
       ),
@@ -238,12 +224,10 @@ void main() {
   });
 
   testWidgets('carries an about section at the bottom', (tester) async {
-    tallSurface(tester);
+    surface(tester, tallSurface);
 
     await tester.pumpWidget(
-      await harness(
-        SettingsController(store: MemorySettingsStore(onboardingSeen: true)),
-      ),
+      await harness(SettingsController(store: MemorySettingsStore())),
     );
     await settle(tester);
 
@@ -252,11 +236,11 @@ void main() {
   });
 
   testWidgets('opens the reminders screen', (tester) async {
-    tallSurface(tester);
+    surface(tester, tallSurface);
 
     await tester.pumpWidget(
       await harness(
-        SettingsController(store: MemorySettingsStore(onboardingSeen: true)),
+        SettingsController(store: MemorySettingsStore()),
         reminderStore: MemoryReminderStore(),
         scheduler: RecordingScheduler(),
       ),
