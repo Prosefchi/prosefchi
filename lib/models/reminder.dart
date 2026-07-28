@@ -115,9 +115,10 @@ class Reminder {
   final int minute;
 
   /// Stable per occasion, because cancelling and rescheduling has to address
-  /// the same notification. Derived from the declaration order, so occasions
-  /// must only ever be appended to the enum, never reordered.
-  int get notificationId => occasion.index;
+  /// the same notification. Stated on the occasion rather than taken from its
+  /// position, so the enum can be reordered or pruned without reaching into
+  /// reminders already scheduled on someone's phone.
+  int get notificationId => occasion.notificationId;
 
   /// The Android notification channel, one per occasion so each can be
   /// silenced independently from system settings.

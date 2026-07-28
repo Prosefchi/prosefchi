@@ -35,16 +35,39 @@ enum PrayerGroup {
 ///
 /// [slug] is stated rather than derived from [name], so the asset filenames
 /// stay snake_case while the Dart identifiers stay camelCase.
+/// The second value is the notification id, and it is stated rather than taken
+/// from the declaration order on purpose. Deriving it from `index` made the
+/// enum append-only forever: removing or reordering an entry shifted the ids
+/// of everything after it, and a phone with a reminder already scheduled then
+/// held an id that meant a different rule — impossible to cancel or update, so
+/// it would fire forever. Stating it decouples the two, and the only rule left
+/// is the easy one to keep.
+///
+/// **An id is fixed once assigned, and a retired one is never reused.** A new
+/// occasion takes the next unused number, wherever it is declared. 3, 4 and 5
+/// belonged to Small Compline and the two mealtime rules and are spent, even
+/// though nothing had shipped when they went — the point of a rule like this
+/// is that it does not depend on remembering which exemptions were taken.
+///
+/// Ids stay well below [FastingReminder.idBase], which is where the fasting
+/// block starts.
 enum PrayerOccasion {
-  morning('morning', PrayerGroup.daily),
-  midday('midday', PrayerGroup.daily),
-  night('night', PrayerGroup.daily),
-  beforeCommunion('before_communion', PrayerGroup.liturgy),
-  afterCommunion('after_communion', PrayerGroup.liturgy);
+  morning('morning', 0, PrayerGroup.daily),
+  midday('midday', 1, PrayerGroup.daily),
+  night('night', 2, PrayerGroup.daily),
+  // 3, 4 and 5 were Small Compline and the two mealtime rules. Retired, not
+  // reused: these two keep the ids they were given rather than sliding down,
+  // which is the whole reason the id is stated rather than counted.
+  beforeCommunion('before_communion', 6, PrayerGroup.liturgy),
+  afterCommunion('after_communion', 7, PrayerGroup.liturgy);
 
-  const PrayerOccasion(this.slug, this.group);
+  const PrayerOccasion(this.slug, this.notificationId, this.group);
 
   final String slug;
+
+  /// What a scheduled notification for this occasion is posted and cancelled
+  /// by. See the note above the enum: fixed per occasion, never reused.
+  final int notificationId;
 
   final PrayerGroup group;
 
