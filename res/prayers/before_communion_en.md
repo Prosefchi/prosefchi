@@ -18,27 +18,10 @@ Lord, have mercy. Lord, have mercy. Lord, have mercy.
 Glory to the Father and the Son and the Holy Spirit, now and forever and to the
 ages of ages. Amen.
 
-Our Father,
-
-who are in heaven,
-
-hallowed be your name.
-
-Your kingdom come,
-
-your will be done,
-
-on earth as it is in heaven.
-
-Give us this day our daily bread;
-
-and forgive us our trespasses,
-
-as we forgive those who trespass against us.
-
-And lead us not into temptation,
-
-but deliver us from evil.
+Our Father, who are in heaven, hallowed be your name. Your kingdom come, your
+will be done, on earth as it is in heaven. Give us this day our daily bread;
+and forgive us our trespasses, as we forgive those who trespass against us. And
+lead us not into temptation, but deliver us from evil.
 
 For yours is the kingdom and the power and the glory, of the Father and the Son
 and Holy Spirit, now and forever and to the ages of ages. Amen. Lord, have
@@ -131,87 +114,34 @@ ages. Amen.
 
 ## The Symbol Of Faith
 
-I believe in one God,
+I believe in one God, Father Almighty, Creator of heaven and earth, and of all
+things visible and invisible.
 
-Father Almighty,
+And in one Lord Jesus Christ, the only-begotten Son of God, begotten of the
+Father before all ages;
 
-Creator of heaven and earth,
+Light of Light, true God of true God, begotten, not created, of one essence
+with the Father through Whom all things were made.
 
-and of all things visible and invisible.
+Who for us men and for our salvation came down from heaven and was incarnate of
+the Holy Spirit and the Virgin Mary and became man.
 
-And in one Lord Jesus Christ,
+He was crucified for us under Pontius Pilate, and he suffered and was buried;
 
-the only-begotten Son of God,
+And he rose on the third day, according to the Scriptures.
 
-begotten of the Father
+He ascended into heaven and is seated at the right hand of the Father;
 
-before all ages;
+And He will come again with glory to judge the living and the dead. His kingdom
+will have no end.
 
-Light of Light,
-
-true God of true God,
-
-begotten, not created,
-
-of one essence with the Father
-
-through Whom all things were made.
-
-Who for us men
-
-and for our salvation
-
-came down from heaven
-
-and was incarnate of the Holy Spirit
-
-and the Virgin Mary
-
-and became man.
-
-He was crucified for us
-
-under Pontius Pilate,
-
-and he suffered and was buried;
-
-And he rose on the third day,
-
-according to the Scriptures.
-
-He ascended into heaven
-
-and is seated at the right hand of the Father;
-
-And He will come again with glory
-
-to judge the living and the dead.
-
-His kingdom will have no end.
-
-And in the Holy Spirit,
-
-the Lord, the Creator of life,
-
-Who proceeds from the Father,
-
-Who together with the Father and the Son
-
-is worshiped and glorified,
-
+And in the Holy Spirit, the Lord, the Creator of life, Who proceeds from the
+Father, Who together with the Father and the Son is worshiped and glorified,
 who spoke through the prophets.
 
-In one, holy, catholic,
-
-and apostolic Church.
-
-I confess one baptism
-
-for the forgiveness of sins.
-
-I look for the resurrection of the dead.
-
-and the life of the age to come. Amen.
+In one, holy, catholic, and apostolic Church. I confess one baptism for the
+forgiveness of sins. I look for the resurrection of the dead. and the life of
+the age to come. Amen.
 
 ## First Ode Second Tone
 
@@ -343,27 +273,10 @@ Lord, have mercy. Lord, have mercy. Lord, have mercy.
 Glory to the Father and the Son and the Holy Spirit, now and forever and to the
 ages of ages. Amen.
 
-Our Father,
-
-who are in heaven,
-
-hallowed be your name.
-
-Your kingdom come,
-
-your will be done,
-
-on earth as it is in heaven.
-
-Give us this day our daily bread;
-
-and forgive us our trespasses,
-
-as we forgive those who trespass against us.
-
-And lead us not into temptation,
-
-but deliver us from evil.
+Our Father, who are in heaven, hallowed be your name. Your kingdom come, your
+will be done, on earth as it is in heaven. Give us this day our daily bread;
+and forgive us our trespasses, as we forgive those who trespass against us. And
+lead us not into temptation, but deliver us from evil.
 
 For yours is the kingdom and the power and the glory, of the Father and the Son
 and the Holy Spirit, now and forever and to the ages of ages. Amen.
@@ -484,27 +397,10 @@ Lord, have mercy. Lord, have mercy. Lord, have mercy.
 Glory to the Father and the Son and the Holy Spirit, now and forever and to the
 ages of ages. Amen.
 
-Our Father,
-
-who are in heaven,
-
-hallowed be your name.
-
-Your kingdom come,
-
-your will be done,
-
-on earth as it is in heaven.
-
-Give us this day our daily bread;
-
-and forgive us our trespasses,
-
-as we forgive those who trespass against us.
-
-And lead us not into temptation,
-
-but deliver us from evil.
+Our Father, who are in heaven, hallowed be your name. Your kingdom come, your
+will be done, on earth as it is in heaven. Give us this day our daily bread;
+and forgive us our trespasses, as we forgive those who trespass against us. And
+lead us not into temptation, but deliver us from evil.
 
 For yours is the kingdom and the power and the glory, of the Father and the Son
 and the Holy Spirit, now and forever and to the ages of ages. Amen.
@@ -514,11 +410,9 @@ Lord, have mercy (12).
 Glory to the Father and the Son and the Holy Spirit, now and forever and to the
 ages of ages. Amen.
 
-Come, let us worship and bow down to God, our king.
-
-Come, let us worship and bow down to Christ, our king and God.
-
-Come, let us worship and bow down to Christ himself, our king and God.
+Come, let us worship and bow down to God, our king. Come, let us worship and
+bow down to Christ, our king and God. Come, let us worship and bow down to
+Christ himself, our king and God.
 
 ## Psalm 22 (23)
 
