@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/prayer.dart';
 import 'package:prosefchi/screens/occasion_ui.dart';
 import 'package:prosefchi/screens/prayers_screen.dart';
 import 'package:prosefchi/screens/reading_scrollbar.dart';
 import 'package:prosefchi/services/prayer_repository.dart';
+import '../support/app.dart';
 import '../support/pump.dart';
 import '../support/fake_bundle.dart';
 
@@ -38,10 +38,8 @@ Amen.
 Widget harness(
   Map<String, String> assets, {
   Locale locale = const Locale('en'),
-}) => MaterialApp(
+}) => localizedApp(
   locale: locale,
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: AppLocalizations.supportedLocales,
   home: PrayersScreen(repository: PrayerRepository(bundle: FakeBundle(assets))),
 );
 
@@ -168,13 +166,7 @@ void main() {
     Future<ScrollPosition> openLongRule(WidgetTester tester) async {
       surface(tester, narrowSurface);
       final set = PrayerSet.parse(longRule());
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: PrayerScreen(set: set),
-        ),
-      );
+      await tester.pumpWidget(localizedApp(home: PrayerScreen(set: set)));
       await tester.pump();
       final position = positionOf(tester);
       position.jumpTo(2000);

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/screens/about_section.dart';
+import '../support/app.dart';
 import '../support/pump.dart';
 
 PackageInfo info({String version = '1.2.3', String build = '7'}) => PackageInfo(
@@ -17,10 +17,8 @@ Widget harness({
   Future<PackageInfo> Function()? packageInfo,
   Future<bool> Function(Uri, {LaunchMode mode})? launch,
   Locale locale = const Locale('en'),
-}) => MaterialApp(
+}) => localizedApp(
   locale: locale,
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: AppLocalizations.supportedLocales,
   home: Scaffold(
     body: ListView(
       children: [

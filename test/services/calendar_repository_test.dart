@@ -6,29 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:prosefchi/services/calendar_repository.dart';
 
-import '../support/memory_calendar_store.dart';
+import '../support/calendar_fixture.dart';
 
-String calendarJson({
-  String language = 'en',
-  String title = 'Dormition of St. Anna',
-  String start = '2026-07-01',
-  String end = '2026-07-31',
-}) => jsonEncode({
-  'language': language,
-  'source': 'https://example.test/feed.ics',
-  'generatedAt': '2026-07-26',
-  'sourceUpdatedAt': '2025-05-29T23:50:14.000Z',
-  'start': start,
-  'end': end,
-  'days': {
-    '2026-07-25': {
-      'title': title,
-      'saints': [title, 'Olympias the Deaconess'],
-      'marks': ['fish'],
-      'epistle': {'reference': 'Galatians 4:22-27', 'text': 'Brethren...'},
-    },
-  },
-});
+import '../support/memory_calendar_store.dart';
 
 void main() {
   late MemoryCalendarStore store;
@@ -50,7 +30,7 @@ void main() {
       );
 
       expect(await repository.load('en'), isNull);
-      expect(await repository.dayFor(DateTime(2026, 7, 25), 'en'), isNull);
+      expect(await repository.dayFor(calendarFixtureDate, 'en'), isNull);
     });
 
     test('reads back what refresh stored, without the network', () async {
@@ -58,7 +38,10 @@ void main() {
       final repository = repositoryWith(
         MockClient((_) async {
           requests++;
-          return http.Response(calendarJson(), 200);
+          return http.Response(
+            calendarJson(sourceUpdatedAt: '2025-05-29T23:50:14.000Z'),
+            200,
+          );
         }),
       );
 
@@ -68,8 +51,8 @@ void main() {
       final calendar = await repository.load('en');
       expect(calendar, isNotNull);
       expect(
-        calendar!.forDate(DateTime(2026, 7, 25))?.title,
-        'Dormition of St. Anna',
+        calendar!.forDate(calendarFixtureDate)?.title,
+        'Paraskeve the Righteous Martyr',
       );
       expect(calendar.sourceUpdatedAt, DateTime.utc(2025, 5, 29, 23, 50, 14));
       expect(requests, 1, reason: 'load must not hit the network');
@@ -128,7 +111,7 @@ void main() {
 
       repository.clearCache();
       expect(
-        (await repository.load('en'))?.forDate(DateTime(2026, 7, 25))?.title,
+        (await repository.load('en'))?.forDate(calendarFixtureDate)?.title,
         'Good Data',
       );
     });
@@ -149,7 +132,7 @@ void main() {
 
       repository.clearCache();
       expect(
-        (await repository.load('en'))?.forDate(DateTime(2026, 7, 25))?.title,
+        (await repository.load('en'))?.forDate(calendarFixtureDate)?.title,
         'Cached',
       );
     });
@@ -172,7 +155,7 @@ void main() {
       repository.clearCache();
 
       expect(
-        (await repository.load('el'))?.forDate(DateTime(2026, 7, 25))?.title,
+        (await repository.load('el'))?.forDate(calendarFixtureDate)?.title,
         title,
       );
     });

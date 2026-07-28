@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/prayer.dart';
 import 'package:prosefchi/models/reminder.dart';
 import 'package:prosefchi/screens/home_shell.dart';
@@ -8,6 +7,7 @@ import 'package:prosefchi/screens/prayers_screen.dart';
 import 'package:prosefchi/services/document_repository.dart';
 import 'package:prosefchi/services/prayer_repository.dart';
 
+import '../support/app.dart';
 import '../support/fake_bundle.dart';
 import '../support/pump.dart';
 import '../support/reminder_doubles.dart';
@@ -22,10 +22,8 @@ FakeBundle bundleWithEveryRule() => FakeBundle({
 Widget harness({
   required RecordingScheduler scheduler,
   Locale locale = const Locale('en'),
-}) => MaterialApp(
+}) => localizedApp(
   locale: locale,
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: AppLocalizations.supportedLocales,
   home: HomeShell(
     scheduler: scheduler,
     prayers: PrayerRepository(

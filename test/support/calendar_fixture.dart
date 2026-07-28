@@ -25,10 +25,13 @@ String calendarJson({
   bool matinsGospel = false,
   int? tone,
   int? eothinon,
+  String? sourceUpdatedAt,
 }) => jsonEncode({
   'language': language,
   'source': 'https://example.test/feed.ics',
   'generatedAt': '2026-07-26',
+  // When upstream last changed, which only the repository tests read.
+  'sourceUpdatedAt': ?sourceUpdatedAt,
   'start': '2026-07-01',
   'end': '2026-08-31',
   'days': {

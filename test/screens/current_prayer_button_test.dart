@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/screens/current_prayer_button.dart';
 import 'package:prosefchi/screens/prayers_screen.dart';
 import 'package:prosefchi/services/prayer_repository.dart';
 
+import '../support/app.dart';
 import '../support/fake_bundle.dart';
 import '../support/pump.dart';
 
@@ -37,10 +37,8 @@ Widget harness(
   DateTime Function() clock, {
   Map<String, String> assets = everyRule,
   Locale locale = const Locale('en'),
-}) => MaterialApp(
+}) => localizedApp(
   locale: locale,
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: AppLocalizations.supportedLocales,
   home: Scaffold(
     body: CurrentPrayerButton(
       clock: clock,

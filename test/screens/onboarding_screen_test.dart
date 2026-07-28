@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/prayer.dart';
 import 'package:prosefchi/models/text_size.dart';
 import 'package:prosefchi/screens/onboarding_screen.dart';
@@ -9,6 +8,7 @@ import 'package:prosefchi/services/notification_service.dart';
 import 'package:prosefchi/services/reminder_store.dart';
 import 'package:prosefchi/services/settings_controller.dart';
 import '../support/pump.dart';
+import '../support/app.dart';
 import '../support/fake_bundle.dart';
 import '../support/memory_settings_store.dart';
 import '../support/reminder_doubles.dart';
@@ -29,30 +29,19 @@ Future<Widget> harness(
   SettingsController controller, {
   ReminderStore? reminderStore,
   ReminderScheduler? scheduler,
-}) async {
-  await controller.load();
-  return ListenableBuilder(
-    listenable: controller,
-    builder: (context, _) => SettingsScope(
-      controller: controller,
-      child: MaterialApp(
-        locale: controller.locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: OnboardingScreen(
-          documents: DocumentRepository(
-            bundle: FakeBundle({
-              'res/welcome_en.md': welcomeEn,
-              'res/welcome_el.md': welcomeEl,
-            }),
-          ),
-          reminderStore: reminderStore ?? MemoryReminderStore(),
-          scheduler: scheduler ?? RecordingScheduler(),
-        ),
-      ),
+}) => settingsApp(
+  controller,
+  home: OnboardingScreen(
+    documents: DocumentRepository(
+      bundle: FakeBundle({
+        'res/welcome_en.md': welcomeEn,
+        'res/welcome_el.md': welcomeEl,
+      }),
     ),
-  );
-}
+    reminderStore: reminderStore ?? MemoryReminderStore(),
+    scheduler: scheduler ?? RecordingScheduler(),
+  ),
+);
 
 /// Advances to the reminders page, which is the last of the three.
 ///

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/screens/today_screen.dart';
 import 'package:prosefchi/services/calendar_repository.dart';
 import 'package:prosefchi/services/prayer_repository.dart';
 
+import '../support/app.dart';
 import '../support/fake_bundle.dart';
 import '../support/calendar_fixture.dart';
 import '../support/pump.dart';
@@ -15,10 +15,8 @@ void main() {
     Locale locale = const Locale('en'),
     DateTime? date,
     Map<String, String> prayers = const {},
-  }) => MaterialApp(
+  }) => localizedApp(
     locale: locale,
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
     home: TodayScreen(
       repository: repository,
       prayers: PrayerRepository(bundle: FakeBundle(prayers)),

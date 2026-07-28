@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/markup.dart';
 import 'package:prosefchi/screens/markup_paragraph.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../support/app.dart';
 import '../support/pump.dart';
 
 Widget harness(
   List<MarkupSpan> spans, {
   Future<bool> Function(Uri, {LaunchMode mode})? launch,
-}) => MaterialApp(
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: AppLocalizations.supportedLocales,
+}) => localizedApp(
   home: Scaffold(body: MarkupParagraph(spans, launch: launch)),
 );
 

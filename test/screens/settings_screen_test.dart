@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/prayer.dart';
 import 'package:prosefchi/models/text_size.dart';
 import 'package:prosefchi/models/reminder.dart';
@@ -8,6 +7,7 @@ import 'package:prosefchi/screens/settings_screen.dart';
 import 'package:prosefchi/services/notification_service.dart';
 import 'package:prosefchi/services/reminder_store.dart';
 import 'package:prosefchi/services/settings_controller.dart';
+import '../support/app.dart';
 import '../support/calendar_fixture.dart';
 import '../support/pump.dart';
 import '../support/memory_settings_store.dart';
@@ -17,30 +17,19 @@ Future<Widget> harness(
   SettingsController controller, {
   ReminderStore? reminderStore,
   ReminderScheduler? scheduler,
-}) async {
-  await controller.load();
-  return ListenableBuilder(
-    listenable: controller,
-    builder: (context, _) => SettingsScope(
-      controller: controller,
-      child: MaterialApp(
-        locale: controller.locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: SettingsScreen(
-          reminderStore: reminderStore,
-          scheduler: scheduler,
-          // Without this the language switch would reach the real file store
-          // and http.Client, whose futures never complete under FakeAsync.
-          calendars: offlineCalendars(),
-          // The real one reaches for package_info_plus and url_launcher,
-          // neither of which has a platform channel under flutter test.
-          about: const SizedBox.shrink(key: Key('about')),
-        ),
-      ),
-    ),
-  );
-}
+}) => settingsApp(
+  controller,
+  home: SettingsScreen(
+    reminderStore: reminderStore,
+    scheduler: scheduler,
+    // Without this the language switch would reach the real file store and
+    // http.Client, whose futures never complete under FakeAsync.
+    calendars: offlineCalendars(),
+    // The real one reaches for package_info_plus and url_launcher, neither of
+    // which has a platform channel under flutter test.
+    about: const SizedBox.shrink(key: Key('about')),
+  ),
+);
 
 void main() {
   testWidgets('offers system default alongside each language', (tester) async {

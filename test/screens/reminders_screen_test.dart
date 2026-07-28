@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/prayer.dart';
 import 'package:prosefchi/models/reminder.dart';
 import 'package:prosefchi/screens/reminders_screen.dart';
 import 'package:prosefchi/services/notification_service.dart';
 import 'package:prosefchi/services/reminder_store.dart';
 
+import '../support/app.dart';
 import '../support/calendar_fixture.dart';
 import '../support/pump.dart';
 import '../support/reminder_doubles.dart';
@@ -15,10 +15,8 @@ Widget harness(
   ReminderStore store,
   ReminderScheduler scheduler, {
   Locale locale = const Locale('en'),
-}) => MaterialApp(
+}) => localizedApp(
   locale: locale,
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: AppLocalizations.supportedLocales,
   home: RemindersScreen(
     store: store,
     scheduler: scheduler,

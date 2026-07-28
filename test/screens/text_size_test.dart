@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/prayer.dart';
 import 'package:prosefchi/models/text_size.dart';
 import 'package:prosefchi/screens/onboarding_screen.dart';
@@ -10,6 +9,7 @@ import 'package:prosefchi/screens/today_screen.dart';
 import 'package:prosefchi/services/prayer_repository.dart';
 import 'package:prosefchi/services/settings_controller.dart';
 
+import '../support/app.dart';
 import '../support/calendar_fixture.dart';
 import '../support/fake_bundle.dart';
 import '../support/memory_settings_store.dart';
@@ -31,10 +31,8 @@ Widget scaled(
   TextSize size,
   Widget home, {
   Locale locale = const Locale('en'),
-}) => MaterialApp(
+}) => localizedApp(
   locale: locale,
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: AppLocalizations.supportedLocales,
   // Through TextSize.over, which is what the prayer screen scales by. A bare
   // TextScaler.linear would test a replica: `over` composes onto the platform's
   // size where linear replaces it, and that difference is the substance of it.
@@ -168,9 +166,7 @@ the ages of ages. Amen.
     await tester.pumpWidget(
       SettingsScope(
         controller: controller,
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
+        child: localizedApp(
           home: PrayerScreen(
             set: PrayerSet.parse('# Evening Prayers\n\nLord, have mercy.\n'),
           ),
@@ -199,9 +195,7 @@ the ages of ages. Amen.
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
+      localizedApp(
         home: PrayerScreen(set: PrayerSet.parse('# A\n\nLord, have mercy.\n')),
       ),
     );
