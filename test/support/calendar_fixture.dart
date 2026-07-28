@@ -71,3 +71,9 @@ CalendarRepository calendarsServing(String? body) => CalendarRepository(
   ),
   store: MemoryCalendarStore(),
 );
+
+/// A repository that serves nothing, for a test that never reaches the feed.
+///
+/// The same thing as [calendarsServing] with no body — kept as a name because
+/// "offline" is what the tests using it mean.
+CalendarRepository offlineCalendars() => calendarsServing(null);

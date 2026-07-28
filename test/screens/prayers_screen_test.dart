@@ -56,7 +56,7 @@ void main() {
   });
 
   testWidgets('gives every rule its own icon', (tester) async {
-    surface(tester, const Size(1170, 2600));
+    surface(tester, tallSurface);
 
     await tester.pumpWidget(harness({'res/prayers/morning_en.md': morning}));
     await settle(tester);
@@ -87,7 +87,7 @@ void main() {
   ) async {
     // Group headings make the list taller than the default 800x600 surface,
     // and a ListView does not build rows it cannot show.
-    surface(tester, const Size(1170, 2600));
+    surface(tester, tallSurface);
 
     // A stub must never be presented as though it were an abbreviated prayer.
     await tester.pumpWidget(
@@ -301,7 +301,7 @@ void main() {
   testWidgets('labels the rules in Greek under the el locale', (tester) async {
     // Group headings make the list taller than the default 800x600 surface,
     // and a ListView does not build rows it cannot show.
-    surface(tester, const Size(1170, 2600));
+    surface(tester, tallSurface);
 
     await tester.pumpWidget(
       harness({

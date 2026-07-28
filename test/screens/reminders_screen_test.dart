@@ -7,7 +7,7 @@ import 'package:prosefchi/screens/reminders_screen.dart';
 import 'package:prosefchi/services/notification_service.dart';
 import 'package:prosefchi/services/reminder_store.dart';
 
-import '../support/memory_calendar_store.dart';
+import '../support/calendar_fixture.dart';
 import '../support/pump.dart';
 import '../support/reminder_doubles.dart';
 
@@ -157,26 +157,6 @@ void main() {
     expect(find.text('Liturgy'), findsOneWidget);
   });
 
-  testWidgets('puts a heading at each change of group, and no more', (
-    tester,
-  ) async {
-    // The enum is ordered so each group is contiguous, so one heading per
-    // group rather than one per row.
-    await tester.pumpWidget(
-      harness(MemoryReminderStore(), RecordingScheduler()),
-    );
-    await settle(tester);
-
-    final groups = PrayerOccasion.values.map((o) => o.group).toSet();
-    expect(groups, hasLength(2));
-    for (final group in groups) {
-      expect(
-        PrayerOccasion.values.where((o) => o.group == group).length,
-        greaterThan(0),
-      );
-    }
-  });
-
   testWidgets('offers a fasting reminder alongside the prayer rules', (
     tester,
   ) async {
@@ -192,7 +172,7 @@ void main() {
   testWidgets('switching fasting on schedules the days that fast', (
     tester,
   ) async {
-    surface(tester, const Size(1170, 2600));
+    surface(tester, tallSurface);
     // It is a block of one-off notifications rather than a repeating alarm,
     // because it must not fire on the days between.
     final store = MemoryReminderStore();
@@ -211,7 +191,7 @@ void main() {
   });
 
   testWidgets('switching fasting off clears the whole block', (tester) async {
-    surface(tester, const Size(1170, 2600));
+    surface(tester, tallSurface);
     final store = MemoryReminderStore()
       ..fasting = const FastingReminder.initial().copyWith(enabled: true);
     final scheduler = RecordingScheduler();

@@ -37,16 +37,18 @@ void main() {
     }
   });
 
-  test('a file with no prayer text says so with a placeholder marker', () {
-    // So an unfinished rule is reported as unavailable rather than opening
-    // onto a blank screen.
+  test('every rule either has text or says it is awaited', () {
+    // Was written as "if it has no text it must carry a marker", which now
+    // that every rule is written skips every file and asserts nothing. Stated
+    // as the invariant instead, so it holds a file to one or the other rather
+    // than only checking the case that no longer occurs — an unfinished rule
+    // has to be reported as unavailable, not open onto a blank screen.
     for (final file in files) {
       final set = PrayerSet.parse(file.readAsStringSync());
-      if (set.hasContent) continue;
       expect(
-        set.hasPlaceholder,
+        set.hasContent || set.hasPlaceholder,
         isTrue,
-        reason: '${file.path} has no text and no [Awaiting text] marker',
+        reason: '${file.path} has neither text nor an [Awaiting text] marker',
       );
     }
   });

@@ -8,7 +8,7 @@ import 'package:prosefchi/screens/settings_screen.dart';
 import 'package:prosefchi/services/notification_service.dart';
 import 'package:prosefchi/services/reminder_store.dart';
 import 'package:prosefchi/services/settings_controller.dart';
-import '../support/memory_calendar_store.dart';
+import '../support/calendar_fixture.dart';
 import '../support/pump.dart';
 import '../support/memory_settings_store.dart';
 import '../support/reminder_doubles.dart';

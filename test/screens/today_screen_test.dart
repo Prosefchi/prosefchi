@@ -25,7 +25,7 @@ void main() {
       // Midnight unless a test says otherwise, which belongs to no prayer
       // window, so the current-prayer button stays out of the way of the tests
       // that are not about it.
-      date: date ?? DateTime(2026, 7, 26),
+      date: date ?? calendarFixtureDate,
     ),
   );
 

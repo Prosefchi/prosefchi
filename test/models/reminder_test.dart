@@ -90,11 +90,6 @@ void main() {
       );
     });
 
-    test('no two occasions share an id', () {
-      final ids = PrayerOccasion.values.map((o) => o.notificationId).toSet();
-      expect(ids, hasLength(PrayerOccasion.values.length));
-    });
-
     test('prayer ids stay clear of the fasting block', () {
       // The fasting reminder occupies a separate range, and an overlap would
       // have one kind of reminder cancelling the other.

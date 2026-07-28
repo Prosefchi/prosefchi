@@ -4,7 +4,7 @@ import 'package:prosefchi/models/reminder.dart';
 import 'package:prosefchi/services/reminder_refresh.dart';
 import 'package:prosefchi/services/settings_controller.dart';
 
-import '../support/memory_calendar_store.dart';
+import '../support/calendar_fixture.dart';
 import '../support/reminder_doubles.dart';
 
 ReminderRefresher refresherFor(

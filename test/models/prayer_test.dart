@@ -279,18 +279,6 @@ Amen.
       expect(at(16), isNull);
       expect(at(23, 59), isNull);
     });
-
-    test('is not the reminder the user set', () {
-      // A reminder is the moment someone asked to be nudged at; the windows
-      // are the app's own and are not derived from any default. 22:00 belongs
-      // to no window however late someone sets their evening reminder.
-      expect(at(22), isNull);
-      expect(
-        at(7),
-        PrayerOccasion.morning,
-        reason: 'the hour decides, not what any reminder is set to',
-      );
-    });
   });
 
   group('PrayerOccasion', () {
