@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/l10n/app_localizations.dart';
 import 'package:prosefchi/models/prayer.dart';
+import 'package:prosefchi/models/text_size.dart';
 import 'package:prosefchi/screens/onboarding_screen.dart';
 import 'package:prosefchi/services/document_repository.dart';
 import 'package:prosefchi/services/notification_service.dart';
@@ -53,6 +54,17 @@ Future<Widget> harness(
   );
 }
 
+/// Advances to the reminders page, which is the last of the three.
+///
+/// The reader page sits between the greeting and the reminders, so reaching
+/// the reminders takes two taps rather than one.
+Future<void> toReminders(WidgetTester tester) async {
+  for (var i = 0; i < 2; i++) {
+    await tester.tap(find.text('Next'));
+    await settle(tester);
+  }
+}
+
 void main() {
   testWidgets('opens on the welcome page rendered from markdown', (
     tester,
@@ -87,8 +99,10 @@ void main() {
     );
     await settle(tester);
 
-    await tester.drag(find.byType(PageView), const Offset(-500, 0));
-    await settle(tester);
+    for (var i = 0; i < 2; i++) {
+      await tester.drag(find.byType(PageView), const Offset(-500, 0));
+      await settle(tester);
+    }
 
     expect(
       find.byType(SwitchListTile),
@@ -97,13 +111,74 @@ void main() {
     );
   });
 
+  group('the reader page', () {
+    // Two radio groups with the largest option drawn at its own size make this
+    // page taller than the default surface, and a tap below the fold misses
+    // silently, so every test here sets one before building the tree.
+    Future<void> toReader(WidgetTester tester) async {
+      await tester.tap(find.text('Next'));
+      await settle(tester);
+    }
+
+    testWidgets('offers both settings between welcome and reminders', (
+      tester,
+    ) async {
+      surface(tester, tallSurface);
+      await tester.pumpWidget(
+        await harness(SettingsController(store: MemorySettingsStore())),
+      );
+      await settle(tester);
+      await toReader(tester);
+
+      expect(find.text('Set up your reading'), findsOneWidget);
+      expect(find.text('System default'), findsOneWidget);
+      expect(find.text('Ελληνικά'), findsOneWidget);
+      for (final size in ['Small', 'Medium', 'Large']) {
+        expect(find.text(size), findsOneWidget);
+      }
+      // Still ahead of the reminders, not replacing them.
+      expect(find.byType(SwitchListTile), findsNothing);
+    });
+
+    testWidgets('choosing a size here is what the reader gets', (tester) async {
+      surface(tester, tallSurface);
+      final store = MemorySettingsStore();
+      final controller = SettingsController(store: store);
+      await tester.pumpWidget(await harness(controller));
+      await settle(tester);
+      await toReader(tester);
+
+      await tester.tap(find.text('Large'));
+      await settle(tester);
+
+      expect(controller.textSize, TextSize.large);
+      expect(store.textSize, 'large');
+    });
+
+    testWidgets('choosing a language switches the flow immediately', (
+      tester,
+    ) async {
+      surface(tester, tallSurface);
+      final store = MemorySettingsStore();
+      await tester.pumpWidget(await harness(SettingsController(store: store)));
+      await settle(tester);
+      await toReader(tester);
+
+      await tester.tap(find.text('Ελληνικά'));
+      await settle(tester);
+
+      expect(store.language, 'el');
+      // The page the choice was made on is now in Greek.
+      expect(find.text('Set up your reading'), findsNothing);
+    });
+  });
+
   testWidgets('offers every reminder switched off', (tester) async {
     await tester.pumpWidget(
       await harness(SettingsController(store: MemorySettingsStore())),
     );
     await settle(tester);
-    await tester.tap(find.text('Next'));
-    await settle(tester);
+    await toReminders(tester);
 
     final switches = tester.widgetList<SwitchListTile>(
       find.byType(SwitchListTile),
@@ -124,8 +199,7 @@ void main() {
       ),
     );
     await settle(tester);
-    await tester.tap(find.text('Next'));
-    await settle(tester);
+    await toReminders(tester);
 
     expect(scheduler.permissionRequests, 0, reason: 'not asked on arrival');
 
@@ -148,8 +222,7 @@ void main() {
       ),
     );
     await settle(tester);
-    await tester.tap(find.text('Next'));
-    await settle(tester);
+    await toReminders(tester);
     await tester.tap(find.text('Morning'));
     await settle(tester);
 
@@ -160,8 +233,7 @@ void main() {
     final store = MemorySettingsStore();
     await tester.pumpWidget(await harness(SettingsController(store: store)));
     await settle(tester);
-    await tester.tap(find.text('Next'));
-    await settle(tester);
+    await toReminders(tester);
     await tester.tap(find.text('Get started'));
     await settle(tester);
 

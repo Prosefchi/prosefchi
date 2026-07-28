@@ -70,5 +70,7 @@
   "textSize": "Μέγεθος κειμένου",
   "textSizeSmall": "Μικρό",
   "textSizeMedium": "Μεσαίο",
-  "textSizeLarge": "Μεγάλο"
+  "textSizeLarge": "Μεγάλο",
+  "onboardingReaderTitle": "Ρυθμίστε την ανάγνωση",
+  "onboardingReaderBody": "Επιλέξτε τη γλώσσα στην οποία προσεύχεστε και πόσο μεγάλες θα είναι οι προσευχές. Και τα δύο αλλάζουν αργότερα από τις ρυθμίσεις."
 }

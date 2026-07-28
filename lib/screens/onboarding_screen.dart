@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/markup.dart';
+import '../models/text_size.dart';
+import '../services/calendar_repository.dart' show supportedLanguages;
 import '../services/document_repository.dart';
 import '../services/notification_service.dart';
 import '../services/reminder_store.dart';
@@ -11,10 +13,10 @@ import 'reminders_screen.dart';
 
 /// The welcome flow, shown once on first launch and replayable from settings.
 ///
-/// Two pages, swiped horizontally: what the app is, then which prayers to be
-/// reminded of. Reminders all ship off, so the notification permission is only
-/// requested when the user switches the first one on here, which is the point
-/// at which the prompt makes sense.
+/// Three pages, swiped horizontally: what the app is, how it should read, and
+/// which prayers to be reminded of. Reminders all ship off, so the
+/// notification permission is only requested when the user switches the first
+/// one on here, which is the point at which the prompt makes sense.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({
     super.key,
@@ -42,7 +44,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _loading = true;
   int _page = 0;
 
-  static const _pageCount = 2;
+  static const _pageCount = 3;
 
   @override
   void didChangeDependencies() {
@@ -98,6 +100,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPageChanged: (page) => setState(() => _page = page),
                 children: [
                   _WelcomePage(document: _welcome, loading: _loading),
+                  // Between the greeting and the reminders: the two settings
+                  // that decide how everything after this reads. Asked here
+                  // rather than left to be found, because a reader who needs
+                  // the large size needs it on the next page too.
+                  const _ReaderPage(),
                   _RemindersPage(
                     store: widget.reminderStore,
                     scheduler: widget.scheduler,
@@ -237,6 +244,108 @@ class _RemindersPage extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Language and text size, the two settings that shape the reading.
+class _ReaderPage extends StatelessWidget {
+  const _ReaderPage();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final settings = SettingsScope.of(context);
+
+    return ListView(
+      padding: const EdgeInsets.only(top: 32, bottom: 16),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.onboardingReaderTitle,
+                style: theme.textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.onboardingReaderBody,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.hintColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        _SectionLabel(l10n.language),
+        RadioGroup<String?>(
+          groupValue: settings.language,
+          onChanged: settings.setLanguage,
+          child: Column(
+            children: [
+              // Null is following the device, which is a real choice and not
+              // an absence of one.
+              RadioListTile<String?>(
+                value: null,
+                title: Text(l10n.languageSystem),
+              ),
+              for (final language in supportedLanguages)
+                RadioListTile<String?>(
+                  value: language,
+                  title: Text(
+                    language == 'el'
+                        ? l10n.languageGreek
+                        : l10n.languageEnglish,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        _SectionLabel(l10n.textSize),
+        RadioGroup<TextSize>(
+          groupValue: settings.textSize,
+          onChanged: (value) {
+            if (value != null) settings.setTextSize(value);
+          },
+          child: Column(
+            children: [
+              for (final size in TextSize.values)
+                RadioListTile<TextSize>(
+                  value: size,
+                  // Drawn at the size it selects, so the choice shows what it
+                  // does. Composed onto the platform's own size, since an
+                  // explicit scaler would replace it.
+                  title: Text(switch (size) {
+                    TextSize.small => l10n.textSizeSmall,
+                    TextSize.medium => l10n.textSizeMedium,
+                    TextSize.large => l10n.textSizeLarge,
+                  }, textScaler: size.over(MediaQuery.textScalerOf(context))),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(24, 20, 24, 4),
+    child: Text(
+      text,
+      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+        color: Theme.of(context).colorScheme.primary,
+      ),
+    ),
+  );
 }
 
 class _PageDots extends StatelessWidget {

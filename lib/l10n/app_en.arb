@@ -298,5 +298,13 @@
   "textSizeLarge": "Large",
   "@textSizeLarge": {
     "description": "The largest text size, for readers who need it."
+  },
+  "onboardingReaderTitle": "Set up your reading",
+  "@onboardingReaderTitle": {
+    "description": "Title of the welcome page that configures language and text size."
+  },
+  "onboardingReaderBody": "Choose the language you pray in, and how large the prayers should be. Both can be changed later in settings.",
+  "@onboardingReaderBody": {
+    "description": "Body of the welcome page that configures language and text size."
   }
 }
