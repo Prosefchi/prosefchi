@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Release builds shrink resources, and the shrinker keeps only what it can
+     see referenced from code or from another resource. `ic_notification` is
+     referenced from neither: the only thing that names it is a Dart string in
+     NotificationService, `@drawable/ic_notification`, which the shrinker cannot
+     follow. So it is dropped from every release APK while surviving in debug
+     and profile builds, where shrinking does not run.
+
+     What that costs is not a missing icon. flutter_local_notifications
+     validates the default icon inside `initialize` and fails the call when the
+     name does not resolve, so the whole plugin never initializes. The failure
+     then travels: `NotificationService.initialize` memoizes the future it
+     returns, so the first failure is cached and every later call rethrows it,
+     and `requestPermission` awaits it before doing anything. A switch on the
+     reminders screen calls that before it calls `setState`, so the switch does
+     not move, no message appears, and nothing is written — the screen looks
+     inert rather than broken. Every other resource this app owns is reachable
+     from a layout, a style or the manifest, so this is the only entry needed.
+
+     `tools:keep` is the documented way to tell the shrinker about a resource
+     resolved by name at runtime. It keeps every density variant of the entry,
+     not just the one this file could name. -->
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_notification" />
