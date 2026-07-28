@@ -38,16 +38,6 @@ enum TextSize {
   /// value written by a later build should come back as on an older one.
   static TextSize bySlug(String? slug) =>
       values.firstWhere((size) => size.slug == slug, orElse: () => small);
-
-  /// What [scaled] was built on top of, undoing [over].
-  ///
-  /// For drawing a preview of a size other than the one in force. Every
-  /// MediaQuery in the app already carries the current choice, so composing
-  /// onto it would show each option multiplied by whatever is selected —
-  /// picking "large" once would make every option enormous, including
-  /// "small". This recovers the platform's own size to draw them against.
-  static TextScaler platformBase(TextScaler scaled) =>
-      scaled is _ScaledBy ? scaled.base : scaled;
 }
 
 /// [base], multiplied.

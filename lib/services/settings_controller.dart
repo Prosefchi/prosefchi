@@ -140,4 +140,13 @@ class SettingsScope extends InheritedNotifier<SettingsController> {
     assert(scope != null, 'No SettingsScope above this widget');
     return scope!.notifier!;
   }
+
+  /// The controller if there is one, rather than asserting there must be.
+  ///
+  /// For a screen that reads a setting but does not depend on it — the prayer
+  /// screen scales its text by one and is otherwise complete without it. That
+  /// keeps it usable from a test, and from anywhere it is shown outside the
+  /// app's own tree, without every such caller having to build a scope.
+  static SettingsController? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<SettingsScope>()?.notifier;
 }
