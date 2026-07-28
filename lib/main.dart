@@ -104,19 +104,6 @@ class ProsefchiApp extends StatelessWidget {
         supportedLocales: AppLocalizations.supportedLocales,
         theme: _lightTheme,
         darkTheme: _darkTheme,
-        // Wrapped around every route rather than applied on the prayer screen,
-        // because a text size someone needs in order to read is not a
-        // preference about prayers. It has to reach the settings screen that
-        // sets it, too, or the control is unreadable to whoever needs it most.
-        builder: (context, child) {
-          final media = MediaQuery.of(context);
-          return MediaQuery(
-            data: media.copyWith(
-              textScaler: settings.textSize.over(media.textScaler),
-            ),
-            child: child!,
-          );
-        },
         // The welcome flow is the home widget until it is done, rather than a
         // route pushed over the app, so there is no frame where the app shows
         // behind it and nothing to dismiss it past.

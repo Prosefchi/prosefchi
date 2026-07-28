@@ -81,8 +81,8 @@ class SettingsScreen extends StatelessWidget {
                     // that reads comfortably is the one to pick.
                     //
                     // Composed onto the platform's own size through the same
-                    // method the app scales by, rather than set to a bare
-                    // multiple of it. An explicit scaler replaces the
+                    // method the prayer screen scales by, rather than set to a
+                    // bare multiple of it. An explicit scaler replaces the
                     // inherited one instead of building on it, so a reader
                     // with a large system size would have seen "Small" drawn
                     // smaller than the words around it — the preview reporting
@@ -90,9 +90,7 @@ class SettingsScreen extends StatelessWidget {
                     // reader it matters to most.
                     title: Text(
                       _textSizeName(l10n, size),
-                      textScaler: size.over(
-                        TextSize.platformBase(MediaQuery.textScalerOf(context)),
-                      ),
+                      textScaler: size.over(MediaQuery.textScalerOf(context)),
                     ),
                   ),
               ],

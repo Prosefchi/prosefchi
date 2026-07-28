@@ -16,13 +16,17 @@ import '../support/memory_settings_store.dart';
 import '../support/pump.dart';
 import '../support/reminder_doubles.dart';
 
-/// A size offered as an accessibility setting has to work on every screen, not
-/// only the one it was added for.
+/// Every screen has to survive a large text size, whoever asked for it.
 ///
-/// Three of these overflowed before this existed: two rows on the day screen,
-/// and the welcome screen's buttons — which broke at the *middle* size in
-/// Greek, on the one screen the app opens on before anything else. None of it
-/// is visible at the small size the other tests read at.
+/// The in-app setting reaches only the prayer passage, but the platform's own
+/// text size reaches everything and always has, and Android allows up to 2.0.
+/// These pump each screen at the same multipliers the setting offers, standing
+/// in for a system size of the same magnitude.
+///
+/// Three screens overflowed before this existed: two rows on the day screen,
+/// and the welcome screen's buttons, which broke at the *middle* step in Greek
+/// — the one screen the app opens on before anything else. None of it is
+/// visible at the default the other tests read at.
 Widget scaled(
   TextSize size,
   Widget home, {
@@ -31,10 +35,9 @@ Widget scaled(
   locale: locale,
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
-  // Through TextSize.over, which is what the app scales by. Setting a bare
-  // TextScaler.linear here would test a replica: `over` composes onto the
-  // platform's size where linear replaces it, and that difference is the
-  // whole substance of the setting.
+  // Through TextSize.over, which is what the prayer screen scales by. A bare
+  // TextScaler.linear would test a replica: `over` composes onto the platform's
+  // size where linear replaces it, and that difference is the substance of it.
   builder: (context, child) {
     final media = MediaQuery.of(context);
     return MediaQuery(
@@ -152,6 +155,62 @@ the ages of ages. Amen.
     expect(find.text('Evening Prayers'), findsOneWidget);
   });
 
+  testWidgets('the chosen size reaches the passage and not the app bar', (
+    tester,
+  ) async {
+    // The setting exists for reading a rule. The app bar is chrome, and every
+    // other screen is scanned rather than read, so neither grows with it.
+    final controller = SettingsController(
+      store: MemorySettingsStore(textSize: 'large'),
+    );
+    await controller.load();
+
+    await tester.pumpWidget(
+      SettingsScope(
+        controller: controller,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: PrayerScreen(
+            set: PrayerSet.parse('# Evening Prayers\n\nLord, have mercy.\n'),
+          ),
+        ),
+      ),
+    );
+    await settle(tester);
+
+    double scalerAt(String text) =>
+        tester.widget<Text>(find.text(text)).textScaler?.scale(10) ??
+        MediaQuery.textScalerOf(tester.element(find.text(text))).scale(10);
+
+    expect(
+      scalerAt('Lord, have mercy.'),
+      closeTo(10 * TextSize.large.scale, 0.001),
+      reason: 'the passage grows',
+    );
+    expect(
+      scalerAt('Evening Prayers'),
+      10,
+      reason: 'the app bar title does not',
+    );
+  });
+
+  testWidgets('falls back to the default with no settings above it', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: PrayerScreen(set: PrayerSet.parse('# A\n\nLord, have mercy.\n')),
+      ),
+    );
+    await settle(tester);
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Lord, have mercy.'), findsOneWidget);
+  });
+
   group('composes with the platform rather than replacing it', () {
     test('multiplies the size already asked for', () {
       // Someone who has set a system text size has said what they need. An app
@@ -173,16 +232,6 @@ the ages of ages. Amen.
         TextSize.large.over(platform),
         isNot(TextSize.medium.over(platform)),
       );
-    });
-
-    test('platformBase recovers what a size was composed onto', () {
-      // The settings preview draws each option against the platform's size.
-      // Composing onto the MediaQuery it sits in would multiply every option
-      // by whatever is currently selected.
-      const platform = TextScaler.linear(1.5);
-      expect(TextSize.platformBase(TextSize.large.over(platform)), platform);
-      // An unwrapped scaler is its own base.
-      expect(TextSize.platformBase(platform), platform);
     });
   });
 }
