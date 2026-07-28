@@ -64,7 +64,45 @@ android {
         }
     }
 
+    // Debug and profile share one set of greyed artwork. Neither needs telling
+    // apart from the other — the label in each source set does that — and both
+    // need telling apart from the release. One copy also means the greyscale
+    // conversion recorded in dev/res/values/colors.xml is re-derived once if the
+    // brand red ever moves, rather than once per build type with the two free to
+    // drift. Only the names stay per-variant, in each source set's own strings.
+    sourceSets {
+        getByName("debug") { res.srcDir("src/dev/res") }
+        getByName("profile") { res.srcDir("src/dev/res") }
+    }
+
     buildTypes {
+        // Android identifies an installed app by its application id, so a build
+        // sharing one with the release replaces it — and since the two are
+        // signed by different keys, the install is refused outright rather than
+        // upgraded. Suffixing makes each a separate app, with its own reminders,
+        // settings and stored calendar, so a working copy can sit beside the
+        // released one instead of costing it its data.
+        //
+        // Only the application id moves. `namespace` stays put, which is what
+        // resolves `.MainActivity` and the R class, so nothing in the manifest
+        // or the Kotlin source has to know about this.
+        //
+        // It does carry the resource table's package name along with it, and
+        // that is worth knowing rather than discovering: it is what
+        // `getResources().getIdentifier(name, type, getPackageName())` searches,
+        // which is how flutter_local_notifications resolves its default icon,
+        // and a failure there fails `initialize` and takes the reminders screen
+        // inert with it. Both sides move together, so the lookup still resolves.
+        debug {
+            applicationIdSuffix = ".debug"
+        }
+
+        // Same collision, same fix. `flutter run --profile` otherwise carries
+        // the release id and installs over it exactly as debug used to.
+        getByName("profile") {
+            applicationIdSuffix = ".profile"
+        }
+
         release {
             // Falling back to the debug key keeps `flutter run --release`
             // working for anyone without the keystore. The release workflow

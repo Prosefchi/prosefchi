@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Names the profile build in the launcher, the same job the debug source
+         set does for its own. The two carry different application ids, so all
+         three builds can sit on one phone and the label is what tells them
+         apart; the greyed icon they share only says "not the release".
+
+         Every locale in main/ needs its own override here, since a qualified
+         values-el in main/ beats an unqualified values in profile/. -->
+    <string name="app_name">Orthodox Prayer (profile)</string>
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Names the debug build in the launcher: the debug source set wins over
+         main/ during resource merging. The greyed icon it shares with the
+         profile build only says "not the release", so this is what separates
+         the two of them, and without it the only way to tell which is which is
+         App info.
+
+         Every locale in main/ needs its own override here, since a qualified
+         values-el in main/ beats an unqualified values in debug/. -->
+    <string name="app_name">Orthodox Prayer (debug)</string>
+</resources>
