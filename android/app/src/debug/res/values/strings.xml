@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Overrides the launcher name from main/ for debug builds only: the
-         debug source set wins over main during resource merging. Without it a
-         debug build installed beside the release is two identical icons with
-         identical names, and the only way to tell them apart is App info.
+    <!-- Names the debug build in the launcher: the debug source set wins over
+         main/ during resource merging. The greyed icon it shares with the
+         profile build only says "not the release", so this is what separates
+         the two of them, and without it the only way to tell which is which is
+         App info.
 
          Every locale in main/ needs its own override here, since a qualified
          values-el in main/ beats an unqualified values in debug/. -->
