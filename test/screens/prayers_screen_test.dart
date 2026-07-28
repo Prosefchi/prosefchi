@@ -208,6 +208,51 @@ void main() {
       );
     });
 
+    group('the progress bubble', () {
+      Future<void> pumpBubble(
+        WidgetTester tester,
+        double fraction, {
+        TextScaler scaler = TextScaler.noScaling,
+      }) => tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(textScaler: scaler),
+            child: Center(child: ScrollProgressBubble(fraction: fraction)),
+          ),
+        ),
+      );
+
+      testWidgets('reads as a whole percentage of the way through', (
+        tester,
+      ) async {
+        for (final (fraction, shown) in [
+          (0.0, '0%'),
+          (0.304, '30%'),
+          (0.5, '50%'),
+          (1.0, '100%'),
+        ]) {
+          await pumpBubble(tester, fraction);
+          expect(find.text(shown), findsOneWidget);
+        }
+      });
+
+      testWidgets('stays a fixed circle whatever the text size', (
+        tester,
+      ) async {
+        // It is chrome saying where the reader is, not text to be read, and
+        // the circle is a fixed size — a figure that grew with the setting
+        // would spill out of it.
+        await pumpBubble(tester, 0.5);
+        final plain = tester.getSize(find.byType(ScrollProgressBubble));
+        final plainText = tester.getSize(find.text('50%'));
+
+        await pumpBubble(tester, 0.5, scaler: const TextScaler.linear(1.8));
+
+        expect(tester.getSize(find.byType(ScrollProgressBubble)), plain);
+        expect(tester.getSize(find.text('50%')), plainText);
+      });
+    });
+
     testWidgets('gives the rule a bar whose track is inert', (tester) async {
       // Wiring, not behaviour, and knowingly so. What ReadingScrollbar changes
       // is that a tap on the track no longer pages the rule, and that could

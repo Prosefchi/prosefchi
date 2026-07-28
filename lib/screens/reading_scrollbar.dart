@@ -62,7 +62,16 @@ class ReadingScrollbar extends RawScrollbar {
     super.key,
     required ScrollController super.controller,
     required super.child,
+    this.showProgress = false,
   }) : super(interactive: true);
+
+  /// Whether to show how far through the text the pill has been dragged.
+  ///
+  /// Off by default. It answers "where am I in this?", which is a question
+  /// about a long text and not about a list of settings, and it only appears
+  /// while the pill is held — a figure that sat on the page permanently would
+  /// be one more thing to read while trying to read something else.
+  final bool showProgress;
 
   @override
   RawScrollbarState<ReadingScrollbar> createState() => _ReadingScrollbarState();
@@ -110,6 +119,16 @@ class _ReadingScrollbarState extends RawScrollbarState<ReadingScrollbar> {
   }
 
   @override
+  Widget build(BuildContext context) {
+    final bar = super.build(context);
+    if (!widget.showProgress) return bar;
+    return Stack(
+      textDirection: Directionality.of(context),
+      children: [bar, if (_dragging) _Progress(widget.controller!)],
+    );
+  }
+
+  @override
   void handleThumbPressStart(Offset localPosition) {
     super.handleThumbPressStart(localPosition);
     setState(() => _dragging = true);
@@ -138,5 +157,100 @@ class _ReadingScrollbarState extends RawScrollbarState<ReadingScrollbar> {
   void handleHoverExit(PointerExitEvent event) {
     super.handleHoverExit(event);
     setState(() => _hovering = false);
+  }
+}
+
+/// How far through the text the pill has been dragged, beside the pill.
+///
+/// Tracks the position and places [ScrollProgressBubble] beside the pill.
+///
+/// Takes the controller rather than looking for a [Scrollable]: this is stacked
+/// *beside* the bar, so the scrollable is not above it in the tree. Rebuilds on
+/// the position so the figure keeps up with the drag rather than with the
+/// parent's rebuilds.
+class _Progress extends StatelessWidget {
+  const _Progress(this.controller);
+
+  final ScrollController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!controller.hasClients) return const SizedBox.shrink();
+    final position = controller.position;
+    return ListenableBuilder(
+      listenable: position,
+      builder: (context, _) {
+        if (!position.hasContentDimensions || position.maxScrollExtent <= 0) {
+          return const SizedBox.shrink();
+        }
+        final fraction = (position.pixels / position.maxScrollExtent).clamp(
+          0.0,
+          1.0,
+        );
+        // Rides the pill: -1 is the top of its travel, 1 the bottom, which is
+        // the same fraction the thumb itself is drawn at.
+        return Align(
+          alignment: Alignment(1, fraction * 2 - 1),
+          child: Padding(
+            // Clear of the pill and its touch target, so the finger doing the
+            // dragging does not cover the number it is there to read.
+            padding: const EdgeInsets.only(right: 34),
+            child: ScrollProgressBubble(fraction: fraction),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// How far through a text the reader has scrolled, as a percentage.
+///
+/// Separated from the bar so it can be shown and checked on its own: a thumb
+/// drag cannot be driven under `flutter_test`, so this is where the parts that
+/// can actually be wrong — the rounding and the fixed size — are pinned.
+class ScrollProgressBubble extends StatelessWidget {
+  const ScrollProgressBubble({super.key, required this.fraction});
+
+  /// 0 at the top of the text, 1 at the end.
+  final double fraction;
+
+  /// Round for "30%", a little wider for "100%".
+  ///
+  /// A fixed circle would have to be sized for the widest figure and so look
+  /// oversized for every other one; a stadium is round at the common width and
+  /// simply grows the one case that needs it.
+  static const _height = 44.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: ShapeDecoration(
+        color: scheme.primary,
+        shape: const StadiumBorder(),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minWidth: _height,
+          minHeight: _height,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Center(
+            child: Text(
+              '${(fraction.clamp(0.0, 1.0) * 100).round()}%',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: scheme.onPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+              // The circle is a fixed size, so the figure inside it must not
+              // grow with the reader's text size and spill out of it. This is
+              // chrome telling them where they are, not text to be read.
+              textScaler: TextScaler.noScaling,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

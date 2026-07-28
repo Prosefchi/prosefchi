@@ -232,6 +232,9 @@ class _PrayerScreenState extends State<PrayerScreen> {
         data: media.copyWith(textScaler: size.over(media.textScaler)),
         child: ReadingScrollbar(
           controller: _controller,
+          // A rule is long enough that knowing how far in you are is worth
+          // showing while the pill is held.
+          showProgress: true,
           // Laid out in full rather than lazily, so the scrollbar has a real
           // height to measure. A lazy viewport reports a total extent
           // estimated from the children it has built so far: on the longest
