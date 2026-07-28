@@ -5,6 +5,7 @@ import '../l10n/occasion_labels.dart';
 import '../models/prayer.dart';
 import '../models/text_size.dart';
 import 'markup_paragraph.dart';
+import 'reading_scrollbar.dart';
 import '../services/calendar_repository.dart' show languageFor;
 import '../services/prayer_repository.dart';
 import '../services/settings_controller.dart';
@@ -181,53 +182,66 @@ class _PrayerScreenState extends State<PrayerScreen> {
       appBar: AppBar(title: Text(set.title)),
       // A rule runs to hundreds of blocks — the preparation for Communion is
       // over eight hundred lines — so the bar says how much is left as much as
-      // it offers somewhere to drag, and it can be dragged rather than only
-      // watched. It is left to fade once the list is still: a rule short
-      // enough to fit has nothing to report, and a bar pinned over a page that
-      // does not move reads as part of the text.
+      // it offers somewhere to drag. It is left to fade once the list is
+      // still: a rule short enough to fit has nothing to report, and a bar
+      // pinned over a page that does not move reads as part of the text.
+      // ReadingScrollbar rather than Scrollbar so that only the pill scrolls,
+      // not the whole column it runs in.
       body: MediaQuery(
         data: media.copyWith(textScaler: size.over(media.textScaler)),
-        child: Scrollbar(
+        child: ReadingScrollbar(
           controller: _controller,
-          interactive: true,
-          child: ListView.builder(
+          // Laid out in full rather than lazily, so the scrollbar has a real
+          // height to measure against. A ListView.builder only estimates the
+          // total from the average of the children it has built so far: on the
+          // longest rule that estimate came out 37% short and swung by a
+          // ninth as it scrolled, which the thumb faithfully reproduced as a
+          // pill that drifted and changed size under the finger. The rules are
+          // small enough for this to be the cheaper answer as well as the
+          // steadier one — the longest is 155 blocks.
+          child: SingleChildScrollView(
             controller: _controller,
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 48),
-            itemCount: set.blocks.length,
-            itemBuilder: (context, index) => switch (set.blocks[index]) {
-              PrayerHeading(:final text) => Padding(
-                padding: const EdgeInsets.only(top: 28, bottom: 10),
-                child: Text(
-                  text,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ),
-              // Rubrics are instructions, not words to be said. Styling them
-              // apart is the whole reason for the distinction.
-              PrayerRubric(:final spans) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: MarkupParagraph(
-                  spans,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontStyle: FontStyle.italic,
-                    color: theme.hintColor,
-                  ),
-                ),
-              ),
-              PrayerText(:final spans) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: MarkupParagraph(
-                  spans,
-                  style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
-                ),
-              ),
-              PrayerDivider() => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Divider(),
-              ),
-            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final block in set.blocks)
+                  switch (block) {
+                    PrayerHeading(:final text) => Padding(
+                      padding: const EdgeInsets.only(top: 28, bottom: 10),
+                      child: Text(
+                        text,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    // Rubrics are instructions, not words to be said. Styling them
+                    // apart is the whole reason for the distinction.
+                    PrayerRubric(:final spans) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: MarkupParagraph(
+                        spans,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontStyle: FontStyle.italic,
+                          color: theme.hintColor,
+                        ),
+                      ),
+                    ),
+                    PrayerText(:final spans) => Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: MarkupParagraph(
+                        spans,
+                        style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
+                      ),
+                    ),
+                    PrayerDivider() => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Divider(),
+                    ),
+                  },
+              ],
+            ),
           ),
         ),
       ),
