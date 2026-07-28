@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -168,15 +170,46 @@ class _ReadingScrollbarState extends RawScrollbarState<ReadingScrollbar> {
 /// *beside* the bar, so the scrollable is not above it in the tree. Rebuilds on
 /// the position so the figure keeps up with the drag rather than with the
 /// parent's rebuilds.
+/// Where the centre of the pill sits, measured down the bar.
+///
+/// The same geometry `ScrollbarPainter` draws the thumb with: it travels
+/// inside [margin] at each end, it is at least [minThumbLength] long and
+/// otherwise proportional to how much of the text fits on screen, and it is
+/// its centre that moves rather than its edge. Placing anything level with it
+/// by [fraction] alone lands correctly only in the middle and is out by half a
+/// pill at either end.
+@visibleForTesting
+double pillCentre({
+  required double height,
+  required double fraction,
+  required double viewport,
+  required double content,
+  required double margin,
+  required double minThumbLength,
+}) {
+  final track = height - margin * 2;
+  final thumb = math.max(minThumbLength, track * viewport / content);
+  return margin + fraction.clamp(0.0, 1.0) * (track - thumb) + thumb / 2;
+}
+
 class _Progress extends StatelessWidget {
   const _Progress(this.controller);
 
   final ScrollController controller;
 
+  /// How far the bubble sits from the right edge, clear of the pill and its
+  /// touch target so the finger does not cover the number.
+  static const _inset = 34.0;
+
   @override
   Widget build(BuildContext context) {
     if (!controller.hasClients) return const SizedBox.shrink();
     final position = controller.position;
+    final defaults = readingScrollbarTheme(Theme.of(context).colorScheme);
+    final theme = ScrollbarTheme.of(context);
+    final margin = theme.mainAxisMargin ?? defaults.mainAxisMargin!;
+    final minThumb = theme.minThumbLength ?? defaults.minThumbLength!;
+
     return ListenableBuilder(
       listenable: position,
       builder: (context, _) {
@@ -187,15 +220,27 @@ class _Progress extends StatelessWidget {
           0.0,
           1.0,
         );
-        // Rides the pill: -1 is the top of its travel, 1 the bottom, which is
-        // the same fraction the thumb itself is drawn at.
-        return Align(
-          alignment: Alignment(1, fraction * 2 - 1),
-          child: Padding(
-            // Clear of the pill and its touch target, so the finger doing the
-            // dragging does not cover the number it is there to read.
-            padding: const EdgeInsets.only(right: 34),
-            child: ScrollProgressBubble(fraction: fraction),
+
+        return LayoutBuilder(
+          builder: (context, constraints) => Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                top:
+                    pillCentre(
+                      height: constraints.maxHeight,
+                      fraction: fraction,
+                      viewport: position.viewportDimension,
+                      content:
+                          position.maxScrollExtent + position.viewportDimension,
+                      margin: margin,
+                      minThumbLength: minThumb,
+                    ) -
+                    ScrollProgressBubble.height / 2,
+                right: _inset,
+                child: ScrollProgressBubble(fraction: fraction),
+              ),
+            ],
           ),
         );
       },
@@ -219,7 +264,8 @@ class ScrollProgressBubble extends StatelessWidget {
   /// A fixed circle would have to be sized for the widest figure and so look
   /// oversized for every other one; a stadium is round at the common width and
   /// simply grows the one case that needs it.
-  static const _height = 44.0;
+  /// Fixed, so the bar can centre the bubble on the pill.
+  static const height = 44.0;
 
   @override
   Widget build(BuildContext context) {
@@ -230,10 +276,7 @@ class ScrollProgressBubble extends StatelessWidget {
         shape: const StadiumBorder(),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          minWidth: _height,
-          minHeight: _height,
-        ),
+        constraints: const BoxConstraints(minWidth: height, minHeight: height),
         // The factors are load-bearing. Without them this takes the largest
         // size offered, and the caller offers the whole screen, so the bubble
         // covered the rule instead of sitting beside it.

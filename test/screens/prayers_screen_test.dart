@@ -200,6 +200,53 @@ void main() {
       );
     });
 
+    group('where the bubble sits', () {
+      // The bar's own numbers: a 744 tall viewport showing a 20,000 tall rule,
+      // 8dp of margin at each end, a pill no shorter than 56.
+      double centreAt(double fraction) => pillCentre(
+        height: 744,
+        fraction: fraction,
+        viewport: 744,
+        content: 20000,
+        margin: 8,
+        minThumbLength: 56,
+      );
+
+      test('is level with the pill at both ends, not with the bar', () {
+        // The pill is 56 long and inset by 8, so its centre never reaches
+        // either edge. Placing the bubble by fraction across the full height
+        // put it half a pill out at the top and the bottom, which is what this
+        // is here to stop.
+        expect(centreAt(0), 8 + 56 / 2);
+        expect(centreAt(1), 744 - 8 - 56 / 2);
+      });
+
+      test('runs evenly between them', () {
+        expect(centreAt(0.5), (centreAt(0) + centreAt(1)) / 2);
+        var last = centreAt(0);
+        for (var f = 0.1; f <= 1.0; f += 0.1) {
+          expect(centreAt(f), greaterThan(last));
+          last = centreAt(f);
+        }
+      });
+
+      test('a longer pill travels less far', () {
+        // A short rule gives a long pill, which has less room to move.
+        double centre(double content, double fraction) => pillCentre(
+          height: 744,
+          fraction: fraction,
+          viewport: 744,
+          content: content,
+          margin: 8,
+          minThumbLength: 56,
+        );
+        expect(
+          centre(1000, 1) - centre(1000, 0),
+          lessThan(centre(20000, 1) - centre(20000, 0)),
+        );
+      });
+    });
+
     group('the progress bubble', () {
       Future<void> pumpBubble(
         WidgetTester tester,
