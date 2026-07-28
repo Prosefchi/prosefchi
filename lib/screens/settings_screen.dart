@@ -64,6 +64,29 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const Divider(height: 32),
+          _Heading(l10n.textSize),
+          RadioGroup<TextSize>(
+            groupValue: settings.textSize,
+            onChanged: (value) {
+              if (value != null) settings.setTextSize(value);
+            },
+            child: Column(
+              children: [
+                for (final size in TextSize.values)
+                  RadioListTile<TextSize>(
+                    value: size,
+                    // Each option drawn at the size it selects, so the choice
+                    // shows what it does rather than describing it. The one
+                    // that reads comfortably is the one to pick.
+                    title: Text(
+                      _textSizeName(l10n, size),
+                      textScaler: TextScaler.linear(size.scale),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(height: 32),
           _Heading(l10n.reminders),
           ListTile(
             leading: const Icon(Icons.notifications_outlined),
@@ -135,6 +158,13 @@ class SettingsScreen extends StatelessWidget {
       switch (language) {
         'el' => l10n.languageGreek,
         _ => l10n.languageEnglish,
+      };
+
+  static String _textSizeName(AppLocalizations l10n, TextSize size) =>
+      switch (size) {
+        TextSize.small => l10n.textSizeSmall,
+        TextSize.medium => l10n.textSizeMedium,
+        TextSize.large => l10n.textSizeLarge,
       };
 }
 

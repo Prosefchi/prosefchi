@@ -4,6 +4,35 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'calendar_repository.dart' show languageFor, supportedLanguages;
 
+/// How large the app draws its text.
+///
+/// [small] is what the app drew before there was a choice, and stays the
+/// default, so nobody's app changes under them. [large] is meant to be enough
+/// for someone who needs it rather than merely bigger than medium, which is
+/// why the second step is the larger one.
+///
+/// A multiplier rather than a set of point sizes, so it composes with the text
+/// size the platform was already asked for instead of overruling it.
+enum TextSize {
+  small('small', 1.0),
+  medium('medium', 1.3),
+  large('large', 1.8);
+
+  const TextSize(this.slug, this.scale);
+
+  /// What is written to storage. A short stable string rather than the index,
+  /// since reordering or inserting a size would otherwise silently change what
+  /// a device already has.
+  final String slug;
+
+  final double scale;
+
+  /// The size [slug] names, or [small] if it names none — which is what a
+  /// value written by a later build should come back as on an older one.
+  static TextSize bySlug(String? slug) =>
+      values.firstWhere((size) => size.slug == slug, orElse: () => small);
+}
+
 /// Persists the app-level settings.
 ///
 /// Behind an interface for the same reason as the other stores: so screens can
@@ -13,11 +42,14 @@ abstract interface class SettingsStore {
   Future<void> writeLanguage(String? language);
   Future<bool> readOnboardingSeen();
   Future<void> writeOnboardingSeen(bool seen);
+  Future<String?> readTextSize();
+  Future<void> writeTextSize(String slug);
 }
 
 class PreferencesSettingsStore implements SettingsStore {
   static const _languageKey = 'settings.language';
   static const _onboardingKey = 'settings.onboardingSeen';
+  static const _textSizeKey = 'settings.textSize';
 
   @override
   Future<String?> readLanguage() async =>
@@ -40,6 +72,14 @@ class PreferencesSettingsStore implements SettingsStore {
   @override
   Future<void> writeOnboardingSeen(bool seen) async =>
       (await SharedPreferences.getInstance()).setBool(_onboardingKey, seen);
+
+  @override
+  Future<String?> readTextSize() async =>
+      (await SharedPreferences.getInstance()).getString(_textSizeKey);
+
+  @override
+  Future<void> writeTextSize(String slug) async =>
+      (await SharedPreferences.getInstance()).setString(_textSizeKey, slug);
 }
 
 /// Holds the settings the whole app reads, and notifies when they change.
@@ -55,6 +95,10 @@ class SettingsController extends ChangeNotifier {
 
   String? _language;
   bool _onboardingSeen = false;
+  TextSize _textSize = TextSize.small;
+
+  /// How large the app draws its text.
+  TextSize get textSize => _textSize;
 
   /// Whether the welcome flow has been completed.
   ///
@@ -80,6 +124,14 @@ class SettingsController extends ChangeNotifier {
     final stored = await _store.readLanguage();
     _language = supportedLanguages.contains(stored) ? stored : null;
     _onboardingSeen = await _store.readOnboardingSeen();
+    _textSize = TextSize.bySlug(await _store.readTextSize());
+    notifyListeners();
+  }
+
+  Future<void> setTextSize(TextSize size) async {
+    if (size == _textSize) return;
+    _textSize = size;
+    await _store.writeTextSize(size.slug);
     notifyListeners();
   }
 
