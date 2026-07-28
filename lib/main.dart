@@ -28,6 +28,30 @@ Future<void> main() async {
   runApp(ProsefchiApp(settings: settings));
 }
 
+/// The flag's crimson, which both themes are built out of.
+const _seed = Color(0xFF7B1113);
+
+ThemeData _theme(Brightness brightness) {
+  final scheme = ColorScheme.fromSeed(seedColor: _seed, brightness: brightness);
+  return ThemeData(
+    colorScheme: scheme,
+    // Material's default thumb is a flat grey that comes out near-white on the
+    // dark theme, where it reads as a foreign object laid over the page rather
+    // than part of it. Drawing it from the scheme keeps it the app's own colour
+    // in both. It is faint at rest and firms up under a finger, so that the
+    // thing being dragged is the thing that answers.
+    scrollbarTheme: ScrollbarThemeData(
+      thumbColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.dragged)) return scheme.primary;
+        if (states.contains(WidgetState.hovered)) {
+          return scheme.primary.withValues(alpha: 0.7);
+        }
+        return scheme.primary.withValues(alpha: 0.4);
+      }),
+    ),
+  );
+}
+
 class ProsefchiApp extends StatelessWidget {
   const ProsefchiApp({super.key, required this.settings});
 
@@ -50,14 +74,8 @@ class ProsefchiApp extends StatelessWidget {
         onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        theme: ThemeData(
-          colorSchemeSeed: const Color(0xFF7B1113),
-          brightness: Brightness.light,
-        ),
-        darkTheme: ThemeData(
-          colorSchemeSeed: const Color(0xFF7B1113),
-          brightness: Brightness.dark,
-        ),
+        theme: _theme(Brightness.light),
+        darkTheme: _theme(Brightness.dark),
         // The welcome flow is the home widget until it is done, rather than a
         // route pushed over the app, so there is no frame where the app shows
         // behind it and nothing to dismiss it past.
