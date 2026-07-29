@@ -1,5 +1,12 @@
 # Orthodox Prayer · Προσευχητάριον
 
+<div align="center">
+<a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Prosefchi/prosefchi">
+<img src="https://github.com/ImranR98/Obtainium/blob/main/assets/graphics/badge_obtainium.png"
+alt="Get it on Obtainium" align="center" height="80" />
+</a>
+</div>
+
 A Greek Orthodox daily prayer app for Android and iOS. It shows the day's commemoration and appointed readings, holds the prayer rules, and can remind you to pray. English and Greek.
 
 Everything works offline once the calendar has been downloaded, and reminders are scheduled on the device — nothing is pushed from a server, and the app collects nothing.
