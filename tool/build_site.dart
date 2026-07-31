@@ -23,9 +23,9 @@
 //     reader's timezone, the date is unbounded, and the calendar is rebuilt
 //     daily. See site/day.dart.
 //
-// This runs in the same CI job that builds the calendar, writing into the same
-// directory, so the site and the JSON it reads are one Pages deploy and one
-// origin.
+// This runs in its own CI job, separate from the one that builds the calendar.
+// The two outputs are merged at the deploy, so the site and the JSON it reads
+// are still one Pages deploy and one origin.
 
 import 'dart:async';
 import 'dart:convert';
@@ -53,8 +53,8 @@ const _publishedCalendars = _defaultBaseUrl;
 Future<void> main(List<String> args) async {
   final options = parseArgs(args);
   // Defaults under build/ so a local run lands somewhere already ignored, the
-  // same as tool/build_calendar.dart. CI passes --out public, which is the
-  // directory both write into and the one Pages is deployed from.
+  // same as tool/build_calendar.dart. CI passes --out public, which it uploads
+  // as an artifact for the deploy job to merge with the calendar's.
   final outDir = Directory(options['out'] ?? 'build/site');
   final baseUrl = options['base-url'] ?? _defaultBaseUrl;
   final serve = options.containsKey('serve');
