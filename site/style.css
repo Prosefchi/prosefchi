@@ -595,7 +595,11 @@ html[lang="el"] .prayer-list h2 {
   flex-wrap: wrap;
   justify-content: center;
   gap: 1rem;
-  margin: 0 0 0.9rem;
+  margin: 1.2rem 0 0.9rem;
+}
+
+.download .shots:last-child {
+  margin-bottom: 0;
 }
 
 /* Sized against the viewport as well as fixed, so a pair of phones side by side
