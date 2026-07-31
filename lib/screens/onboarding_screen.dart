@@ -197,6 +197,9 @@ class _WelcomePage extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: 16),
                 child: Divider(),
               ),
+              // As on the prayers screen: no markup renderer here, so a run of
+              // HTML takes no space rather than leaving a gap.
+              MarkupHtmlBlock() => const SizedBox.shrink(),
             },
         ],
       ],

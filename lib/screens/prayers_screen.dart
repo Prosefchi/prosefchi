@@ -82,7 +82,7 @@ class _PrayersScreenState extends State<PrayersScreen> {
           : ListView(
               children: [
                 for (final occasion in PrayerOccasion.values) ...[
-                  if (startsGroup(occasion))
+                  if (occasion.startsGroup)
                     GroupHeading(
                       occasion: occasion,
                       label: l10n.groupLabel(occasion.group),
@@ -199,6 +199,10 @@ class _PrayerScreenState extends State<PrayerScreen> {
       padding: EdgeInsets.symmetric(vertical: 20),
       child: Divider(),
     ),
+    // Nothing here can render markup, so a run of HTML occupies no space at
+    // all rather than leaving a gap where something was meant to be. A prayer
+    // has no business carrying any; see markup.dart's header.
+    MarkupHtmlBlock() => const SizedBox.shrink(),
   };
 
   @override

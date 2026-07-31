@@ -18,6 +18,8 @@ import 'dart:io';
 import 'package:prosefchi/liturgics/paschalion.dart';
 import 'package:prosefchi/models/calendar.dart';
 
+import 'args.dart';
+
 /// The parts a day's description is divided into.
 enum Section { saints, epistle, gospel, matinsGospel, oldTestament }
 
@@ -182,7 +184,7 @@ RegExp _pattern(String source) =>
 const runwayWarningDays = 60;
 
 Future<void> main(List<String> args) async {
-  final options = _parseArgs(args);
+  final options = parseArgs(args);
   final outDir = Directory(options['out'] ?? 'build/calendar');
   await outDir.create(recursive: true);
 
@@ -223,7 +225,7 @@ Future<void> main(List<String> args) async {
       days: {for (final key in keys) key: parsed.days[key]!},
     );
 
-    final file = File('${outDir.path}/calendar.$lang.json');
+    final file = File('${outDir.path}/${Calendar.fileName(lang)}');
     await file.writeAsString(jsonEncode(calendar.toJson()));
 
     if (parsed.unparsed.isNotEmpty) {
@@ -510,18 +512,4 @@ String unescapeIcs(String value) {
 DateTime _today() {
   final now = DateTime.now();
   return DateTime(now.year, now.month, now.day);
-}
-
-Map<String, String> _parseArgs(List<String> args) {
-  final options = <String, String>{};
-  for (var i = 0; i < args.length; i++) {
-    if (!args[i].startsWith('--')) continue;
-    final name = args[i].substring(2);
-    if (name == 'cache') {
-      options[name] = 'true';
-    } else if (i + 1 < args.length) {
-      options[name] = args[++i];
-    }
-  }
-  return options;
 }

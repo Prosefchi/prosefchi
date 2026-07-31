@@ -6,6 +6,17 @@
 
 import '../liturgics/paschalion.dart';
 
+/// Languages the calendar is published in.
+///
+/// ISO 639-1 codes, because that is what `intl` and Flutter's localization
+/// tooling expect: Greek is `el`, not `gr`.
+///
+/// Here rather than beside the repository that fetches it because the website
+/// needs it too, and that repository imports Flutter — nothing in `site/` or
+/// `tool/` can reach it. `calendar_repository.dart` re-exports this, so app
+/// code still reads it from where it always has.
+const supportedLanguages = ['en', 'el'];
+
 /// A marker GOARCH prefixes to a day's title.
 ///
 /// These encode the fasting allowance and the rank of the feast. They appear
@@ -271,6 +282,13 @@ class Calendar {
       for (final key in days.keys.toList()..sort()) key: days[key]!.toJson(),
     },
   };
+
+  /// What a published calendar is named, for one language.
+  ///
+  /// The wire filename between the generator, the deploy, the app and the
+  /// website. Stated once, beside the schema all four already share, rather
+  /// than interpolated in each of them.
+  static String fileName(String language) => 'calendar.$language.json';
 
   /// The canonical `YYYY-MM-DD` key for [date], ignoring any time component.
   static String dateKey(DateTime date) =>

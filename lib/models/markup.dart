@@ -11,10 +11,24 @@
 //   > A note: an instruction, not something to be said aloud
 //   --- a thematic break, which is where a source attribution goes
 //   [label](https://example.org) anywhere in a paragraph or a note
+//   <!-- a note to whoever maintains the text, which may span lines -->
+//   <div>raw HTML, passed straight through to whatever can render it</div>
 //   Anything else is a paragraph.
 //
 // Blank lines separate paragraphs. Anything the parser does not recognise
 // falls through and renders literally.
+//
+// HTML is passed through rather than parsed. A line that is only tags opens a
+// run of HTML that ends at the next blank line; tags among words are kept as
+// they stand and the words around them are still text. Nothing here knows what
+// any tag means or which ones pair up, and it does not need to.
+//
+// **A renderer with nowhere to put HTML shows none of it.** The app is one:
+// Flutter draws widgets, not markup. So HTML belongs in the site/ documents,
+// whose target is a browser, and prayer text under res/ should stay inside the
+// subset — an author who reaches for a tag there will find it invisible in the
+// app that is the whole reason the prayers are bundled. Words *between* inline
+// tags survive everywhere, because only the tags are markup.
 //
 // Within that subset the syntax is Markdown's own, because a format that looks
 // like Markdown and then quietly disagrees with it is worse than one that does
@@ -63,22 +77,53 @@ class MarkupLink extends MarkupSpan {
   final String url;
 }
 
-/// A label holds no `]`, and a target no whitespace or `)`, which is enough for
-/// an attribution and stops an unclosed bracket swallowing the rest of a
-/// prayer. `[Awaiting text: …]` has no target and so stays plain, which is what
-/// keeps a placeholder marker recognisable.
-final _link = RegExp(r'\[([^\]]*)\]\(([^\s)]+)\)');
+/// A raw HTML tag, passed through untouched.
+///
+/// A tag only — `<em>Lord</em>` is three spans, the two tags and the words
+/// between them. Nothing here understands nesting or which tags pair with
+/// which, and it does not need to: passing a tag through is the whole job.
+///
+/// [text] is empty because a tag is markup rather than words. That is what
+/// makes the degradation right in a renderer with no HTML: the tags disappear
+/// and the words between them stay.
+class MarkupHtml extends MarkupSpan {
+  const MarkupHtml(this.html);
+
+  /// The tag exactly as authored.
+  final String html;
+
+  @override
+  String get text => '';
+}
+
+/// The two things inside a run that are not plain words: a link, then a tag.
+///
+/// A link label holds no `]`, and a target no whitespace or `)`, which is
+/// enough for an attribution and stops an unclosed bracket swallowing the rest
+/// of a prayer. `[Awaiting text: …]` has no target and so stays plain, which is
+/// what keeps a placeholder marker recognisable.
+///
+/// A tag is `<`, an optional `/`, a letter, and everything up to the first `>`.
+/// Requiring a letter is what keeps a stray `<` in prose from opening one, and
+/// stopping at `>` is why an unclosed tag cannot run away with the paragraph.
+///
+/// The link alternative comes first so that a URL inside a tag's attributes is
+/// never mistaken for one — the tag is consumed whole.
+final _inline = RegExp(r'\[([^\]]*)\]\(([^\s)]+)\)|(<\/?[a-zA-Z][^>]*>)');
 
 /// Splits a joined run into its spans. See the file header for the grammar.
 List<MarkupSpan> _spansOf(String source) {
   final spans = <MarkupSpan>[];
   var index = 0;
 
-  for (final match in _link.allMatches(source)) {
+  for (final match in _inline.allMatches(source)) {
     if (match.start > index) {
       spans.add(MarkupPlain(source.substring(index, match.start)));
     }
-    spans.add(MarkupLink(text: match[1]!, url: match[2]!));
+    spans.add(switch (match[3]) {
+      final tag? => MarkupHtml(tag),
+      _ => MarkupLink(text: match[1]!, url: match[2]!),
+    });
     index = match.end;
   }
   if (index < source.length) spans.add(MarkupPlain(source.substring(index)));
@@ -104,6 +149,25 @@ class MarkupHeading extends MarkupBlock {
 /// put a source attribution: below the rule is about the text, not part of it.
 class MarkupDivider extends MarkupBlock {
   const MarkupDivider();
+}
+
+/// A run of lines that are HTML, passed through untouched.
+///
+/// Opened by a line beginning with a tag and closed by a blank line, which is
+/// close enough to how Markdown itself decides. Line breaks are preserved
+/// rather than joined the way a paragraph's are: this is not prose being
+/// reflowed, and an author who wrote it over several lines meant to.
+///
+/// **Only a renderer with somewhere to put HTML shows this.** The app has
+/// none — Flutter draws widgets, not markup — so it renders nothing at all
+/// there. That makes HTML a thing for `site/` files, where the target is a
+/// browser; prayer text under `res/` should stay in the subset, or it will be
+/// invisible in the app that is the reason the prayers are bundled.
+class MarkupHtmlBlock extends MarkupBlock {
+  const MarkupHtmlBlock(this.html);
+
+  /// The lines exactly as authored, newlines and all.
+  final String html;
 }
 
 /// A block of prose, which may hold links and so is kept as spans.
@@ -132,6 +196,36 @@ class MarkupText extends MarkupProse {
 /// Three or more of the same mark, alone on a line, spaces allowed between.
 final _thematicBreak = RegExp(r'^([-*_])(?:\s*\1){2,}$');
 
+const _commentOpen = '<!--';
+const _commentClose = '-->';
+
+/// A complete tag, used to test what a line is left with once its tags are
+/// taken away.
+final _tag = RegExp(r'<\/?[a-zA-Z][^>]*>');
+
+/// A line beginning with a tag. Requiring a letter after the bracket is what
+/// keeps `<!--`, `<3` and a stray `<` out.
+final _tagStart = RegExp(r'^<\/?[a-zA-Z]');
+
+/// Whether [line] opens a run of HTML.
+///
+/// It has to be asked, because a line may both begin with a tag and be prose —
+/// `<em>Lord</em>, have mercy.` is a paragraph with two tags in it, not markup.
+/// Getting that wrong would drop the words from the app, which renders no HTML
+/// at all, so the test is what the line has left once its complete tags are
+/// removed:
+///
+///   - nothing, so the line is only markup and opens a block;
+///   - another `<`, so a tag was left open and runs onto the next line, which
+///     is how an `<img>` with its attributes wrapped is written;
+///   - words, so this is a paragraph and the tags in it are inline.
+bool _opensHtmlBlock(String line) {
+  if (!_tagStart.hasMatch(line)) return false;
+
+  final remainder = line.replaceAll(_tag, '').trim();
+  return remainder.isEmpty || remainder.startsWith('<');
+}
+
 /// A parsed document: a title and a sequence of blocks.
 class MarkupDocument {
   const MarkupDocument({required this.title, required this.blocks});
@@ -157,16 +251,60 @@ class MarkupDocument {
       buffer.clear();
     }
 
+    // A run of HTML, kept verbatim, so this one is filled from the untrimmed
+    // source and never joined. Non-empty exactly while a run is open, which is
+    // the only state needed to know whether one is.
+    final html = StringBuffer();
+
     void flushAll() {
+      final raw = html.toString().trimRight();
+      if (raw.isNotEmpty) blocks.add(MarkupHtmlBlock(raw));
+      html.clear();
+
       flush(paragraph, MarkupText.new);
       flush(note, MarkupNote.new);
     }
 
-    for (final raw in source.split('\n')) {
-      final line = raw.trim();
+    // Set while a `<!--` has been opened and not yet closed. Comments are
+    // notes to whoever maintains the text and never reach the reader.
+    var inComment = false;
 
-      // A comment line, for notes to whoever maintains the text.
-      if (line.startsWith('<!--')) continue;
+    for (final raw in source.split('\n')) {
+      var line = raw.trim();
+
+      // A comment runs from `<!--` at the start of a line to the first `-->`,
+      // which may be many lines later. Anything after that marker on the
+      // closing line is ordinary text and is kept: a comment must never
+      // silently swallow a line of a prayer, which is the failure mode this
+      // whole format is careful about.
+      if (inComment || line.startsWith(_commentOpen)) {
+        final start = inComment ? 0 : _commentOpen.length;
+        final end = line.indexOf(_commentClose, start);
+        if (end < 0) {
+          // Unterminated so far, so the rest of this line is comment too. An
+          // unclosed comment runs to the end of the document, as it does in
+          // HTML; a missing `-->` hides what follows rather than corrupting it.
+          inComment = true;
+          continue;
+        }
+        inComment = false;
+        line = line.substring(end + _commentClose.length).trim();
+        if (line.isEmpty) continue;
+      }
+
+      // A run of HTML runs to the first blank line, which is how Markdown
+      // itself ends one. Nothing inside is looked at: that is the point.
+      final inHtml = html.isNotEmpty;
+      if (inHtml && line.isEmpty) {
+        flushAll();
+        continue;
+      }
+      if (inHtml || _opensHtmlBlock(line)) {
+        // Opening a run closes whatever prose stood above it.
+        if (!inHtml) flushAll();
+        html.writeln(raw.trimRight());
+        continue;
+      }
 
       if (line.isEmpty) {
         flushAll();

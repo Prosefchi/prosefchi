@@ -81,6 +81,11 @@ class _LinkedParagraphState extends State<_LinkedParagraph> {
           for (final span in widget.spans)
             switch (span) {
               MarkupPlain(:final text) => TextSpan(text: text),
+              // There is nowhere to put a tag here — this draws widgets, not
+              // markup — so it draws nothing, and the words either side of it
+              // are their own spans and survive. See markup.dart's header:
+              // HTML is for the site's documents.
+              MarkupHtml() => const TextSpan(),
               MarkupLink(:final text, :final url) => TextSpan(
                 text: text,
                 style: TextStyle(

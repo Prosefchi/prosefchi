@@ -195,7 +195,7 @@ class _ReminderListState extends State<ReminderList> {
           // A heading at each change of group. The enum is ordered so every
           // group is contiguous, so this is a comparison with the previous
           // entry rather than a separate grouping pass.
-          if (startsGroup(occasion))
+          if (occasion.startsGroup)
             GroupHeading(
               occasion: occasion,
               label: l10n.groupLabel(occasion.group),

@@ -8,11 +8,10 @@ import 'package:http/http.dart' as http;
 import '../models/calendar.dart';
 import 'calendar_store.dart';
 
-/// Languages the calendar is published in.
-///
-/// ISO 639-1 codes, because that is what `intl` and Flutter's localization
-/// tooling expect: Greek is `el`, not `gr`.
-const supportedLanguages = ['en', 'el'];
+// `supportedLanguages` lives on the Flutter-free side so the website can read
+// it too, but every screen asks this file for it, so it is re-exported rather
+// than moved out from under them.
+export '../models/calendar.dart' show supportedLanguages;
 
 /// The content language for [locale], clamped to what we actually publish.
 ///
@@ -147,7 +146,7 @@ class CalendarRepository {
     }
   }
 
-  static String _jsonName(String language) => 'calendar.$language.json';
+  static String _jsonName(String language) => Calendar.fileName(language);
 
   static String _etagName(String language) => 'calendar.$language.etag';
 
