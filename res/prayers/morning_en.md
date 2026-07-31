@@ -173,7 +173,9 @@ Lord, on my soul, defiled through the passions of this life, and receive her
 cleansed by penitence and confession, for .you are blessed to the ages of ages.
 Amen.
 
-> Holy Fathers Prayer
+### End
+
+> Dismissal
 
 Through the prayers of our holy Fathers, O Lord Jesus Christ our God, have mercy
 on us and save us. Amen.
