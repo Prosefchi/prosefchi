@@ -8,7 +8,7 @@ Glory to you, O God (3).
 
 > Then the following thanksgiving prayers:
 
-## Anonymous
+## Anonymous 1
 
 I thank you, Lord, my God, that you have not rejected me, a sinner, but have
 made me worthy to partake of your holy Mysteries. I thank you that you have
@@ -58,7 +58,7 @@ your servant a child of light. For in your goodness, you alone sanctify and
 enlighten our souls, and to you, our God and Master, do we give, as it is right,
 glory every day.
 
-## Anonymous
+## Anonymous 2
 
 Let your sacred body, Lord Jesus Christ our God, lead me to eternal life, and
 your precious blood to remission of sins. Let this Eucharist be to me joy,
@@ -83,7 +83,9 @@ Lord, now let your servant depart in peace according to your word. For my eyes
 have seen your salvation, which you have prepared before the face of all people,
 a light to enlighten the Gentiles and the glory of your people Israel.
 
-> Holy Fathers Prayer
+## End
+
+> Dismissal
 
 Through the prayers of our holy Fathers, O Lord Jesus Christ our God, have mercy
 on us and save us. Amen.

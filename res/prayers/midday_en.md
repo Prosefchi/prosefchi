@@ -19,7 +19,7 @@ forever and to the ages of ages. Amen.
 Christ our God, bless the food and drink of your servants, for you are holy
 always, now and forever and to the ages of ages. Amen.
 
-> Holy Fathers Prayer
+> Dismissal
 
 Through the prayers of our holy Fathers, O Lord Jesus Christ our God, have mercy
 on us and save us. Amen.
@@ -30,7 +30,7 @@ We thank you, Christ our God, for you have satisfied us with earthly gifts. Do
 not deprive us of your heavenly kingdom, but as you, O Savior, came among your
 disciples and gave them peace, come among us also and save us.
 
-> Holy Fathers Prayer
+> Dismissal
 
 Through the prayers of our holy Fathers, O Lord Jesus Christ our God, have mercy
 on us and save us. Amen.
