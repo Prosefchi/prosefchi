@@ -199,9 +199,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
       padding: EdgeInsets.symmetric(vertical: 20),
       child: Divider(),
     ),
-    // Nothing here can render markup, so a run of HTML occupies no space at
-    // all rather than leaving a gap where something was meant to be. A prayer
-    // has no business carrying any; see markup.dart's header.
+    // HTML passthrough is not supported in the app.
     MarkupHtmlBlock() => const SizedBox.shrink(),
   };
 

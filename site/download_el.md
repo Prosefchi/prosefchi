@@ -3,6 +3,11 @@
 Κατεβάστε την εφαρμογή για να έχετε πρόσβαση στις προσευχές σας εκτός σύνδεσης
 και να λαμβάνετε ενημερώσεις υπενθύμισης για προσευχή και νηστεία.
 
+<div class="shots">
+<img src="{{root}}img/screenshots/today-el.png" alt="Η ημέρα στα ελληνικά" width="200" />
+<img src="{{root}}img/screenshots/morning-el.png" alt="Οι πρωινές προσευχές" width="200" />
+</div>
+
 ## Android
 
 <div align="center">

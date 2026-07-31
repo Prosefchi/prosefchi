@@ -21,10 +21,10 @@ The following languages are supported:
 ## Screenshots
 
 <div align="center">
-<img src="docs/screenshots/today-en.png" alt="The day's commemoration, tone and readings" width="200" />
-<img src="docs/screenshots/morning-en.png" alt="The morning prayer rule" width="200" />
-<img src="docs/screenshots/today-el.png" alt="Η ημέρα στα ελληνικά" width="200" />
-<img src="docs/screenshots/morning-el.png" alt="Οι πρωινές προσευχές" width="200" />
+<img src="site/img/screenshots/today-en.png" alt="The day's commemoration, tone and readings" width="200" />
+<img src="site/img/screenshots/morning-en.png" alt="The morning prayer rule" width="200" />
+<img src="site/img/screenshots/today-el.png" alt="Η ημέρα στα ελληνικά" width="200" />
+<img src="site/img/screenshots/morning-el.png" alt="Οι πρωινές προσευχές" width="200" />
 </div>
 
 ## Website

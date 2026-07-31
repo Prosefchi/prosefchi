@@ -22,7 +22,7 @@ class Strings {
 
   /// Builds a table from the served string table.
   ///
-  /// tool/build_site.dart writes that file by merging site/site_strings.json
+  /// tool/build_site.dart writes that file by merging site/extra_strings.json
   /// over the app's ARB, so this only has to read flat string entries. The
   /// `@key` guard is belt and braces in case the ARB is ever served raw.
   factory Strings.fromJson(Map<String, dynamic> json) => Strings({

@@ -121,7 +121,7 @@ Future<void> _build(Directory outDir, String baseUrl) async {
 /// deploy with nothing to keep in step.
 Future<Map<String, Map<String, String>>> _strings() async {
   final siteOnly =
-      jsonDecode(await File('site/site_strings.json').readAsString())
+      jsonDecode(await File('site/extra_strings.json').readAsString())
           as Map<String, dynamic>;
 
   return {
@@ -139,7 +139,7 @@ Future<Map<String, Map<String, String>>> _strings() async {
 /// String entries only.
 ///
 /// ARB carries a `@key` metadata object beside each entry, for translators;
-/// site_strings.json carries a `_comment`. Neither is a string to render.
+/// extra_strings.json carries a `_comment`. Neither is a string to render.
 Map<String, String> _flatten(Map<String, dynamic> source) => {
   for (final entry in source.entries)
     if (!entry.key.startsWith('@') &&
@@ -233,15 +233,23 @@ Future<int> _writeLanguage({
   }
 
   // The about page, with the download advert at the top of it.
+  //
+  // The advert is the one authored document that carries HTML, so it is the one
+  // that can name an image, and `{{root}}` in it means what it means in the
+  // shell: the way back up to the site root, which is one directory from the
+  // English about page and two from the Greek.
+  final about = '${prefix}about/';
   await page(
-    '${prefix}about/',
+    about,
     title: strings['about']!,
     description: strings['aboutSiteVersion']!,
     section: 'about',
     body: _aboutBody(
       strings,
       MarkupDocument.parse(
-        await File('site/download_$language.md').readAsString(),
+        (await File(
+          'site/download_$language.md',
+        ).readAsString()).replaceAll('{{root}}', _rootFor(about)),
       ),
       version,
     ),
@@ -666,6 +674,28 @@ Future<void> _copyAssets(
   // asset rather than something composited here, since it changes only when
   // the artwork does. site/icon.svg explains why it is plated.
   await File('site/icon.svg').copy('${outDir.path}/icon.svg');
+
+  await _copyTree(Directory('site/img'), Directory('${outDir.path}/img'));
+}
+
+/// Copies [from] into [to], directories and all.
+///
+/// Whatever is in `site/img/` is published, rather than a list here naming each
+/// file: an image added to the advert should need editing only the document
+/// that shows it. The screenshots are also what the README displays, which is
+/// why they live under `site/` rather than in a directory of their own.
+Future<void> _copyTree(Directory from, Directory to) async {
+  if (!from.existsSync()) return;
+
+  await to.create(recursive: true);
+  await for (final entity in from.list()) {
+    final name = entity.uri.pathSegments.where((part) => part.isNotEmpty).last;
+    if (entity is Directory) {
+      await _copyTree(entity, Directory('${to.path}/$name'));
+    } else if (entity is File) {
+      await entity.copy('${to.path}/$name');
+    }
+  }
 }
 
 /// Downloads the published calendars, for a local preview.

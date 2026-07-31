@@ -588,6 +588,32 @@ html[lang="el"] .prayer-list h2 {
   }
 }
 
+/* The screenshots. The same four images the README shows, from site/img so one
+   set serves both. */
+.download .shots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin: 0 0 0.9rem;
+}
+
+/* Sized against the viewport as well as fixed, so a pair of phones side by side
+   shrinks to fit a narrow screen rather than needing a breakpoint to stack. The
+   height follows, since these are screenshots and must not be squashed. */
+.download .shots img {
+  width: min(200px, 40vw);
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid rgb(0 0 0 / 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  .download .shots img {
+    border-color: rgb(255 255 255 / 0.12);
+  }
+}
+
 .about-heading {
   font-size: 0.8rem;
   font-weight: 700;

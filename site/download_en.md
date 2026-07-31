@@ -3,6 +3,13 @@
 Download the app to access your prayers offline and receive notification
 reminders to pray and fast.
 
+## Screenshots
+
+<div class="shots">
+<img src="{{root}}img/screenshots/today-en.png" alt="The day's commemoration, tone and readings" width="200" />
+<img src="{{root}}img/screenshots/morning-en.png" alt="The morning prayer rule" width="200" />
+</div>
+
 ## Android
 
 <div align="center">
