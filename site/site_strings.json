@@ -1,0 +1,52 @@
+{
+  "_comment": [
+    "Strings the site needs and the app has no use for.",
+    "",
+    "Deliberately here rather than in lib/l10n/*.arb: every one of these labels",
+    "a control that only exists in a browser, and putting them in the ARB would",
+    "ship them inside the app to be translated, reviewed and carried forever",
+    "for nothing.",
+    "",
+    "tool/build_site.dart merges these over the ARB when it writes the site's",
+    "strings.<lang>.json, so the browser sees one table and the app's own",
+    "translations stay the single source for everything the two share.",
+    "",
+    "Keys beginning with _ are ignored."
+  ],
+
+  "en": {
+    "previousDay": "Previous day",
+    "nextDay": "Next day",
+    "chooseDate": "Choose a date",
+    "skipToContent": "Skip to content",
+    "navLabel": "Sections",
+    "languageLabel": "Language",
+    "languageShortName_en": "EN",
+    "languageShortName_el": "ΕΛ",
+    "loading": "Loading…",
+    "noScript": "This page needs JavaScript to work out the day. The prayers do not, and can be read without it.",
+    "attribution": "Saints, feasts and readings are published by the Greek Orthodox Archdiocese of America.",
+    "prayersIntro": "The prayer rules the app carries. Each is bundled with the app, so it can be prayed with no signal at all.",
+    "licenceName": "GNU Affero General Public License v3",
+    "calendarNotice": "Calendar content belongs to the Greek Orthodox Archdiocese of America and is not covered by that licence.",
+    "aboutSiteVersion": "This site is built from the same source as the app."
+  },
+
+  "el": {
+    "previousDay": "Προηγούμενη ημέρα",
+    "nextDay": "Επόμενη ημέρα",
+    "chooseDate": "Επιλέξτε ημερομηνία",
+    "skipToContent": "Μετάβαση στο περιεχόμενο",
+    "navLabel": "Ενότητες",
+    "languageLabel": "Γλώσσα",
+    "languageShortName_en": "EN",
+    "languageShortName_el": "ΕΛ",
+    "loading": "Φόρτωση…",
+    "noScript": "Αυτή η σελίδα χρειάζεται JavaScript για να υπολογίσει την ημέρα. Οι προσευχές δεν τη χρειάζονται και διαβάζονται κανονικά.",
+    "attribution": "Οι άγιοι, οι εορτές και τα αναγνώσματα δημοσιεύονται από την Ιερά Αρχιεπισκοπή Αμερικής.",
+    "prayersIntro": "Οι προσευχές που περιέχει η εφαρμογή. Κάθε μία είναι αποθηκευμένη στην εφαρμογή, ώστε να διαβάζεται και χωρίς σύνδεση.",
+    "licenceName": "GNU Affero General Public License v3",
+    "calendarNotice": "Το περιεχόμενο του ημερολογίου ανήκει στην Ιερά Αρχιεπισκοπή Αμερικής και δεν καλύπτεται από αυτήν την άδεια.",
+    "aboutSiteVersion": "Ο ιστότοπος δημιουργείται από τον ίδιο πηγαίο κώδικα με την εφαρμογή."
+  }
+}

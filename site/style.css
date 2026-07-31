@@ -1,0 +1,672 @@
+/*
+  The site's styling.
+  ---------------------------------------------------------------------------
+
+  Two typefaces doing two jobs, which is the same distinction the app draws
+  between a page that is scanned and a page that is read: the chrome and the
+  day view are set in the system UI face, and prayer text in a serif at a
+  reading measure. The app makes the same split with its text-size setting,
+  which applies to the prayer passage and to nothing else.
+
+  Colours derive from the app's seed, #7B1113. This is not a Material palette
+  generated from it — that would need the algorithm and would still not match
+  across two rendering stacks — but the same red used deliberately, so the site
+  and the app read as one thing.
+
+  Everything is in one file and served uncompiled. There is not enough of it to
+  justify a preprocessor, and a stylesheet a maintainer can open and edit is
+  worth more here than one that is a build output.
+*/
+
+:root {
+  --red: #7b1113;
+  --red-bright: #a3282a;
+
+  --bg: #fbf8f6;
+  --surface: #ffffff;
+  --surface-sunk: #f3ece9;
+  --on-surface: #1d1917;
+  --muted: #6c625e;
+  --line: #e5dbd6;
+
+  --container: #f6dfdc;
+  --on-container: #46100f;
+
+  --measure: 34rem;
+  --radius: 14px;
+
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  /* Greek liturgical text is polytonic, so the stack has to reach a face with
+     the full range of breathings and accents. Most system serifs carry them;
+     GFS Didot and Noto Serif do reliably, so they are named ahead of the
+     generic. */
+  --serif: "Noto Serif", "GFS Didot", Georgia, "Times New Roman", serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14100f;
+    --surface: #1e1917;
+    --surface-sunk: #171312;
+    --on-surface: #eae2de;
+    --muted: #a99e99;
+    --line: #322a27;
+
+    --container: #3b1211;
+    --on-container: #f7d9d6;
+
+    --red: #e79b98;
+    --red-bright: #f0b3b0;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* The prayers are long. Anchor jumps and the "back to top" link should not
+     land the reader mid-word at the very edge of the viewport. */
+  scroll-padding-top: 5rem;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--on-surface);
+  font-family: var(--ui);
+  font-size: 17px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  color: var(--red);
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+}
+
+.skip:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 10;
+  background: var(--surface);
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.2);
+}
+
+/* ---------------------------------------------------------------- chrome -- */
+
+.chrome {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+  /* The Greek name is long and the header wraps on a narrow phone; letting the
+     brand take the whole first row keeps the nav and switcher together on the
+     second rather than stranding one of them alone. */
+  margin-inline-end: auto;
+}
+
+.brand-mark {
+  border-radius: 6px;
+}
+
+.chrome-nav {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.chrome-nav a {
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.chrome-nav a:hover {
+  background: var(--surface-sunk);
+  color: var(--on-surface);
+}
+
+.chrome-nav a[aria-current] {
+  background: var(--container);
+  color: var(--on-container);
+  font-weight: 600;
+}
+
+.langswitch {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.langswitch a {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: var(--muted);
+}
+
+.langswitch a[aria-current] {
+  background: var(--red);
+  color: #fff;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .langswitch a[aria-current] {
+    color: #2a0b0b;
+  }
+}
+
+main {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 4rem;
+}
+
+.chrome-footer {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.chrome-footer p {
+  margin: 0.35rem 0;
+}
+
+/* ------------------------------------------------------------- day view -- */
+
+/* Mirrors the app's Today screen: the header card carries the date, the
+   commemoration and the pills; the strip under it carries the three facts that
+   need no data at all and so survive the feed lapsing. */
+
+.datenav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+
+.datenav button,
+.datenav .today-link {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--on-surface);
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.datenav button:hover,
+.datenav .today-link:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.datenav input[type="date"] {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--on-surface);
+  margin-inline-start: auto;
+  color-scheme: light dark;
+}
+
+.day-header {
+  background: var(--container);
+  color: var(--on-container);
+  border-radius: var(--radius);
+  padding: 1.35rem 1.4rem;
+}
+
+.day-date {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.78;
+}
+
+.day-title {
+  margin: 0.5rem 0 0;
+  font-size: 1.55rem;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.95rem;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--surface);
+  color: var(--on-surface);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.84rem;
+}
+
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.3rem;
+  padding: 0.9rem 0.25rem 0.2rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-top: 0.85rem;
+  padding: 1rem 1.15rem;
+}
+
+.card h2 {
+  margin: 0 0 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
+/* Greek drops the tonos in all caps but text-transform does not, so
+   "Ευαγγέλιο" would be uppercased to "ΕΥΑΓΓΈΛΙΟ" and read as misspelt. The
+   same rule the app follows for never calling toUpperCase on Greek. */
+html[lang="el"] .card h2 {
+  text-transform: none;
+  letter-spacing: 0.03em;
+}
+
+.saints {
+  margin: 0;
+  padding-inline-start: 1.1rem;
+}
+
+.saints li {
+  margin-bottom: 0.45rem;
+  line-height: 1.4;
+}
+
+/* A reading, folded away behind its citation exactly as the app folds it: the
+   passages run to several hundred words and two of them open turn the page
+   into a slab. The citation is what people scan for. */
+.reading {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-top: 0.85rem;
+  padding: 0.9rem 1.15rem;
+}
+
+.reading > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.reading > summary::-webkit-details-marker {
+  display: none;
+}
+
+.reading > summary::after {
+  content: "";
+  position: absolute;
+  inset-inline-end: 1.15rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: translateY(0.55rem) rotate(45deg);
+}
+
+.reading {
+  position: relative;
+}
+
+.reading[open] > summary::after {
+  transform: translateY(0.85rem) rotate(-135deg);
+}
+
+.reading-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
+html[lang="el"] .reading-label {
+  text-transform: none;
+  letter-spacing: 0.03em;
+}
+
+.reading-ref {
+  font-weight: 600;
+}
+
+.reading-text {
+  font-family: var(--serif);
+  line-height: 1.65;
+  margin: 0.9rem 0 0.2rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+  white-space: pre-wrap;
+}
+
+.notice {
+  background: var(--surface-sunk);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.15rem;
+  margin-top: 0.85rem;
+  color: var(--muted);
+}
+
+.notice button {
+  font: inherit;
+  margin-top: 0.6rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--red);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.loading {
+  padding: 3rem 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------- prayers --- */
+
+.prayer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.prayer-list h2 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin: 1.6rem 0 0.6rem;
+}
+
+html[lang="el"] .prayer-list h2 {
+  text-transform: none;
+  letter-spacing: 0.03em;
+}
+
+.prayer-list a {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.95rem 1.15rem;
+  margin-bottom: 0.6rem;
+  text-decoration: none;
+  color: inherit;
+  font-weight: 600;
+}
+
+.prayer-list a:hover {
+  border-color: var(--red);
+}
+
+.prayer-list .unavailable {
+  display: block;
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* The prayer text itself. This is the one thing on the site anybody reads at
+   length, so it gets the serif, a narrow measure and generous leading. */
+.prayer {
+  font-family: var(--serif);
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+.prayer h1 {
+  font-size: 1.7rem;
+  line-height: 1.25;
+  margin: 0 0 1.5rem;
+}
+
+.prayer h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 2.2rem 0 0.9rem;
+  color: var(--red);
+}
+
+.prayer p {
+  margin: 0 0 1.15rem;
+  line-height: 1.7;
+}
+
+/*
+  A rubric: an instruction to the reader, not words to be said aloud. Reading
+  one out as though it were the prayer is exactly the confusion that styling it
+  apart prevents, which is why the app parses `>` as its own block type rather
+  than as a blockquote and why this must not look like a quotation.
+*/
+.rubric {
+  font-family: var(--ui);
+  font-size: 0.92rem;
+  font-style: italic;
+  color: var(--muted);
+  background: var(--surface-sunk);
+  border-inline-start: 3px solid var(--red);
+  border-radius: 0 8px 8px 0;
+  padding: 0.7rem 0.95rem;
+  margin: 0 0 1.15rem;
+}
+
+.prayer hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 2.5rem 0 1.5rem;
+}
+
+/* Below the rule is about the text rather than part of it: the attribution. */
+.prayer hr ~ p {
+  font-family: var(--ui);
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+/* ----------------------------------------------------------------- about -- */
+
+/*
+  The download advert. Set apart from the rows beneath it because it is the one
+  thing on the page asking the reader to do something, and it is authored
+  markdown rather than a fixed layout, so it has to hold headings, notes and
+  links without any of them being styled here individually.
+*/
+.download {
+  background: var(--container);
+  color: var(--on-container);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.5rem 1.6rem;
+}
+
+.download h1 {
+  margin: 0 0 1rem;
+  font-size: 1.6rem;
+  line-height: 1.25;
+}
+
+.download h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 1.8rem 0 0.6rem;
+}
+
+.download p {
+  margin: 0 0 0.9rem;
+  line-height: 1.6;
+}
+
+.download p:last-child {
+  margin-bottom: 0;
+}
+
+.download a {
+  color: inherit;
+  font-weight: 600;
+}
+
+/* The advert's rubrics are asides about how the app behaves, so they read as
+   quieter than the pitch around them rather than as instructions. */
+.download .rubric {
+  background: rgb(0 0 0 / 0.06);
+  border-inline-start-color: currentColor;
+  color: inherit;
+  opacity: 0.85;
+  font-style: normal;
+}
+
+@media (prefers-color-scheme: dark) {
+  .download .rubric {
+    background: rgb(255 255 255 / 0.07);
+  }
+}
+
+.about-heading {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin: 2.2rem 0 0.7rem;
+}
+
+html[lang="el"] .about-heading {
+  text-transform: none;
+  letter-spacing: 0.03em;
+}
+
+/* The three rows the app's about section carries, in the same order. */
+.rows {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.row {
+  display: block;
+  padding: 0.9rem 1.15rem;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+  color: inherit;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+a.row:hover {
+  background: var(--surface-sunk);
+}
+
+.row-title {
+  display: block;
+  font-weight: 600;
+}
+
+.row-sub {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-top: 0.1rem;
+}
+
+/* A link leaving the site says so, rather than surprising someone mid-read. */
+a.row .row-title::after {
+  content: " ↗";
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.fineprint {
+  margin-top: 1rem;
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+
+/* --------------------------------------------------------------- print --- */
+
+@media print {
+  .chrome,
+  .chrome-footer,
+  .datenav,
+  .skip {
+    display: none;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .prayer {
+    max-width: none;
+  }
+}

@@ -1,0 +1,15 @@
+<!--
+  The tab icon: the app's notification cross on the brand red.
+
+  The cross is android/app/src/main/res/drawable-xxxhdpi/ic_notification.png,
+  embedded here rather than linked so this file is self-contained. That
+  drawable is an ALPHA MASK: Android reads only its alpha and paints the
+  result itself, so the artwork is a white cross on transparent. Used bare in
+  a browser tab it would be white on white and simply vanish, which is why it
+  sits on the #7b1113 plate here — the same red lib/main.dart seeds the app
+  theme from, and the same one the launcher icon uses.
+
+  If the cross artwork is ever redrawn, regenerate this file from the same
+  drawable rather than editing the base64 by hand.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96"><rect width="96" height="96" rx="20" fill="#7b1113"/><image x="8" y="8" width="80" height="80" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAQAAABIkb+zAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAACYktHRAAB3YoTpAAAAAd0SU1FB+oHGgAzIDmKvFcAAAAldEVYdGRhdGU6Y3JlYXRlADIwMjYtMDctMjZUMDA6NTA6NDkrMDA6MDDTe6lxAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDI2LTA3LTI2VDAwOjUwOjQ5KzAwOjAwoiYRzQAAACh0RVh0ZGF0ZTp0aW1lc3RhbXAAMjAyNi0wNy0yNlQwMDo1MTozMiswMDowMBIzBs8AAAFlSURBVHja7ZwxTsNAEEW/HS6TJgUSSsstOAcX4RJwhBQ0KWg4QBqkFFwgd2AokIORQrzWDnxbec/NFpZn3q5taXdHKwFcNk3Wg8IU+Cq1O9Za6WPgnlZ7vaRGzSEUioco4TGaseN1rj8crok4BFJBwA0CbhBwg4AbBNwg4AYBNwi4QcANAm4QcIOAGwTczF7guLyeuuJaQG28bn8hdwTKsorM3jpulIS01l1l+re6LrjvTc+VOW+07RLv79CsdJ/XM2dYaln5hIO2XbP/Cg1tDk2HXqaz/wsh4AYBNwi4QcANAm4QcIOAm/aX9rRZfDf7M7K9nqpmq6GbornWu16r4rTanYweiqbqGlUzVxnp5Aj819rKV/ykWEeB2jrOUfk0iqy60fl8uAhMFATcIOAGATcIuEHADQJuEHCDgBsE3CDgBgE3CLhB4AdlK7apMXMPBdjoMFj3tdDuT4r+anEdywBw6XwCuDa+HEVCOm8AAAAASUVORK5CYII="/></svg>

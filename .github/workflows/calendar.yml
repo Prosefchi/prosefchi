@@ -1,8 +1,16 @@
-name: Calendar
+name: Pages
 
-# Rebuilds the calendar JSON from the GOARCH feeds and publishes it to GitHub
-# Pages. The feeds are ~32 MB and served with `no-store`, so this runs here
-# once a day rather than on every user's device.
+# Builds everything published to GitHub Pages and deploys it: the calendar JSON
+# the app fetches, and the web frontend that reads the same JSON.
+#
+# The calendar is rebuilt from the GOARCH feeds, which are ~32 MB and served
+# with `no-store`, so that runs here once a day rather than on every user's
+# device.
+#
+# **Both are built on every run, and that is load-bearing.** A Pages deploy
+# replaces the whole site with the uploaded artifact, so a run that built only
+# the calendar would publish a directory with no web frontend in it and take
+# the site down until the next push.
 
 on:
   schedule:
@@ -14,7 +22,18 @@ on:
     branches: [master]
     paths:
       - 'tool/build_calendar.dart'
+      - 'tool/build_site.dart'
       - 'lib/models/calendar.dart'
+      # The site compiles the liturgics into its JavaScript and renders the
+      # prayers through the app's own parser, so a change to any of them
+      # changes what is published.
+      - 'lib/liturgics/**'
+      - 'lib/models/markup.dart'
+      - 'lib/models/prayer.dart'
+      - 'lib/l10n/*.arb'
+      - 'site/**'
+      - 'res/prayers/**'
+      - 'pubspec.yaml'
       - '.github/workflows/calendar.yml'
 
 permissions:
@@ -44,10 +63,16 @@ jobs:
 
       - run: flutter pub get
 
-      # The generator writes through lib/models/calendar.dart, so a break there
-      # would publish malformed data to every client. Cheap gate for the cost of
-      # a few seconds on a job that already has the SDK warm.
+      # The generator writes through lib/models/calendar.dart and the site
+      # renders through lib/models/markup.dart, so a break in either would
+      # publish something wrong to every client. Cheap gate for the cost of a
+      # few seconds on a job that already has the SDK warm.
       - run: flutter test
+
+      # Before the calendar, so a broken site fails the run in seconds rather
+      # than after ~32 MB has been downloaded from upstream.
+      - name: Build site
+        run: dart run tool/build_site.dart --out public
 
       - name: Build calendar
         run: |
