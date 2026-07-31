@@ -761,7 +761,7 @@ Judas. But as the thief I confess to you: Lord, remember me in your kingdom.
 
 ## End
 
-> Holy Fathers Prayer
+> Dismissal
 
 Through the prayers of our holy Fathers, O Lord Jesus Christ our God, have mercy
 on us and save us. Amen.

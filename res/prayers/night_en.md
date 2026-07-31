@@ -41,9 +41,7 @@ and the night be undisturbed. Grant this to me, Savior, and save me.
 
 Lord, have mercy (12).
 
-## End
-
-> Holy Fathers Prayer
+> Dismissal
 
 Through the prayers of our holy Fathers, O Lord Jesus Christ our God, have mercy
 on us and save us. Amen.
