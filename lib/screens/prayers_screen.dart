@@ -82,7 +82,7 @@ class _PrayersScreenState extends State<PrayersScreen> {
           : ListView(
               children: [
                 for (final occasion in PrayerOccasion.values) ...[
-                  if (startsGroup(occasion))
+                  if (occasion.startsGroup)
                     GroupHeading(
                       occasion: occasion,
                       label: l10n.groupLabel(occasion.group),
@@ -199,6 +199,8 @@ class _PrayerScreenState extends State<PrayerScreen> {
       padding: EdgeInsets.symmetric(vertical: 20),
       child: Divider(),
     ),
+    // HTML passthrough is not supported in the app.
+    MarkupHtmlBlock() => const SizedBox.shrink(),
   };
 
   @override

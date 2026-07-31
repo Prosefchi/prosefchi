@@ -81,6 +81,8 @@ class _LinkedParagraphState extends State<_LinkedParagraph> {
           for (final span in widget.spans)
             switch (span) {
               MarkupPlain(:final text) => TextSpan(text: text),
+              // HTML is not supported in the app.
+              MarkupHtml() => const TextSpan(),
               MarkupLink(:final text, :final url) => TextSpan(
                 text: text,
                 style: TextStyle(

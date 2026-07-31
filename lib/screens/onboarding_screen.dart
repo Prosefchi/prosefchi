@@ -197,6 +197,8 @@ class _WelcomePage extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: 16),
                 child: Divider(),
               ),
+              // HTML is not supported in the app.
+              MarkupHtmlBlock() => const SizedBox.shrink(),
             },
         ],
       ],

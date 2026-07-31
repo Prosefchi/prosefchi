@@ -1,0 +1,69 @@
+<!--
+  The chrome every page on the site shares.
+
+  tool/build_site.dart fills the {{...}} placeholders and writes one file per
+  page. One template rather than a hand-written index.html plus a generator for
+  the prayers, because two copies of the header would be two chances for the
+  day view and a prayer to disagree about what the site is called or which
+  language it is showing.
+
+  {{root}} is the relative path back to the site root, and every asset and link
+  below goes through it. Absolute paths would be wrong: GitHub Pages serves a
+  project site under /prosefchi/, not /, and a relative root also lets the
+  built site be opened straight off disk.
+-->
+<!doctype html>
+<html lang="{{lang}}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{title}}</title>
+    <meta name="description" content="{{description}}" />
+    <link rel="stylesheet" href="{{root}}style.css" />
+    <!--
+      The tab icon is the app's notification cross on the brand red; site/
+      icon.svg explains why it is plated rather than used bare. icon.png is
+      the launcher artwork, declared after it as the fallback for anything
+      that will not take an SVG.
+    -->
+    <link rel="icon" type="image/svg+xml" href="{{root}}icon.svg" />
+    <link rel="icon" href="{{root}}icon.png" />
+    <link rel="apple-touch-icon" href="{{root}}icon.png" />
+    <link rel="canonical" href="{{canonical}}" />
+    {{alternates}}
+    <meta property="og:title" content="{{title}}" />
+    <meta property="og:description" content="{{description}}" />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#7b1113" />
+  </head>
+  <body data-root="{{root}}" data-lang="{{lang}}">
+    <a class="skip" href="#main">{{skipToContent}}</a>
+
+    <header class="chrome">
+      <a class="brand" href="{{root}}{{langPath}}">
+        <img class="brand-mark" src="{{root}}icon.png" alt="" width="28" height="28" />
+        <span>{{appTitle}}</span>
+      </a>
+
+      <nav class="chrome-nav" aria-label="{{navLabel}}">
+        <a href="{{root}}{{langPath}}"{{dayCurrent}}>{{today}}</a>
+        <a href="{{root}}{{langPath}}prayers/"{{prayersCurrent}}>{{prayers}}</a>
+        <a href="{{root}}{{langPath}}about/"{{aboutCurrent}}>{{about}}</a>
+      </nav>
+
+      <div class="langswitch" role="group" aria-label="{{languageLabel}}">
+        {{languageLinks}}
+      </div>
+    </header>
+
+    <main id="main">{{body}}</main>
+
+    <footer class="chrome-footer">
+      <p>{{attribution}}</p>
+      <p>
+        <a href="https://github.com/Prosefchi/prosefchi">{{sourceCode}}</a>
+      </p>
+    </footer>
+    {{scripts}}
+  </body>
+</html>

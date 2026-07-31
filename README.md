@@ -21,11 +21,29 @@ The following languages are supported:
 ## Screenshots
 
 <div align="center">
-<img src="docs/screenshots/today-en.png" alt="The day's commemoration, tone and readings" width="200" />
-<img src="docs/screenshots/morning-en.png" alt="The morning prayer rule" width="200" />
-<img src="docs/screenshots/today-el.png" alt="Η ημέρα στα ελληνικά" width="200" />
-<img src="docs/screenshots/morning-el.png" alt="Οι πρωινές προσευχές" width="200" />
+<img src="site/img/screenshots/today-en.png" alt="The day's commemoration, tone and readings" width="200" />
+<img src="site/img/screenshots/morning-en.png" alt="The morning prayer rule" width="200" />
+<img src="site/img/screenshots/today-el.png" alt="Η ημέρα στα ελληνικά" width="200" />
+<img src="site/img/screenshots/morning-el.png" alt="Οι πρωινές προσευχές" width="200" />
 </div>
+
+## Website
+
+The same day and the same prayers are on the web at
+<https://prosefchi.github.io/prosefchi/>, in both languages.
+
+It is a static site built from this repository by `tool/build_site.dart`, and it
+runs the app's own code: the prayers are rendered through the same parser the
+app uses, and the Paschalion, tone, eothinon and fasting seasons are the same
+Dart compiled to JavaScript. To work on it:
+
+```bash
+dart run tool/build_site.dart --serve
+```
+
+That builds into `build/site`, downloads the published calendar so there is real
+data to look at, serves it at <http://localhost:8000>, and rebuilds and reloads
+whenever a source file changes.
 
 ## Building
 

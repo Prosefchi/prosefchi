@@ -6,6 +6,9 @@
 
 import '../liturgics/paschalion.dart';
 
+/// Languages the calendar is published in, as ISO 639-1 codes.
+const supportedLanguages = ['en', 'el'];
+
 /// A marker GOARCH prefixes to a day's title.
 ///
 /// These encode the fasting allowance and the rank of the feast. They appear
@@ -271,6 +274,9 @@ class Calendar {
       for (final key in days.keys.toList()..sort()) key: days[key]!.toJson(),
     },
   };
+
+  /// What a published calendar is named, for one language.
+  static String fileName(String language) => 'calendar.$language.json';
 
   /// The canonical `YYYY-MM-DD` key for [date], ignoring any time component.
   static String dateKey(DateTime date) =>

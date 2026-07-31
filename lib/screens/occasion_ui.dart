@@ -14,15 +14,6 @@ IconData occasionIcon(PrayerOccasion occasion) => switch (occasion) {
   PrayerOccasion.afterCommunion => Icons.church,
 };
 
-/// Whether [occasion] opens a new group and so wants a heading above it.
-///
-/// Leans on [PrayerOccasion] being ordered so each group is contiguous, which
-/// `test/models/reminder_test.dart` pins. Lives here rather than in each list
-/// so the two screens cannot disagree about where the breaks fall.
-bool startsGroup(PrayerOccasion occasion) =>
-    occasion.index == 0 ||
-    PrayerOccasion.values[occasion.index - 1].group != occasion.group;
-
 /// A heading over a run of occasions belonging to one group.
 ///
 /// Shared by the prayers list and the reminders list so the two present the

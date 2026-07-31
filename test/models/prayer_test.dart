@@ -212,6 +212,134 @@ Amen.
       expect(set.blocks, hasLength(1));
     });
 
+    test('drops a comment spanning several lines', () {
+      // The interior of a block comment used to fall through and render as
+      // prayer text, since only a line *starting* with the marker was skipped.
+      final set = PrayerSet.parse('''
+<!--
+  Where this text came from, and what still has to be checked in it.
+
+  Notes over several lines, as an editor would write them.
+-->
+# Set
+
+Amen.
+''');
+
+      expect(set.title, 'Set');
+      expect(set.blocks, hasLength(1));
+      expect((set.blocks.single as PrayerText).text, 'Amen.');
+    });
+
+    test('keeps text following the closing marker', () {
+      // A comment must never swallow a line of a prayer.
+      final set = PrayerSet.parse('# Set\n\n<!-- checked --> Amen.\n');
+
+      expect((set.blocks.single as PrayerText).text, 'Amen.');
+    });
+
+    test('an unclosed comment runs to the end', () {
+      // As in HTML. A missing `-->` hides what follows, which is visible, in
+      // preference to guessing where the author meant it to stop.
+      final set = PrayerSet.parse('# Set\n\n<!-- unterminated\n\nAmen.\n');
+
+      expect(set.title, 'Set');
+      expect(set.blocks, isEmpty);
+    });
+
+    test('a comment does not break the run it sits in', () {
+      // Lines either side of a comment are one paragraph, not two: the comment
+      // is not there as far as the reader is concerned.
+      final set = PrayerSet.parse(
+        '# Set\n\nLord,\n<!-- a note -->\nhave mercy.\n',
+      );
+
+      expect((set.blocks.single as PrayerText).text, 'Lord, have mercy.');
+    });
+
+    test('passes a run of HTML through untouched', () {
+      final set = PrayerSet.parse('''
+# Set
+
+<div align="center">
+<img src="badge.png" alt="Get it"
+height="80" />
+</div>
+
+Amen.
+''');
+
+      expect(set.blocks, [isA<MarkupHtmlBlock>(), isA<PrayerText>()]);
+      // Verbatim, line breaks and all: this is markup an author wrote for a
+      // browser, not prose to be reflowed.
+      expect(
+        (set.blocks.first as MarkupHtmlBlock).html,
+        '<div align="center">\n'
+        '<img src="badge.png" alt="Get it"\n'
+        'height="80" />\n'
+        '</div>',
+      );
+    });
+
+    test('a paragraph that begins with a tag is still a paragraph', () {
+      // The line begins with `<`, but it is prose with tags in it. Reading it
+      // as a block would drop every word from the app, which renders no HTML.
+      final set = PrayerSet.parse('# Set\n\n<em>Lord</em>, have mercy.\n');
+
+      expect(set.blocks.single, isA<PrayerText>());
+      expect((set.blocks.single as PrayerText).spans, [
+        isA<MarkupHtml>(),
+        isA<MarkupPlain>(),
+        isA<MarkupHtml>(),
+        isA<MarkupPlain>(),
+      ]);
+      // A tag is markup, not words, so the block reads as the words alone.
+      expect((set.blocks.single as PrayerText).text, 'Lord, have mercy.');
+    });
+
+    test('keeps an inline tag beside the words around it', () {
+      final set = PrayerSet.parse('# Set\n\nGlory to you,<br /> our God.\n');
+
+      final spans = (set.blocks.single as PrayerText).spans;
+      expect(spans.whereType<MarkupHtml>().map((s) => s.html), ['<br />']);
+      expect((set.blocks.single as PrayerText).text, 'Glory to you, our God.');
+    });
+
+    test('a run of HTML ends at a blank line', () {
+      final set = PrayerSet.parse('# Set\n\n<div>\n</div>\n\nAmen.\n');
+
+      expect(set.blocks, [isA<MarkupHtmlBlock>(), isA<PrayerText>()]);
+      expect((set.blocks.last as PrayerText).text, 'Amen.');
+    });
+
+    test('a stray angle bracket in prose is not a tag', () {
+      final set = PrayerSet.parse('# Set\n\nas 3 < 4, and 5 > 4.\n');
+
+      expect(
+        (set.blocks.single as PrayerText).spans.single,
+        isA<MarkupPlain>(),
+      );
+      expect((set.blocks.single as PrayerText).text, 'as 3 < 4, and 5 > 4.');
+    });
+
+    test('a url inside a tag is not read as a link', () {
+      // An anchor with its text is a paragraph, not a run of markup: the words
+      // are what is left when the tags are taken away. The href must survive
+      // inside the tag rather than being lifted out as a MarkupLink, which
+      // would break the tag in half around it.
+      final set = PrayerSet.parse(
+        '# Set\n\n<a href="https://example.org/">Source</a>\n',
+      );
+
+      final spans = (set.blocks.single as PrayerText).spans;
+      expect(spans.whereType<MarkupLink>(), isEmpty);
+      expect(spans.whereType<MarkupHtml>().map((s) => s.html), [
+        '<a href="https://example.org/">',
+        '</a>',
+      ]);
+      expect((set.blocks.single as PrayerText).text, 'Source');
+    });
+
     test('keeps polytonic Greek intact', () {
       final set = PrayerSet.parse(
         '# Τρισάγιον\n\nἍγιος ὁ Θεός, Ἅγιος Ἰσχυρός, Ἅγιος Ἀθάνατος, ἐλέησον ἡμᾶς.\n',

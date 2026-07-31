@@ -53,6 +53,34 @@ void main() {
     }
   });
 
+  test('no authored app text carries HTML', () {
+    // Both app renderers draw nothing for HTML, so a tag reached for in a
+    // prayer is invisible on the phone — and invisibly so, since the words
+    // inside a block go with it. The rule is stated in markup.dart's header;
+    // this is what holds anyone to it. HTML belongs in site/ documents, whose
+    // target is a browser.
+    for (final file in [
+      ...files,
+      for (final l in supportedLanguages) File('res/welcome_$l.md'),
+    ]) {
+      final document = MarkupDocument.parse(file.readAsStringSync());
+
+      expect(
+        document.blocks.whereType<MarkupHtmlBlock>(),
+        isEmpty,
+        reason: '${file.path} has a run of HTML, which the app cannot render',
+      );
+      expect(
+        document.blocks
+            .whereType<MarkupProse>()
+            .expand((block) => block.spans)
+            .whereType<MarkupHtml>(),
+        isEmpty,
+        reason: '${file.path} has an inline tag, which the app cannot render',
+      );
+    }
+  });
+
   test('every language has a welcome page that parses', () {
     for (final language in supportedLanguages) {
       final file = File('res/welcome_$language.md');

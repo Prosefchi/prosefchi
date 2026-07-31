@@ -78,6 +78,14 @@ enum PrayerOccasion {
     for (final occasion in values) occasion.slug: occasion,
   };
 
+  /// Whether this occasion opens a new group and so wants a heading above it.
+  ///
+  /// Leans on the declaration order keeping each group contiguous, which
+  /// `test/models/reminder_test.dart` pins. Here rather than beside the
+  /// widgets so the prayers list, the reminders list and the website cannot
+  /// disagree about where the breaks fall.
+  bool get startsGroup => index == 0 || values[index - 1].group != group;
+
   /// The occasion with this [slug], or null if none has it.
   ///
   /// For reading a slug back out of somewhere it was stored — a notification
