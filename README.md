@@ -7,9 +7,25 @@ alt="Get it on Obtainium" align="center" height="80" />
 </a>
 </div>
 
-A Greek Orthodox daily prayer app for Android and iOS. It shows the day's commemoration and appointed readings, holds the prayer rules, and can remind you to pray. English and Greek.
+A Greek Orthodox daily prayer app for Android and iOS. It shows the day's
+commemoration and appointed readings, holds the prayer rules, and can remind you
+to fast and pray.
 
-Everything works offline once the calendar has been downloaded, and reminders are scheduled on the device — nothing is pushed from a server, and the app collects nothing.
+The following languages are supported:
+
+| Language       | Supported |
+| -------------- | --------- |
+| Koine Greek    | **Full**  |
+| Modern English | **Full**  |
+
+## Screenshots
+
+<div align="center">
+<img src="docs/screenshots/today-en.png" alt="The day's commemoration, tone and readings" width="200" />
+<img src="docs/screenshots/morning-en.png" alt="The morning prayer rule" width="200" />
+<img src="docs/screenshots/today-el.png" alt="Η ημέρα στα ελληνικά" width="200" />
+<img src="docs/screenshots/morning-el.png" alt="Οι πρωινές προσευχές" width="200" />
+</div>
 
 ## Building
 
@@ -20,14 +36,14 @@ flutter run
 
 Requires Flutter 3.44 or later.
 
-## The calendar
+## Calendar
 
-Saints, feasts and readings come from the calendar published by the [Greek Orthodox Archdiocese of America](https://www.goarch.org/), fetched and republished as JSON by a daily GitHub Actions run:
+Saints, feasts and readings come from the calendar published by the
+[Greek Orthodox Archdiocese of America](https://www.goarch.org/), fetched and
+republished as JSON by a daily GitHub Actions run:
 
-```
-https://prosefchi.github.io/prosefchi/calendar.en.json
-https://prosefchi.github.io/prosefchi/calendar.el.json
-```
+- `https://prosefchi.github.io/prosefchi/calendar.en.json`
+- `https://prosefchi.github.io/prosefchi/calendar.el.json`
 
 The app fetches those and keeps a copy on the device. To rebuild them locally:
 
@@ -35,14 +51,14 @@ The app fetches those and keeps a copy on the device. To rebuild them locally:
 dart run tool/build_calendar.dart
 ```
 
-The Paschalion, the Octoechos tone, the eothinon and the fasting seasons are computed from the date rather than fetched, so the app still has something to show for dates the published calendar does not reach.
-
-## Status
-
-Early. The prayer texts are not written: only the opening Trisagion sequence is in place, and every other rule is a marked placeholder under `res/prayers/`. Those need texts chosen by someone qualified to choose them.
+The Paschalion, the Octoechos tone, the eothinon and the fasting seasons are
+also computed on the device, from the date alone. Where the published calendar
+states one of them it is preferred; the computation is what the app falls back
+on for the dates that calendar may not publish.
 
 ## Licence
 
 [GNU AGPL v3](LICENSE).
 
-Calendar content belongs to the Greek Orthodox Archdiocese of America and is not covered by that licence.
+Calendar content belongs to the Greek Orthodox Archdiocese of America and is not
+covered by that licence.
