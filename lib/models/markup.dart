@@ -176,14 +176,21 @@ class MarkupHtmlBlock extends MarkupBlock {
   final String html;
 }
 
-/// One item of a list. Prose, but never a block in its own right.
-class MarkupListItem {
+/// A run of spans: a block of prose, or an item of a list.
+mixin MarkupRun {
+  List<MarkupSpan> get spans;
+
+  /// The run as one string, for anything that does not render it. A tag reads
+  /// as nothing, so the words between two of them survive.
+  String get text => spans.map((span) => span.text).join();
+}
+
+/// One item of a list. A run, but never a block in its own right.
+class MarkupListItem with MarkupRun {
   MarkupListItem(String source) : spans = _spansOf(source);
 
+  @override
   final List<MarkupSpan> spans;
-
-  /// The item as one string, for anything that does not render it.
-  String get text => spans.map((span) => span.text).join();
 }
 
 /// A run of items, bulleted or numbered.
@@ -201,13 +208,11 @@ class MarkupList extends MarkupBlock {
 }
 
 /// A block of prose, which may hold links and so is kept as spans.
-sealed class MarkupProse extends MarkupBlock {
+sealed class MarkupProse extends MarkupBlock with MarkupRun {
   MarkupProse(String source) : spans = _spansOf(source);
 
+  @override
   final List<MarkupSpan> spans;
-
-  /// The block as one string, for anything that does not render it.
-  String get text => spans.map((span) => span.text).join();
 }
 
 /// An aside addressed to the reader rather than part of the text proper.
@@ -228,9 +233,8 @@ final _thematicBreak = RegExp(r'^([-*_])(?:\s*\1){2,}$');
 
 /// A line opening a list item: the marker, a space, then the item.
 ///
-/// The space is required, as it is in Markdown, so a hyphenated word at the
-/// start of a line is not read as a list. Tested after [_thematicBreak], which
-/// is what keeps `---` a divider rather than an empty item.
+/// The space is required, as in Markdown, so a hyphenated word does not open a
+/// list. Tested after [_thematicBreak], which is what keeps `- - -` a divider.
 final _listItem = RegExp(r'^([-*+]|\d+\.)\s+(.*)$');
 
 const _commentOpen = '<!--';
@@ -293,8 +297,6 @@ class MarkupDocument {
     // the only state needed to know whether one is.
     final html = StringBuffer();
 
-    // The open list: the items read so far, the one being read, and whether it
-    // is numbered.
     final items = <MarkupListItem>[];
     final item = StringBuffer();
     var ordered = false;
@@ -384,25 +386,23 @@ class MarkupDocument {
           blocks.add(MarkupHeading(line.substring(2).trim()));
         }
       } else if (line.startsWith('>')) {
+        // Each of these opens one run and so closes the others. Miss one and
+        // the block it left open is emitted out of authored order.
         flush(paragraph, MarkupText.new);
+        flushList();
         // Markdown allows one optional space after the marker. The rest of the
         // line is trimmed rather than that single space consumed, which is the
         // same thing here: this subset has no construct where the remaining
         // indentation would mean anything.
         append(note, line.substring(1).trim());
       } else if (_listItem.firstMatch(line) case final marked?) {
-        final numbered = marked[1]!.endsWith('.');
-        // A change from bullets to numbers or back is a second list, not a
-        // stray item in the first. The item being read counts as an open list:
-        // the marker can change on the second line, before any item is closed.
-        final open = items.isNotEmpty || item.isNotEmpty;
-        if (open && numbered != ordered) {
-          flushList();
-        } else {
-          flushItem();
-        }
         flush(paragraph, MarkupText.new);
         flush(note, MarkupNote.new);
+        // A change from bullets to numbers or back is a second list, not a
+        // stray item in the first.
+        final numbered = marked[1]!.endsWith('.');
+        if (numbered != ordered) flushList();
+        flushItem();
         ordered = numbered;
         append(item, marked[2]!.trim());
       } else if (item.isNotEmpty) {

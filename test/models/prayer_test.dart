@@ -247,10 +247,29 @@ Amen.
       expect(set.blocks.single, isA<PrayerText>());
     });
 
-    test('keeps a thematic break a break rather than an empty item', () {
-      final set = PrayerSet.parse('# Set\n\nAmen.\n\n---\n');
+    test('keeps a spaced thematic break a break rather than an item', () {
+      // `- - -` and `* * *` match both patterns, so only the order they are
+      // tested in decides. `---` matches neither and proves nothing.
+      final set = PrayerSet.parse('# Set\n\n- - -\n\n* * *\n');
 
-      expect(set.blocks, [isA<PrayerText>(), isA<PrayerDivider>()]);
+      expect(set.blocks, [isA<PrayerDivider>(), isA<PrayerDivider>()]);
+    });
+
+    test('ends a list at a blank line', () {
+      // The one place this subset departs from Markdown, which would keep the
+      // list open and read the two runs as one.
+      final set = PrayerSet.parse('# Set\n\n- One\n\n- Two\n');
+
+      expect(set.blocks, [isA<PrayerList>(), isA<PrayerList>()]);
+    });
+
+    test('keeps a rubric written under a list in its authored order', () {
+      // Every branch that opens a run has to close the others. The list was
+      // the third such run, and the rubric branch was emitting a note before
+      // the list above it.
+      final set = PrayerSet.parse('# Set\n\n- One\n> Say it three times.\n');
+
+      expect(set.blocks, [isA<PrayerList>(), isA<PrayerRubric>()]);
     });
 
     test('reads a link inside an item', () {

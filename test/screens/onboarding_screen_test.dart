@@ -17,6 +17,9 @@ const welcomeEn = '''
 # Welcome
 
 Prosefchi keeps the day's commemoration to hand.
+
+- Morning
+- Night
 ''';
 
 const welcomeEl = '''
@@ -68,6 +71,10 @@ void main() {
       find.text("Prosefchi keeps the day's commemoration to hand."),
       findsOneWidget,
     );
+    // A list is drawn as items with markers, not as one run-on paragraph. The
+    // real welcome pages carry one, so this is the shape the app opens on.
+    expect(find.text('•'), findsNWidgets(2));
+    expect(find.text('Morning'), findsOneWidget);
   });
 
   testWidgets('renders the welcome in the chosen language', (tester) async {

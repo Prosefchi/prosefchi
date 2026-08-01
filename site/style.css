@@ -495,19 +495,19 @@ html[lang="el"] .prayer-list h2 {
   color: var(--red);
 }
 
-.prayer p {
+.prayer p,
+.items {
   margin: 0 0 1.15rem;
   line-height: 1.7;
 }
 
-.prayer ul,
-.prayer ol {
-  margin: 0 0 1.15rem;
+/* Keyed on the class the renderer emits, not on the document around it: a list
+   can appear in any of them, and the browser's own indent is far too deep. */
+.items {
   padding-inline-start: 1.5rem;
-  line-height: 1.7;
 }
 
-.prayer li {
+.items li {
   margin: 0 0 0.35rem;
 }
 
