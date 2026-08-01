@@ -6,11 +6,10 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/calendar.dart';
+import '../models/site.dart' show defaultCalendarBaseUrl;
 import 'calendar_store.dart';
 
-// `supportedLanguages` lives on the Flutter-free side so the website can read
-// it too, but every screen asks this file for it, so it is re-exported rather
-// than moved out from under them.
+// Every screen asks this file for the languages, so it is re-exported.
 export '../models/calendar.dart' show supportedLanguages;
 
 /// The content language for [locale], clamped to what we actually publish.
@@ -30,16 +29,6 @@ String languageFor(Locale locale) =>
 /// launch — and leaking two `http.Client`s along with it. Lazily created on
 /// first use, and lives as long as the app, so nothing disposes it.
 final sharedCalendarRepository = CalendarRepository();
-
-/// Where the published calendar is served from.
-///
-/// GitHub Pages by deliberate choice. A shipped build cannot be repointed, so
-/// if this ever has to move the plan is to publish from both hosts, ship an
-/// update that switches over, and retire this one only once the old installs
-/// have drained.
-final defaultCalendarBaseUrl = Uri.parse(
-  'https://prosefchi.github.io/prosefchi/',
-);
 
 /// Fetches the calendar and keeps it stored between launches.
 ///

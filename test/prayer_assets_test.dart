@@ -5,6 +5,8 @@ import 'package:prosefchi/models/prayer.dart';
 import 'package:prosefchi/services/calendar_repository.dart'
     show supportedLanguages;
 
+import 'support/authored_document.dart';
+
 /// Checks the authored prayer files themselves, not the parser.
 ///
 /// That every occasion has a file, that each one parses to something with a
@@ -83,16 +85,7 @@ void main() {
 
   test('every language has a welcome page that parses', () {
     for (final language in supportedLanguages) {
-      final file = File('res/welcome_$language.md');
-      expect(file.existsSync(), isTrue, reason: '${file.path} is missing');
-
-      final document = MarkupDocument.parse(file.readAsStringSync());
-      expect(document.title, isNotEmpty, reason: '${file.path} has no title');
-      expect(
-        document.hasContent,
-        isTrue,
-        reason: '${file.path} has no prose, only headings or notes',
-      );
+      expectAuthoredDocument('res/welcome_$language.md');
     }
   });
 

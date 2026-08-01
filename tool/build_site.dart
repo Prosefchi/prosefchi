@@ -34,26 +34,18 @@ import 'dart:io';
 // note in a prayer is a rubric.
 import 'package:prosefchi/models/calendar.dart' show Calendar;
 import 'package:prosefchi/models/prayer.dart';
+import 'package:prosefchi/models/site.dart';
 
 import '../site/languages.dart';
 import 'args.dart';
-
-/// Where the site is served from, for canonical and alternate links.
-const _defaultBaseUrl = 'https://prosefchi.github.io/prosefchi/';
-
-/// Published calendars, fetched by `--calendar` for a local preview.
-///
-/// Deliberately the *published* files rather than a local
-/// `tool/build_calendar.dart` run: that downloads ~32 MB of iCal from upstream,
-/// which is a great deal to pay to look at a stylesheet change.
-const _publishedCalendars = _defaultBaseUrl;
 
 Future<void> main(List<String> args) async {
   final options = parseArgs(args);
   // Defaults under build/ so a local run lands somewhere already ignored, the
   // same as tool/build_calendar.dart. CI passes --out public and uploads it.
   final outDir = Directory(options['out'] ?? 'build/site');
-  final baseUrl = options['base-url'] ?? _defaultBaseUrl;
+  // Where the site is served from, for canonical and alternate links.
+  final baseUrl = options['base-url'] ?? siteUrl.toString();
   final serve = options.containsKey('serve');
 
   await outDir.create(recursive: true);
@@ -225,7 +217,9 @@ Future<int> _writeLanguage({
           : document.title,
       description: strings['prayersIntro']!,
       section: 'prayers',
-      body: _documentHtml(document, tag: 'article', className: 'prayer'),
+      // `doc` is how anything read at length is set and `prayer` only adds the
+      // serif, so a prayer is both rather than a class of its own.
+      body: _documentHtml(document, tag: 'article', className: 'doc prayer'),
     );
   }
 
@@ -249,11 +243,33 @@ Future<int> _writeLanguage({
         ).readAsString()).replaceAll('{{root}}', _rootFor(about)),
       ),
       version,
+      privacyHref: '${_rootFor(about)}${privacyPagePath(language)}',
+    ),
+  );
+
+  // The privacy policy, under the about page that links to it.
+  await page(
+    privacyPagePath(language),
+    title: strings['privacyPolicy']!,
+    description: strings['privacyPolicySubtitle']!,
+    section: 'about',
+    body: _documentHtml(
+      MarkupDocument.parse(await File(privacySource(language)).readAsString()),
+      tag: 'article',
+      className: 'doc',
     ),
   );
 
   return written;
 }
+
+/// The authored privacy policy for [language].
+///
+/// English keeps the bare `PRIVACY.md`, which is where GitHub and Google Play
+/// look.
+String privacySource(String language) => language == supportedLanguages.first
+    ? 'PRIVACY.md'
+    : 'PRIVACY.$language.md';
 
 /// Fills the shell and writes it at [path], which is a directory path ending in
 /// `/` (or empty for the site root).
@@ -477,22 +493,29 @@ String _documentHtml(
 String _aboutBody(
   Map<String, String> strings,
   MarkupDocument download,
-  String version,
-) {
+  String version, {
+  required String privacyHref,
+}) {
   final out = StringBuffer()
     ..write(_documentHtml(download, tag: 'section', className: 'download'))
     ..writeln('<h2 class="about-heading">${_esc(strings['about']!)}</h2>')
     ..writeln('<div class="rows">');
 
-  // Mirrors lib/screens/about_section.dart. The repository opens in a new tab
-  // for the reason the app opens it in an external browser rather than the
-  // in-app one: it is somewhere to go and act, not to read and come back from.
+  // Mirrors lib/screens/about_section.dart, in its order.
   out
     ..writeln(
       _row(
         title: strings['sourceCode']!,
         subtitle: strings['sourceCodeSubtitle']!,
         href: 'https://github.com/Prosefchi/prosefchi',
+      ),
+    )
+    // The one row that stays on this site, so it is an ordinary link.
+    ..writeln(
+      _row(
+        title: strings['privacyPolicy']!,
+        subtitle: strings['privacyPolicySubtitle']!,
+        href: privacyHref,
       ),
     )
     ..writeln(
@@ -518,15 +541,20 @@ String _aboutBody(
 }
 
 /// One about row: a title over a subtitle, linked or not.
+///
+/// An absolute [href] leaves the site and opens in a new tab; a relative one
+/// stays. The stylesheet hangs the ↗ off that `target`.
 String _row({required String title, required String subtitle, String? href}) {
   final content =
       '<span class="row-title">${_esc(title)}</span>'
       '<span class="row-sub">${_esc(subtitle)}</span>';
 
-  return href == null
-      ? '  <div class="row">$content</div>'
-      : '  <a class="row" href="${_esc(href)}" target="_blank" '
-            'rel="noopener">$content</a>';
+  if (href == null) return '  <div class="row">$content</div>';
+
+  final target = Uri.parse(href).hasScheme
+      ? ' target="_blank" rel="noopener"'
+      : '';
+  return '  <a class="row" href="${_esc(href)}"$target>$content</a>';
 }
 
 /// The app version, from the one place that states it.
@@ -706,6 +734,9 @@ Future<void> _copyTree(Directory from, Directory to) async {
 }
 
 /// Downloads the published calendars, for a local preview.
+///
+/// The *published* files rather than a local `tool/build_calendar.dart` run,
+/// which downloads ~32 MB of iCal to look at a stylesheet change.
 Future<void> _fetchPublishedCalendars(Directory outDir) async {
   final client = HttpClient();
   try {
@@ -714,9 +745,7 @@ Future<void> _fetchPublishedCalendars(Directory outDir) async {
       if (file.existsSync()) continue;
 
       final name = Calendar.fileName(language);
-      final request = await client.getUrl(
-        Uri.parse(_publishedCalendars).resolve(name),
-      );
+      final request = await client.getUrl(defaultCalendarBaseUrl.resolve(name));
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {
         stdout.writeln('site: could not fetch $name (${response.statusCode})');
@@ -745,7 +774,13 @@ var _buildSerial = 0;
 ///
 /// `lib/` is in here because site/day.dart compiles the liturgics in, so a fix
 /// to the Paschalion has to reach the preview too.
-const _watched = ['site', 'res/prayers', 'lib', 'pubspec.yaml'];
+final _watched = [
+  'site',
+  'res/prayers',
+  'lib',
+  'pubspec.yaml',
+  ...supportedLanguages.map(privacySource),
+];
 
 /// Rebuilds whenever a source file changes.
 void _watch(Directory outDir, String baseUrl) {

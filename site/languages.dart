@@ -1,23 +1,12 @@
-// How the site lays languages out in its URLs.
-//
-// Shared by the generator and the browser: tool/build_site.dart writes the
-// pages at these paths and site/day.dart resolves `?lang=` against the same
-// rule. Two statements of it would mean the generator writing one set of URLs
-// and the client-side redirect sending readers to another — a 404 on the one
-// path nobody tests by hand.
-//
-// Flutter-free, like everything else the site compiles.
+// How the site lays languages out in its URLs: the rule from
+// lib/models/site.dart, re-exported beside the one part of it that is the
+// site's own.
 
 import 'package:prosefchi/models/calendar.dart' show supportedLanguages;
+import 'package:prosefchi/models/site.dart' show prefixFor;
 
 export 'package:prosefchi/models/calendar.dart' show supportedLanguages;
-
-/// The path prefix a language's pages sit under, relative to the site root.
-///
-/// English is served at the root and every other language under its own code,
-/// so the canonical URL of the front page carries nothing extra.
-String prefixFor(String language) =>
-    language == supportedLanguages.first ? '' : '$language/';
+export 'package:prosefchi/models/site.dart' show prefixFor;
 
 /// [path] with any language prefix removed, leaving the part shared by every
 /// translation of a page.

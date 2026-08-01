@@ -3,6 +3,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/site.dart' show privacyPolicyUrl;
+import '../services/calendar_repository.dart' show languageFor;
 import 'link.dart';
 
 /// Where the repository lives.
@@ -54,6 +56,14 @@ class _AboutSectionState extends State<AboutSection> {
     launch: widget.launch,
   );
 
+  /// The in-app browser, unlike the repository above: a policy is read and
+  /// returned from.
+  Future<void> _openPrivacyPolicy() => openLink(
+    context,
+    privacyPolicyUrl(languageFor(Localizations.localeOf(context))),
+    launch: widget.launch,
+  );
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -67,6 +77,13 @@ class _AboutSectionState extends State<AboutSection> {
           subtitle: Text(l10n.sourceCodeSubtitle),
           trailing: const Icon(Icons.open_in_new, size: 18),
           onTap: _openRepository,
+        ),
+        ListTile(
+          leading: const Icon(Icons.privacy_tip_outlined),
+          title: Text(l10n.privacyPolicy),
+          subtitle: Text(l10n.privacyPolicySubtitle),
+          trailing: const Icon(Icons.open_in_new, size: 18),
+          onTap: _openPrivacyPolicy,
         ),
         ListTile(
           leading: const Icon(Icons.info_outline),

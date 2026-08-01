@@ -21,6 +21,8 @@ on:
       - 'lib/l10n/*.arb'
       - 'site/**'
       - 'res/prayers/**'
+      # Rendered into the site, so a correction to it deploys with the push.
+      - 'PRIVACY*.md'
       - 'pubspec.yaml'
       - '.github/workflows/pages.yml'
 

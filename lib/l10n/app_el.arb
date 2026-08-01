@@ -64,6 +64,8 @@
   "about": "Σχετικά",
   "sourceCode": "Πηγαίος κώδικας",
   "sourceCodeSubtitle": "Δείτε το έργο στο GitHub",
+  "privacyPolicy": "Πολιτική απορρήτου",
+  "privacyPolicySubtitle": "Τι αποθηκεύει και τι στέλνει η εφαρμογή",
   "appVersion": "Έκδοση",
   "openSourceLicences": "Άδειες ανοιχτού κώδικα",
   "couldNotOpenLink": "Δεν ήταν δυνατό το άνοιγμα του συνδέσμου",

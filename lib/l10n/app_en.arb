@@ -271,6 +271,14 @@
   "@sourceCodeSubtitle": {
     "description": "About section: sourceCodeSubtitle."
   },
+  "privacyPolicy": "Privacy policy",
+  "@privacyPolicy": {
+    "description": "About section: the row opening the privacy policy, and the title of that page on the website."
+  },
+  "privacyPolicySubtitle": "What the app stores and sends",
+  "@privacyPolicySubtitle": {
+    "description": "About section: privacyPolicySubtitle."
+  },
   "appVersion": "Version",
   "@appVersion": {
     "description": "About section: appVersion."
