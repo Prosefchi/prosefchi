@@ -1,11 +1,12 @@
 name: Release
 
-# Builds the APK for a published GitHub release and attaches it, together with
-# a signed provenance attestation, as release assets. Because nothing is built
-# on a maintainer's machine, the attestation is a claim anyone downloading the
-# APK can check for themselves:
+# Builds a published release once and hands it to the two places it goes.
 #
-#   gh attestation verify prosefchi-0.0.1.apk --repo Prosefchi/prosefchi
+#   release published ──▶ build ──┬──▶ publish-github.yml   APK + attestation
+#                                 └──▶ publish-play.yml     App Bundle
+#
+# One build, so the two carry the same commit and the same version code. Setting
+# up Play publishing is documented under Google Play in CLAUDE.md.
 
 on:
   release:
@@ -17,7 +18,15 @@ on:
       tag:
         description: Tag of an existing release to build and attach to
         required: true
+      publish:
+        description: >-
+          Send the Play release live immediately instead of leaving it a draft
+          to be reviewed in the Console
+        type: boolean
+        default: false
 
+# The ceiling for the called workflows, which scope themselves down from it.
+# Neither needs all three.
 permissions:
   contents: write # attach assets to the release
   id-token: write # mint the short-lived Sigstore signing certificate
@@ -34,8 +43,17 @@ env:
   TAG: ${{ inputs.tag || github.event.release.tag_name }}
 
 jobs:
-  apk:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # The tag is an output because the `env` context is unavailable in the
+    # callers' `with:` blocks.
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      version_code: ${{ steps.version.outputs.version_code }}
+      package: ${{ steps.version.outputs.package }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -81,12 +99,16 @@ jobs:
 
       - run: flutter pub get
 
-      # pubspec.yaml's version: is the only place the version lives, and Flutter
-      # feeds it to both platforms. A tag that disagrees with it would ship an
-      # APK reporting a version nobody released, and the about section reads
-      # that value back out of the bundle. Fail before the build, not after the
-      # assets are already attached.
+      # A tag disagreeing with pubspec would ship an APK reporting a version
+      # nobody released, so fail before the build rather than after the assets
+      # are attached.
+      #
+      # The version code is derived from that version rather than kept as a
+      # `+build` suffix, so there is only one number to bump. Play requires it to
+      # rise with every release and never repeat, which a number computed from
+      # the triple satisfies with nothing to remember.
       - name: Check the tag matches pubspec
+        id: version
         run: |
           set -euo pipefail
           version="$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)"
@@ -94,30 +116,75 @@ jobs:
             echo "::error::Release $TAG does not match pubspec version $version"
             exit 1
           fi
-          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version $version is not three dot-separated numbers"
+            exit 1
+          fi
+          IFS=. read -r major minor patch <<<"$version"
+
+          # 10# so a patch of 08 is eight, not a bad octal literal. The bound
+          # keeps the mapping one-to-one: without it 0.2.100 and 0.3.0 compute
+          # the same code, and Play rejects the second as a duplicate.
+          if [ "$((10#$minor))" -ge 100 ] || [ "$((10#$patch))" -ge 100 ]; then
+            echo "::error::Version $version overflows the version code; minor and patch must stay below 100"
+            exit 1
+          fi
+          code="$((10#$major * 10000 + 10#$minor * 100 + 10#$patch))"
+
+          # From Gradle, so the id uploaded under cannot drift from the id
+          # the app is built with.
+          package="$(sed -n 's/^ *applicationId = "\(.*\)"/\1/p' android/app/build.gradle.kts)"
+          if [ -z "$package" ]; then
+            echo "::error::No applicationId found in android/app/build.gradle.kts"
+            exit 1
+          fi
+
+          {
+            echo "tag=$TAG"
+            echo "version=$version"
+            echo "version_code=$code"
+            echo "package=$package"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "VERSION=$version"
+            echo "VERSION_CODE=$code"
+          } >> "$GITHUB_ENV"
 
       # Cheap on a job that already has the SDK warm, and this is the one build
       # whose output cannot be quietly replaced once people have downloaded it.
       - run: flutter test
 
-      # The signing material is scoped to this one step rather than exported for
-      # the whole job. android/app/build.gradle.kts reads these four and falls
-      # back to the debug key when they are absent, which is why the step below
-      # exists.
+      # Signing material scoped to these two steps rather than the whole job.
+      # android/app/build.gradle.kts falls back to the debug key when it is
+      # absent, which is what the check below catches.
+      #
+      # Play takes the bundle and the release carries the APK; they share a
+      # version code so moving between the two is never a downgrade.
       - name: Build the APK
         env:
           ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: flutter build apk --release
+        run: flutter build apk --release --build-number="$VERSION_CODE"
 
-      # The one failure this whole arrangement exists to prevent, and the one
-      # that hides best: a debug-signed APK installs and runs perfectly, and
-      # only announces itself at the *next* release, which will not install over
-      # it. By then it has shipped. Assert on the signer rather than trusting
-      # that the environment reached Gradle.
-      - name: Check the APK is signed with the release key
+      - name: Build the App Bundle
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: flutter build appbundle --release --build-number="$VERSION_CODE"
+
+      # Catches a debug-signed build before it ships. A debug-signed APK
+      # installs fine and only breaks the *next* release, which will not install
+      # over it; Play rejects one as an unrecognised upload key, which points at
+      # a Play misconfiguration rather than at missing secrets.
+      #
+      # Two tools: apksigner reads an APK's signature block, a bundle is a
+      # signed jar and needs keytool.
+      - name: Check both artifacts are signed with the release key
         run: |
           set -euo pipefail
           apksigner="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
@@ -131,47 +198,67 @@ jobs:
           echo "SIGNER=$(grep -m1 'SHA-256 digest' <<<"$certs" | awk '{print $NF}')" \
             >> "$GITHUB_ENV"
 
-      # The attestation records the subject by name, so name the file before
-      # attesting rather than after: the asset on the release and the subject in
-      # the attestation should read the same.
-      - name: Name the artifact after the release
+          bundle_certs="$(keytool -printcert -jarfile \
+            build/app/outputs/bundle/release/app-release.aab)"
+          echo "$bundle_certs"
+          if grep -q 'CN=Android Debug' <<<"$bundle_certs"; then
+            echo "::error::The App Bundle is signed with the debug key"
+            exit 1
+          fi
+
+      # Named here so both leave the job under the name they will carry.
+      - name: Name the artifacts after the release
         run: |
           set -euo pipefail
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk "dist/prosefchi-$VERSION.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "dist/prosefchi-$VERSION.aab"
 
-      - id: attest
-        uses: actions/attest-build-provenance@v4
+      # Two artifacts, so each publisher downloads only what it publishes.
+      - uses: actions/upload-artifact@v7
         with:
-          subject-path: dist/prosefchi-${{ env.VERSION }}.apk
+          name: apk
+          path: dist/prosefchi-${{ env.VERSION }}.apk
+          if-no-files-found: error
+          # Long enough to re-run a publisher by hand after a rejection.
+          retention-days: 7
 
-      - name: Attach the APK and its attestation to the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          cp "${{ steps.attest.outputs.bundle-path }}" "dist/prosefchi-$VERSION.apk.sigstore.json"
-          # --clobber so re-running a partially failed publish replaces the
-          # assets instead of failing on the ones already there.
-          gh release upload "$TAG" \
-            "dist/prosefchi-$VERSION.apk" \
-            "dist/prosefchi-$VERSION.apk.sigstore.json" \
-            --clobber
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bundle
+          path: dist/prosefchi-${{ env.VERSION }}.aab
+          if-no-files-found: error
+          retention-days: 7
 
-      - name: Report what was published
+      - name: Report what was built
         run: |
           set -euo pipefail
           {
-            echo "### prosefchi-$VERSION.apk"
+            echo "### prosefchi-$VERSION"
             echo
             echo '```'
-            (cd dist && sha256sum "prosefchi-$VERSION.apk")
+            (cd dist && sha256sum "prosefchi-$VERSION.apk" "prosefchi-$VERSION.aab")
             echo "signing certificate  $SIGNER"
-            echo '```'
-            echo
-            echo 'Check the download against this build:'
-            echo
-            echo '```'
-            echo "gh attestation verify prosefchi-$VERSION.apk --repo $GITHUB_REPOSITORY"
+            echo "version code         $VERSION_CODE"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  github-release:
+    needs: build
+    uses: ./.github/workflows/publish-github.yml
+    with:
+      tag: ${{ needs.build.outputs.tag }}
+      version: ${{ needs.build.outputs.version }}
+
+  play:
+    needs: build
+    uses: ./.github/workflows/publish-play.yml
+    with:
+      tag: ${{ needs.build.outputs.tag }}
+      version: ${{ needs.build.outputs.version }}
+      version_code: ${{ needs.build.outputs.version_code }}
+      package: ${{ needs.build.outputs.package }}
+      # Absent on a release event, where `inputs` is empty and this is false.
+      publish: ${{ inputs.publish == true }}
+    secrets:
+      service_account_json: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}

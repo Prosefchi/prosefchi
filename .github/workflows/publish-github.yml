@@ -1,0 +1,72 @@
+name: Publish to GitHub
+
+# Attaches the APK built by release.yml to the GitHub release, with a signed
+# provenance attestation. Called by release.yml and nothing else.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Tag of the release to attach the assets to
+        required: true
+        type: string
+      version:
+        description: Version the artifacts are named after
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # attach assets to the release
+      id-token: write # mint the short-lived Sigstore signing certificate
+      attestations: write # record the attestation against the repository
+    env:
+      TAG: ${{ inputs.tag }}
+      # Once, because the attestation records its subject by name: the file
+      # attested and the file uploaded have to be the same string.
+      APK: prosefchi-${{ inputs.version }}.apk
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: apk
+          path: dist
+
+      # Only the APK is attested. It is the file people download and run; the
+      # bundle is an input to Play, which resigns and repackages it into APKs no
+      # attestation made here could cover.
+      - id: attest
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/${{ env.APK }}
+
+      - name: Attach the APK and its attestation to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp "${{ steps.attest.outputs.bundle-path }}" "dist/$APK.sigstore.json"
+          # --clobber so re-running a partially failed publish replaces the
+          # assets instead of failing on the ones already there.
+          gh release upload "$TAG" \
+            "dist/$APK" \
+            "dist/$APK.sigstore.json" \
+            --clobber
+
+      - name: Report what was published
+        run: |
+          set -euo pipefail
+          {
+            echo "### GitHub release $TAG"
+            echo
+            echo '```'
+            (cd dist && sha256sum "$APK")
+            echo '```'
+            echo
+            echo 'Check the download against this build:'
+            echo
+            echo '```'
+            echo "gh attestation verify $APK --repo $GITHUB_REPOSITORY"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
