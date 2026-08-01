@@ -20,15 +20,14 @@
     <title>{{title}}</title>
     <meta name="description" content="{{description}}" />
     <link rel="stylesheet" href="{{root}}style.css" />
-    <!--
-      The tab icon is the app's notification cross on the brand red; site/
-      icon.svg explains why it is plated rather than used bare. icon.png is
-      the launcher artwork, declared after it as the fallback for anything
-      that will not take an SVG.
-    -->
     <link rel="icon" type="image/svg+xml" href="{{root}}icon.svg" />
-    <link rel="icon" href="{{root}}icon.png" />
-    <link rel="apple-touch-icon" href="{{root}}icon.png" />
+    <link rel="icon" href="{{root}}icon-192.png" />
+    <link rel="apple-touch-icon" href="{{root}}icon-192.png" />
+    <link rel="manifest" href="{{root}}{{langPath}}manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- iOS before 16.4 reads only the apple- prefixed pair. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="{{appTitle}}" />
     <link rel="canonical" href="{{canonical}}" />
     {{alternates}}
     <meta property="og:title" content="{{title}}" />
@@ -41,7 +40,7 @@
 
     <header class="chrome">
       <a class="brand" href="{{root}}{{langPath}}">
-        <img class="brand-mark" src="{{root}}icon.png" alt="" width="28" height="28" />
+        <img class="brand-mark" src="{{root}}icon-192.png" alt="" width="28" height="28" />
         <span>{{appTitle}}</span>
       </a>
 
@@ -64,6 +63,7 @@
         <a href="https://github.com/Prosefchi/prosefchi">{{sourceCode}}</a>
       </p>
     </footer>
+    {{swRegister}}
     {{scripts}}
   </body>
 </html>

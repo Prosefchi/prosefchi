@@ -25,3 +25,21 @@ alt="Get it on Obtainium" align="center" height="80" />
 <img src="{{root}}img/screenshots/today-en.png" alt="The day's commemoration, tone and readings" width="200" />
 <img src="{{root}}img/screenshots/morning-en.png" alt="The morning prayer rule" width="200" />
 </div>
+
+<!-- Revealed by _installScript in tool/build_site.dart. The heading is a tag
+rather than ## so that it sits inside the element being hidden. -->
+
+<div class="webapp" hidden>
+<h2>Web app</h2>
+<p>Install this site itself. It reads offline like the app, and needs no store,
+but it cannot remind you to pray.</p>
+<div align="center">
+<button type="button" class="install">
+<img src="{{root}}icon-192.png" alt="" width="28" height="28" />
+Install web app
+</button>
+</div>
+<p class="how" data-how="ios" hidden>Tap Share, then <b>Add to Home Screen</b>.</p>
+<p class="how" data-how="mac" hidden>In the File menu, choose <b>Add to Dock</b>.</p>
+<p class="how" data-how="other" hidden>Your browser may offer <b>Install</b> or <b>Add to Home Screen</b> in its menu.</p>
+</div>
