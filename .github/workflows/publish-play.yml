@@ -19,10 +19,6 @@ on:
         description: Reported in the summary; the value is already inside the bundle
         required: true
         type: string
-      package:
-        description: Application id to upload under, read from Gradle by the build
-        required: true
-        type: string
       publish:
         description: Send the release live immediately instead of leaving a draft
         required: false
@@ -45,11 +41,10 @@ jobs:
       BUNDLE: dist/prosefchi-${{ inputs.version }}.aab
       # Uploaded and reported from one value, so the summary cannot claim a
       # track the release did not go to.
-      TRACK: production
-      # A draft unless the run was dispatched with publish ticked. A live Play
-      # release can be halted but not taken back off the phones that already
-      # took it, so the irreversible step is left to a person.
-      STATUS: ${{ inputs.publish && 'completed' || 'draft' }}
+      TRACK: alpha
+      # Back to production and `${{ inputs.publish && 'completed' || 'draft'
+      # }}` together when Play unlocks it; a draft reaches no tester.
+      STATUS: completed
     steps:
       - name: Check the service account is configured
         env:
@@ -66,10 +61,21 @@ jobs:
           name: bundle
           path: dist
 
-      # Play caps release notes at 500 characters and rejects the upload rather
-      # than truncating. Over the cap they are dropped with a warning rather
-      # than cut, since a listing ending mid-sentence is worse than one written
-      # in the Console.
+      # From the artifact: GitHub drops a job output whose value contains a
+      # secret, and the key alias is a substring of the id.
+      - name: Read the application id
+        id: package
+        run: |
+          set -euo pipefail
+          name="$(cat dist/package.txt)"
+          if [ -z "$name" ]; then
+            echo "::error::dist/package.txt is empty; the build recorded no application id"
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      # Play caps notes at 500 characters and rejects rather than truncating.
+      # Over the cap they are dropped, a listing cut mid-sentence being worse.
       - name: Collect the release notes
         id: notes
         env:
@@ -91,8 +97,7 @@ jobs:
           fi
 
           # whatsnew-<BCP 47 locale> is the API's filename. Only en-US: the
-          # release body is English, and the Greek listing keeps what the
-          # Console holds rather than being handed English under el-GR.
+          # release body is English, and Greek keeps what the Console holds.
           mkdir -p whatsnew
           printf '%s' "$body" > whatsnew/whatsnew-en-US
           echo "directory=whatsnew" >> "$GITHUB_OUTPUT"
@@ -101,7 +106,7 @@ jobs:
         uses: r0adkll/upload-google-play@v1.1.5
         with:
           serviceAccountJsonPlainText: ${{ secrets.service_account_json }}
-          packageName: ${{ inputs.package }}
+          packageName: ${{ steps.package.outputs.name }}
           releaseFile: ${{ env.BUNDLE }}
           releaseName: ${{ inputs.version }}
           track: ${{ env.TRACK }}
@@ -114,7 +119,7 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
           VERSION_CODE: ${{ inputs.version_code }}
-          PACKAGE: ${{ inputs.package }}
+          PACKAGE: ${{ steps.package.outputs.name }}
         run: |
           set -euo pipefail
           {

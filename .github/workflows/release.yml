@@ -5,8 +5,9 @@ name: Release
 #   release published ──▶ build ──┬──▶ publish-github.yml   APK + attestation
 #                                 └──▶ publish-play.yml     App Bundle
 #
-# One build, so the two carry the same commit and the same version code. Setting
-# up Play publishing is documented under Google Play in CLAUDE.md.
+# One build, so the two carry the same commit and the same version code. A
+# manual run can switch either arm off. Setting up Play publishing is
+# documented under Google Play in CLAUDE.md.
 
 on:
   release:
@@ -18,6 +19,14 @@ on:
       tag:
         description: Tag of an existing release to build and attach to
         required: true
+      github_release:
+        description: Attach the APK and its attestation to the GitHub release
+        type: boolean
+        default: true
+      play_release:
+        description: Upload the App Bundle to Google Play
+        type: boolean
+        default: true
       publish:
         description: >-
           Send the Play release live immediately instead of leaving it a draft
@@ -32,9 +41,8 @@ permissions:
   id-token: write # mint the short-lived Sigstore signing certificate
   attestations: write # record the attestation against the repository
 
-# Queue rather than cancel: a superseded run here leaves a release published
-# with no APK on it. Same reasoning as the Pages workflow, the opposite of
-# the test one.
+# Queue rather than cancel: a superseded run leaves a release published with
+# no APK on it.
 concurrency:
   group: release-${{ inputs.tag || github.event.release.tag_name }}
   cancel-in-progress: false
@@ -53,7 +61,6 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
       version_code: ${{ steps.version.outputs.version_code }}
-      package: ${{ steps.version.outputs.package }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -61,11 +68,9 @@ jobs:
           # run would otherwise build whichever branch the UI defaulted to.
           ref: ${{ env.TAG }}
 
-      # First, so a missing secret costs seconds rather than failing after the
-      # SDK setup, the tests and a three-minute build. The keystore is held as
-      # an organisation secret and only ever exists in the runner's temp
-      # directory, never in the workspace where it could be picked up by a
-      # later step or an artifact upload.
+      # First, so a missing secret costs seconds rather than a three-minute
+      # build. The keystore only ever exists in the runner's temp directory,
+      # never in the workspace an artifact could be uploaded from.
       - name: Decode the release keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -82,10 +87,8 @@ jobs:
           done
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
 
-      # Matches sourceCompatibility/targetCompatibility in
-      # android/app/build.gradle.kts. The runner image carries several JDKs and
-      # its default has moved before now; pinning stops that from quietly
-      # changing what a release was built with.
+      # Matches build.gradle.kts. The runner's default JDK has moved before
+      # now, which would quietly change what a release was built with.
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -100,13 +103,7 @@ jobs:
       - run: flutter pub get
 
       # A tag disagreeing with pubspec would ship an APK reporting a version
-      # nobody released, so fail before the build rather than after the assets
-      # are attached.
-      #
-      # The version code is derived from that version rather than kept as a
-      # `+build` suffix, so there is only one number to bump. Play requires it to
-      # rise with every release and never repeat, which a number computed from
-      # the triple satisfies with nothing to remember.
+      # nobody released. The version code is derived from it; see CLAUDE.md.
       - name: Check the tag matches pubspec
         id: version
         run: |
@@ -124,8 +121,7 @@ jobs:
           IFS=. read -r major minor patch <<<"$version"
 
           # 10# so a patch of 08 is eight, not a bad octal literal. The bound
-          # keeps the mapping one-to-one: without it 0.2.100 and 0.3.0 compute
-          # the same code, and Play rejects the second as a duplicate.
+          # keeps the mapping one-to-one; Play rejects a repeated code.
           if [ "$((10#$minor))" -ge 100 ] || [ "$((10#$patch))" -ge 100 ]; then
             echo "::error::Version $version overflows the version code; minor and patch must stay below 100"
             exit 1
@@ -140,11 +136,15 @@ jobs:
             exit 1
           fi
 
+          # A file, not a job output: GitHub drops an output whose value
+          # contains a secret, and the key alias is a substring of the id.
+          mkdir -p dist
+          printf '%s' "$package" > dist/package.txt
+
           {
             echo "tag=$TAG"
             echo "version=$version"
             echo "version_code=$code"
-            echo "package=$package"
           } >> "$GITHUB_OUTPUT"
           {
             echo "VERSION=$version"
@@ -155,12 +155,9 @@ jobs:
       # whose output cannot be quietly replaced once people have downloaded it.
       - run: flutter test
 
-      # Signing material scoped to these two steps rather than the whole job.
-      # android/app/build.gradle.kts falls back to the debug key when it is
-      # absent, which is what the check below catches.
-      #
-      # Play takes the bundle and the release carries the APK; they share a
-      # version code so moving between the two is never a downgrade.
+      # Scoped to these two steps rather than the whole job. Without them
+      # build.gradle.kts falls back to the debug key, which the next step
+      # catches.
       - name: Build the APK
         env:
           ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
@@ -177,13 +174,8 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: flutter build appbundle --release --build-number="$VERSION_CODE"
 
-      # Catches a debug-signed build before it ships. A debug-signed APK
-      # installs fine and only breaks the *next* release, which will not install
-      # over it; Play rejects one as an unrecognised upload key, which points at
-      # a Play misconfiguration rather than at missing secrets.
-      #
-      # Two tools: apksigner reads an APK's signature block, a bundle is a
-      # signed jar and needs keytool.
+      # A debug-signed build installs fine and only breaks the *next* release.
+      # Two tools because a bundle is a signed jar rather than an APK.
       - name: Check both artifacts are signed with the release key
         run: |
           set -euo pipefail
@@ -226,7 +218,9 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: bundle
-          path: dist/prosefchi-${{ env.VERSION }}.aab
+          path: |
+            dist/prosefchi-${{ env.VERSION }}.aab
+            dist/package.txt
           if-no-files-found: error
           retention-days: 7
 
@@ -243,8 +237,11 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  # The event is tested too because `inputs` is empty on a release event, where
+  # a bare `inputs.github_release` reads as false and would publish nothing.
   github-release:
     needs: build
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.github_release }}
     uses: ./.github/workflows/publish-github.yml
     with:
       tag: ${{ needs.build.outputs.tag }}
@@ -252,12 +249,12 @@ jobs:
 
   play:
     needs: build
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.play_release }}
     uses: ./.github/workflows/publish-play.yml
     with:
       tag: ${{ needs.build.outputs.tag }}
       version: ${{ needs.build.outputs.version }}
       version_code: ${{ needs.build.outputs.version_code }}
-      package: ${{ needs.build.outputs.package }}
       # Absent on a release event, where `inputs` is empty and this is false.
       publish: ${{ inputs.publish == true }}
     secrets:

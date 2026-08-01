@@ -33,9 +33,8 @@ jobs:
           name: apk
           path: dist
 
-      # Only the APK is attested. It is the file people download and run; the
-      # bundle is an input to Play, which resigns and repackages it into APKs no
-      # attestation made here could cover.
+      # Only the APK is attested: the bundle is an input to Play, which
+      # resigns it into APKs no attestation made here could cover.
       - id: attest
         uses: actions/attest-build-provenance@v4
         with:
@@ -47,11 +46,12 @@ jobs:
         run: |
           set -euo pipefail
           cp "${{ steps.attest.outputs.bundle-path }}" "dist/$APK.sigstore.json"
-          # --clobber so re-running a partially failed publish replaces the
-          # assets instead of failing on the ones already there.
+          # --repo because gh reads it off the git remote otherwise, and this
+          # job never checks out. --clobber so a re-run replaces the assets.
           gh release upload "$TAG" \
             "dist/$APK" \
             "dist/$APK.sigstore.json" \
+            --repo "$GITHUB_REPOSITORY" \
             --clobber
 
       - name: Report what was published
