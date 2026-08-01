@@ -474,18 +474,8 @@ html[lang="el"] .prayer-list h2 {
   color: var(--muted);
 }
 
-/*
-  `.doc` is anything read straight through rather than scanned — a prayer, the
-  privacy policy — and carries everything that makes text readable at length:
-  the measure, the leading, the heading scale, the rule and what follows it.
-
-  `.prayer` is a modifier on top of it and sets one thing, the face, because the
-  serif is for liturgical text. It is deliberately not a second class listing
-  the same rules: written that way every one of these blocks had to name both,
-  and the next long-form page would have had to be added to seven selector
-  lists, where missing the print block at the bottom is the easy mistake and
-  nothing tests for it.
-*/
+/* Anything read straight through rather than scanned: a prayer, the privacy
+   policy. `.prayer` is a modifier on it for the serif. */
 .doc {
   max-width: var(--measure);
   margin: 0 auto;

@@ -13,6 +13,21 @@ PackageInfo info({String version = '1.2.3', String build = '7'}) => PackageInfo(
   buildNumber: build,
 );
 
+/// What the rows asked the platform to open, and how.
+class Launches {
+  final urls = <Uri>[];
+  final modes = <LaunchMode>[];
+
+  Future<bool> call(
+    Uri url, {
+    LaunchMode mode = LaunchMode.platformDefault,
+  }) async {
+    urls.add(url);
+    modes.add(mode);
+    return true;
+  }
+}
+
 Widget harness({
   Future<PackageInfo> Function()? packageInfo,
   Future<bool> Function(Uri, {LaunchMode mode})? launch,
@@ -42,21 +57,16 @@ void main() {
   });
 
   testWidgets('opens the repository', (tester) async {
-    final opened = <Uri>[];
-    await tester.pumpWidget(
-      harness(
-        launch: (url, {mode = LaunchMode.platformDefault}) async {
-          opened.add(url);
-          return true;
-        },
-      ),
-    );
+    final launches = Launches();
+    await tester.pumpWidget(harness(launch: launches.call));
     await settle(tester);
 
     await tester.tap(find.text('Source code'));
     await settle(tester);
 
-    expect(opened, [Uri.parse('https://github.com/Prosefchi/prosefchi')]);
+    expect(launches.urls, [
+      Uri.parse('https://github.com/Prosefchi/prosefchi'),
+    ]);
   });
 
   testWidgets('says so when the link cannot be opened', (tester) async {
@@ -74,65 +84,32 @@ void main() {
 
   testWidgets('opens the privacy policy on the website', (tester) async {
     // Google Play requires this link to work, and the store listing points at
-    // the same page, so the URL is worth stating in a test rather than trusting
-    // to a build that would only fail on the website.
-    final opened = <Uri>[];
-    await tester.pumpWidget(
-      harness(
-        launch: (url, {mode = LaunchMode.platformDefault}) async {
-          opened.add(url);
-          return true;
-        },
-      ),
-    );
+    // the same page. In the in-app browser, unlike the repository row.
+    final launches = Launches();
+    await tester.pumpWidget(harness(launch: launches.call));
     await settle(tester);
 
     await tester.tap(find.text('Privacy policy'));
     await settle(tester);
 
-    expect(opened, [Uri.parse('https://prosefchi.org/about/privacy/')]);
+    expect(launches.urls, [Uri.parse('https://prosefchi.org/about/privacy/')]);
+    expect(launches.modes, [LaunchMode.inAppBrowserView]);
   });
 
   testWidgets('sends a Greek reader to the Greek policy', (tester) async {
-    // The same document in the only language they can read it in. The site
-    // writes both from the same two constants this resolves, so the two cannot
-    // disagree about where the page is.
-    final opened = <Uri>[];
+    // The same document, in the only language they can read it in.
+    final launches = Launches();
     await tester.pumpWidget(
-      harness(
-        locale: const Locale('el'),
-        launch: (url, {mode = LaunchMode.platformDefault}) async {
-          opened.add(url);
-          return true;
-        },
-      ),
+      harness(locale: const Locale('el'), launch: launches.call),
     );
     await settle(tester);
 
     await tester.tap(find.text('Πολιτική απορρήτου'));
     await settle(tester);
 
-    expect(opened, [Uri.parse('https://prosefchi.org/el/about/privacy/')]);
-  });
-
-  testWidgets('opens the policy in the in-app browser', (tester) async {
-    // Not the repository's external browser: a policy is read and returned
-    // from, so closing it should put the reader back in settings.
-    final modes = <LaunchMode>[];
-    await tester.pumpWidget(
-      harness(
-        launch: (_, {mode = LaunchMode.platformDefault}) async {
-          modes.add(mode);
-          return true;
-        },
-      ),
-    );
-    await settle(tester);
-
-    await tester.tap(find.text('Privacy policy'));
-    await settle(tester);
-
-    expect(modes, [LaunchMode.inAppBrowserView]);
+    expect(launches.urls, [
+      Uri.parse('https://prosefchi.org/el/about/privacy/'),
+    ]);
   });
 
   testWidgets('opens the licence page', (tester) async {

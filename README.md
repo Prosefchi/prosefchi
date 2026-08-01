@@ -30,7 +30,7 @@ The following languages are supported:
 ## Website
 
 The same day and the same prayers are on the web at
-<https://prosefchi.github.io/prosefchi/>, in both languages.
+<https://prosefchi.org/>, in both languages.
 
 It is a static site built from this repository by `tool/build_site.dart`, and it
 runs the app's own code: the prayers are rendered through the same parser the

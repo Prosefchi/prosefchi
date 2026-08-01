@@ -9,16 +9,8 @@ import '../models/calendar.dart';
 import '../models/site.dart' show defaultCalendarBaseUrl;
 import 'calendar_store.dart';
 
-// `supportedLanguages` lives on the Flutter-free side so the website can read
-// it too, but every screen asks this file for it, so it is re-exported rather
-// than moved out from under them.
+// Every screen asks this file for the languages, so it is re-exported.
 export '../models/calendar.dart' show supportedLanguages;
-
-// `defaultCalendarBaseUrl` is out there for the same reason:
-// tool/build_site.dart fetches the published calendars for a preview and runs
-// under `dart run`, which cannot reach a file importing Flutter. Re-exported
-// rather than moved out from under the callers here.
-export '../models/site.dart' show defaultCalendarBaseUrl;
 
 /// The content language for [locale], clamped to what we actually publish.
 ///

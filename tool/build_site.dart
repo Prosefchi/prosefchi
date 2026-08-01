@@ -39,32 +39,13 @@ import 'package:prosefchi/models/site.dart';
 import '../site/languages.dart';
 import 'args.dart';
 
-/// Where the site is served from, for canonical and alternate links.
-///
-/// From lib/models/site.dart, which is also where the app reads it to link to
-/// the privacy policy. A canonical naming a host that merely redirects to the
-/// real one is a canonical pointing at a redirect.
-final _defaultBaseUrl = siteUrl.toString();
-
-/// Published calendars, fetched by `--calendar` for a local preview.
-///
-/// Deliberately the *published* files rather than a local
-/// `tool/build_calendar.dart` run: that downloads ~32 MB of iCal from upstream,
-/// which is a great deal to pay to look at a stylesheet change.
-///
-/// `defaultCalendarBaseUrl`, not [_defaultBaseUrl] — the calendar is fetched
-/// from the GitHub Pages host and the site is *served* at the custom domain,
-/// and lib/models/site.dart says at length why those two must not be folded
-/// into one. Aliasing them here would drag this fetch along behind any future
-/// move of the site's own address.
-final _publishedCalendars = defaultCalendarBaseUrl;
-
 Future<void> main(List<String> args) async {
   final options = parseArgs(args);
   // Defaults under build/ so a local run lands somewhere already ignored, the
   // same as tool/build_calendar.dart. CI passes --out public and uploads it.
   final outDir = Directory(options['out'] ?? 'build/site');
-  final baseUrl = options['base-url'] ?? _defaultBaseUrl;
+  // Where the site is served from, for canonical and alternate links.
+  final baseUrl = options['base-url'] ?? siteUrl.toString();
   final serve = options.containsKey('serve');
 
   await outDir.create(recursive: true);
@@ -267,12 +248,6 @@ Future<int> _writeLanguage({
   );
 
   // The privacy policy, under the about page that links to it.
-  //
-  // Authored at the repository root rather than in site/, because GitHub and
-  // Google Play both look for a PRIVACY.md there, and rendered here so the one
-  // document serves the repository, the store listing and the app's own link.
-  // It is `about` in the nav, not a section of its own: a policy is something
-  // to be able to find rather than somewhere to be sent.
   await page(
     privacyPagePath(language),
     title: strings['privacyPolicy']!,
@@ -291,10 +266,7 @@ Future<int> _writeLanguage({
 /// The authored privacy policy for [language].
 ///
 /// English keeps the bare `PRIVACY.md`, which is where GitHub and Google Play
-/// look, and every translation sits beside it under its code — the same shape
-/// `prefixFor` gives the site's own paths.
-///
-/// Public so test/tool/ can hold the files to existing and parsing.
+/// look.
 String privacySource(String language) => language == supportedLanguages.first
     ? 'PRIVACY.md'
     : 'PRIVACY.$language.md';
@@ -529,10 +501,7 @@ String _aboutBody(
     ..writeln('<h2 class="about-heading">${_esc(strings['about']!)}</h2>')
     ..writeln('<div class="rows">');
 
-  // Mirrors lib/screens/about_section.dart, in its order. The repository opens
-  // in a new tab for the reason the app opens it in an external browser rather
-  // than the in-app one: it is somewhere to go and act, not to read and come
-  // back from.
+  // Mirrors lib/screens/about_section.dart, in its order.
   out
     ..writeln(
       _row(
@@ -541,12 +510,7 @@ String _aboutBody(
         href: 'https://github.com/Prosefchi/prosefchi',
       ),
     )
-    // The one row that stays on this site, so it is an ordinary link: no new
-    // tab, and no arrow, since there is nothing to warn anyone they are
-    // leaving. Resolved from the page's own root rather than written as
-    // `privacy/`, which is only right while the policy sits directly under the
-    // about page — moving `privacyPath` would otherwise leave this link behind
-    // on a 404 that nothing checks.
+    // The one row that stays on this site, so it is an ordinary link.
     ..writeln(
       _row(
         title: strings['privacyPolicy']!,
@@ -578,13 +542,8 @@ String _aboutBody(
 
 /// One about row: a title over a subtitle, linked or not.
 ///
-/// Whether the link leaves the site is read off [href] rather than passed in
-/// beside it. Every off-site link the generator emits is absolute and every
-/// on-site one is relative, so the flag could only ever restate what the URL
-/// already says — and the row that gets it wrong is the *next* same-site one
-/// somebody adds, which would open in a new tab with an "outside" arrow on it.
-/// The stylesheet hangs the ↗ off the `target` this sets rather than off a
-/// class of its own, so the two cannot disagree either.
+/// An absolute [href] leaves the site and opens in a new tab; a relative one
+/// stays. The stylesheet hangs the ↗ off that `target`.
 String _row({required String title, required String subtitle, String? href}) {
   final content =
       '<span class="row-title">${_esc(title)}</span>'
@@ -775,6 +734,9 @@ Future<void> _copyTree(Directory from, Directory to) async {
 }
 
 /// Downloads the published calendars, for a local preview.
+///
+/// The *published* files rather than a local `tool/build_calendar.dart` run,
+/// which downloads ~32 MB of iCal to look at a stylesheet change.
 Future<void> _fetchPublishedCalendars(Directory outDir) async {
   final client = HttpClient();
   try {
@@ -783,7 +745,7 @@ Future<void> _fetchPublishedCalendars(Directory outDir) async {
       if (file.existsSync()) continue;
 
       final name = Calendar.fileName(language);
-      final request = await client.getUrl(_publishedCalendars.resolve(name));
+      final request = await client.getUrl(defaultCalendarBaseUrl.resolve(name));
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {
         stdout.writeln('site: could not fetch $name (${response.statusCode})');
@@ -812,16 +774,12 @@ var _buildSerial = 0;
 ///
 /// `lib/` is in here because site/day.dart compiles the liturgics in, so a fix
 /// to the Paschalion has to reach the preview too.
-// PRIVACY*.md by name rather than the repository root, which would sweep in
-// build output and .git. They are build inputs like any authored document, so
-// a policy saved during a preview should reload the page it is rendered on.
-const _watched = [
+final _watched = [
   'site',
   'res/prayers',
   'lib',
   'pubspec.yaml',
-  'PRIVACY.md',
-  'PRIVACY.el.md',
+  ...supportedLanguages.map(privacySource),
 ];
 
 /// Rebuilds whenever a source file changes.

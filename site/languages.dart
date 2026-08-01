@@ -1,13 +1,6 @@
-// How the site lays languages out in its URLs.
-//
-// The rule itself lives in lib/models/site.dart, where the app can reach it
-// too: its about section links to the privacy policy published here, and that
-// URL has to be the one the generator writes. Re-exported so the two symbols
-// the site's compiled code needs arrive beside [withoutLanguage], which is a
-// site concern and stays here. Only those two — anything reaching for the rest
-// of site.dart imports it directly rather than through a file about languages.
-//
-// Flutter-free, like everything else the site compiles.
+// How the site lays languages out in its URLs: the rule from
+// lib/models/site.dart, re-exported beside the one part of it that is the
+// site's own.
 
 import 'package:prosefchi/models/calendar.dart' show supportedLanguages;
 import 'package:prosefchi/models/site.dart' show prefixFor;
