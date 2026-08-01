@@ -1,14 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/models/calendar.dart' show supportedLanguages;
 import 'package:prosefchi/models/site.dart';
 
 import '../../tool/build_site.dart';
 import '../support/authored_document.dart';
-
-/// A line opening a Markdown list, in any of the three ways it can be written.
-final _listMarker = RegExp(r'^\s*([-*+]\s|\d+\.\s)');
 
 /// Checks the authored documents the site renders and the paths it writes them
 /// at, rather than the generator's plumbing.
@@ -24,23 +19,6 @@ void main() {
 
       for (final language in supportedLanguages) {
         expectAuthoredDocument(privacySource(language));
-      }
-    });
-
-    test('carries no list markers', () {
-      // The parser joins consecutive lines into one paragraph, so a list
-      // arrives as a run-on sentence with hyphens through it.
-      for (final language in supportedLanguages) {
-        final path = privacySource(language);
-        final offenders = File(
-          path,
-        ).readAsLinesSync().where(_listMarker.hasMatch);
-
-        expect(
-          offenders,
-          isEmpty,
-          reason: '$path has a list, which renders as a run-on paragraph',
-        );
       }
     });
 

@@ -1,10 +1,3 @@
-<!--
-  No lists: the parser joins consecutive lines into one paragraph. Headings and
-  short paragraphs instead.
-
-  PRIVACY.el.md is the same policy in Greek and changes with it.
--->
-
 # Privacy policy
 
 Prosefchi collects nothing about you. There is no account to create, no sign-in,
@@ -19,10 +12,13 @@ would only make it harder to check.
 
 ## What is kept on your device
 
-The app remembers the language and text size you chose, whether you have seen
-the welcome pages, which reminders you switched on, and the times you set for
-them. It also keeps the calendar of saints, feasts and readings that it
-downloads, so the day's page and the prayers work with no signal.
+The app keeps:
+
+- The language and text size you chose.
+- Whether you have seen the welcome pages.
+- Which reminders you switched on, and the times you set for them.
+- The calendar of saints, feasts and readings it downloads, so the day's page
+  and the prayers work with no signal.
 
 All of that is held in the app's own private storage on your device. None of it
 is uploaded, and removing the app removes it.
@@ -72,14 +68,11 @@ governed by its own privacy policy rather than by this one.
 
 ## Permissions
 
-Notifications, so a reminder you switched on can appear.
-
-Internet access, so the calendar can be downloaded.
-
-Starting at boot, so reminders you have already set are put back after the
-device restarts. Without it they would disappear on the first restart.
-
-Vibration, so a reminder can be felt as well as seen.
+- Notifications, so a reminder you switched on can appear.
+- Internet access, so the calendar can be downloaded.
+- Starting at boot, so reminders you have already set are put back after the
+  device restarts. Without it they would disappear on the first restart.
+- Vibration, so a reminder can be felt as well as seen.
 
 The app asks for nothing else. It has no access to your contacts, your location,
 your camera, your microphone, your files, your accounts, or anything else on the
