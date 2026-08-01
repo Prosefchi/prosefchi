@@ -1,14 +1,8 @@
 name: Publish to Google Play
 
 # Uploads the App Bundle built by release.yml to Google Play, which resigns it
-# into per-device APKs of its own. Called by release.yml and nothing else; to
-# run it again after a rejection, use the failed-jobs button on the release run
-# rather than rebuilding, so what reaches Play is the bundle that was checked.
-#
-# THE FIRST UPLOAD CANNOT COME FROM HERE. The Play Developer API refuses to
-# create an app's first release: a bundle has to go up through the Play Console
-# by hand once, after which this owns every release. The Google Play section of
-# CLAUDE.md has that and the rest of the one-time setup.
+# into per-device APKs of its own. Called by release.yml and nothing else.
+# Setup is documented under Google Play in CLAUDE.md.
 
 on:
   workflow_call:
@@ -49,21 +43,14 @@ jobs:
     env:
       TAG: ${{ inputs.tag }}
       BUNDLE: dist/prosefchi-${{ inputs.version }}.aab
-      # Stated once for the same reason STATUS is: the value uploaded and the
-      # value reported below must be one reading, or switching to an internal
-      # track leaves the summary claiming a production release that never
-      # happened.
+      # Uploaded and reported from one value, so the summary cannot claim a
+      # track the release did not go to.
       TRACK: production
-      # A draft unless the run was dispatched with publish ticked. Play has no
-      # undo worth the name: a live release can be halted, but not taken back
-      # off the phones that already took it. So the default leaves the last step
-      # to a person, and the flag is there for when that person has already
-      # decided. Same line the signer check draws in the build — CI does
-      # everything that can be checked and stops short of what cannot be undone.
+      # A draft unless the run was dispatched with publish ticked. A live Play
+      # release can be halted but not taken back off the phones that already
+      # took it, so the irreversible step is left to a person.
       STATUS: ${{ inputs.publish && 'completed' || 'draft' }}
     steps:
-      # A fast job, so this costs little wherever it sits, but it stays first
-      # for the same reason the keystore check does in the build.
       - name: Check the service account is configured
         env:
           SERVICE_ACCOUNT_JSON: ${{ secrets.service_account_json }}
@@ -79,14 +66,10 @@ jobs:
           name: bundle
           path: dist
 
-      # Play's release notes field is capped at 500 characters and rejects the
-      # upload rather than truncating, so the GitHub release body cannot simply
-      # be passed through.
-      #
-      # Over the cap the notes are dropped rather than cut, and loudly. A store
-      # listing ending mid-sentence is worse than one whose notes were written
-      # in the Console, and by default the release is a draft anyway — the
-      # maintainer is already there.
+      # Play caps release notes at 500 characters and rejects the upload rather
+      # than truncating. Over the cap they are dropped with a warning rather
+      # than cut, since a listing ending mid-sentence is worse than one written
+      # in the Console.
       - name: Collect the release notes
         id: notes
         env:
@@ -107,10 +90,9 @@ jobs:
             exit 0
           fi
 
-          # The filename is the API's, not ours: whatsnew-<BCP 47 locale>. Only
-          # en-US, because the release body is written in English; the Greek
-          # listing keeps whatever the Console holds rather than being handed
-          # English text under a Greek locale.
+          # whatsnew-<BCP 47 locale> is the API's filename. Only en-US: the
+          # release body is English, and the Greek listing keeps what the
+          # Console holds rather than being handed English under el-GR.
           mkdir -p whatsnew
           printf '%s' "$body" > whatsnew/whatsnew-en-US
           echo "directory=whatsnew" >> "$GITHUB_OUTPUT"

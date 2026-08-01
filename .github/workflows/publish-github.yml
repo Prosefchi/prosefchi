@@ -1,14 +1,7 @@
 name: Publish to GitHub
 
-# Attaches the APK built by release.yml to the GitHub release, together with a
-# signed provenance attestation. This is the channel Obtainium follows and the
-# one anyone downloading by hand uses, so the file here is installed as it is,
-# unlike the bundle Play repackages.
-#
-# Called by release.yml and nothing else — it has no trigger of its own, since
-# there is no APK to attach without the build that produced it. To run it again
-# after a failure, use the failed-jobs button on the release run: the artifact
-# is still there and no rebuild is needed.
+# Attaches the APK built by release.yml to the GitHub release, with a signed
+# provenance attestation. Called by release.yml and nothing else.
 
 on:
   workflow_call:
@@ -31,9 +24,8 @@ jobs:
       attestations: write # record the attestation against the repository
     env:
       TAG: ${{ inputs.tag }}
-      # The asset name once, because the attestation records its subject by
-      # name: the file attested and the file uploaded have to be the same
-      # string, and a mismatch fails here, after the release is already public.
+      # Once, because the attestation records its subject by name: the file
+      # attested and the file uploaded have to be the same string.
       APK: prosefchi-${{ inputs.version }}.apk
     steps:
       - uses: actions/download-artifact@v8
@@ -41,16 +33,9 @@ jobs:
           name: apk
           path: dist
 
-      # Because nothing is built on a maintainer's machine, the attestation is
-      # a claim anyone downloading the APK can check for themselves:
-      #
-      #   gh attestation verify prosefchi-0.0.1.apk --repo Prosefchi/prosefchi
-      #
-      # It runs against the file under the name it is published as, so the asset
-      # on the release and the subject in the attestation read the same. Only
-      # the APK is attested: it is the file people download and run, whereas the
-      # bundle is an input to Play, which resigns and repackages it into APKs
-      # this workflow never sees and no attestation made here could cover.
+      # Only the APK is attested. It is the file people download and run; the
+      # bundle is an input to Play, which resigns and repackages it into APKs no
+      # attestation made here could cover.
       - id: attest
         uses: actions/attest-build-provenance@v4
         with:

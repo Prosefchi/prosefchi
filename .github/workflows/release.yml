@@ -5,18 +5,8 @@ name: Release
 #   release published ──▶ build ──┬──▶ publish-github.yml   APK + attestation
 #                                 └──▶ publish-play.yml     App Bundle
 #
-# One build, two destinations, so the bundle Play distributes and the APK on the
-# release are the same build of the same commit rather than two builds that
-# agree by coincidence. The publishers are separate files because they share a
-# release and nothing else: they need different secrets and different token
-# permissions, they fail for unrelated reasons, and either can be re-run without
-# the other from the failed-jobs button on this run.
-#
-# THE FIRST UPLOAD TO PLAY CANNOT COME FROM HERE. The Play Developer API refuses
-# to create an app's first release: a bundle has to go up through the Play
-# Console by hand once, after which this workflow owns every release. See the
-# Google Play section of CLAUDE.md for that, and for what has to be set up
-# before publish-play.yml can work at all.
+# One build, so the two carry the same commit and the same version code. Setting
+# up Play publishing is documented under Google Play in CLAUDE.md.
 
 on:
   release:
@@ -57,9 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    # The tag is an output rather than read from `env` by the callers below: the
-    # env context is not available in a `with:` block, so the expression would
-    # otherwise have to be repeated in all three places.
+    # The tag is an output because the `env` context is unavailable in the
+    # callers' `with:` blocks.
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
@@ -110,25 +99,14 @@ jobs:
 
       - run: flutter pub get
 
-      # pubspec.yaml's version: is the only place the version lives, and Flutter
-      # feeds it to both platforms. A tag that disagrees with it would ship an
-      # APK reporting a version nobody released, and the about section reads
-      # that value back out of the bundle. Fail before the build, not after the
-      # assets are already attached.
+      # A tag disagreeing with pubspec would ship an APK reporting a version
+      # nobody released, so fail before the build rather than after the assets
+      # are attached.
       #
-      # The version code is computed from that version rather than written down
-      # anywhere, so the one place a version lives stays the one place. Play
-      # orders releases by it and refuses any value it has ever accepted — not
-      # merely the current one, but one from a release since deleted — so it has
-      # to rise with every published version and can never be reused. A number
-      # derived from the triple gets both right without anything to remember.
-      #
-      # pubspec carries no `+build` suffix and deliberately does not gain one: a
-      # second number to bump is a second number to forget, and the punishment
-      # for forgetting is an upload rejected after the release is already
-      # public. Flutter defaults the build number to 1 when it is absent, which
-      # is what every APK released so far reports — harmless for sideloading,
-      # which refuses only a *lower* code, and unusable for Play.
+      # The version code is derived from that version rather than kept as a
+      # `+build` suffix, so there is only one number to bump. Play requires it to
+      # rise with every release and never repeat, which a number computed from
+      # the triple satisfies with nothing to remember.
       - name: Check the tag matches pubspec
         id: version
         run: |
@@ -145,18 +123,17 @@ jobs:
           fi
           IFS=. read -r major minor patch <<<"$version"
 
-          # 10# so a patch of 08 is eight rather than a bad octal literal. The
-          # bound is what keeps the mapping one-to-one: without it 0.2.100 and
-          # 0.3.0 compute the same code, and the second of them is rejected by
-          # Play as a duplicate long after the mistake was made.
+          # 10# so a patch of 08 is eight, not a bad octal literal. The bound
+          # keeps the mapping one-to-one: without it 0.2.100 and 0.3.0 compute
+          # the same code, and Play rejects the second as a duplicate.
           if [ "$((10#$minor))" -ge 100 ] || [ "$((10#$patch))" -ge 100 ]; then
             echo "::error::Version $version overflows the version code; minor and patch must stay below 100"
             exit 1
           fi
           code="$((10#$major * 10000 + 10#$minor * 100 + 10#$patch))"
 
-          # Read out of Gradle rather than restated here, so the id the bundle
-          # uploads under cannot drift from the id the app is built with.
+          # From Gradle, so the id uploaded under cannot drift from the id
+          # the app is built with.
           package="$(sed -n 's/^ *applicationId = "\(.*\)"/\1/p' android/app/build.gradle.kts)"
           if [ -z "$package" ]; then
             echo "::error::No applicationId found in android/app/build.gradle.kts"
@@ -178,15 +155,12 @@ jobs:
       # whose output cannot be quietly replaced once people have downloaded it.
       - run: flutter test
 
-      # The signing material is scoped to these two steps rather than exported
-      # for the whole job. android/app/build.gradle.kts reads these four and
-      # falls back to the debug key when they are absent, which is why the check
-      # below exists.
+      # Signing material scoped to these two steps rather than the whole job.
+      # android/app/build.gradle.kts falls back to the debug key when it is
+      # absent, which is what the check below catches.
       #
-      # Play takes a bundle and the GitHub release carries an APK, so both are
-      # built, and they share a version code because they are one release
-      # reaching people two ways. Someone who installed from Obtainium and later
-      # installs from Play is moving sideways, not downgrading.
+      # Play takes the bundle and the release carries the APK; they share a
+      # version code so moving between the two is never a downgrade.
       - name: Build the APK
         env:
           ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
@@ -203,22 +177,13 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: flutter build appbundle --release --build-number="$VERSION_CODE"
 
-      # The one failure this whole arrangement exists to prevent, and the one
-      # that hides best: a debug-signed APK installs and runs perfectly, and
-      # only announces itself at the *next* release, which will not install over
-      # it. By then it has shipped. Assert on the signer rather than trusting
-      # that the environment reached Gradle.
+      # Catches a debug-signed build before it ships. A debug-signed APK
+      # installs fine and only breaks the *next* release, which will not install
+      # over it; Play rejects one as an unrecognised upload key, which points at
+      # a Play misconfiguration rather than at missing secrets.
       #
-      # The bundle is checked the same way for a slightly different reason. Play
-      # would reject a debug-signed upload itself, since the key is registered
-      # with them — but it rejects it as an unrecognised upload key, which reads
-      # as a Play configuration problem rather than as a build that never saw
-      # the secrets. Two tools, because an APK carries an APK Signature Scheme
-      # block that apksigner reads and a bundle is a signed jar that it does not.
-      #
-      # It happens here rather than in either publisher because it is a fact
-      # about the build, and because a publisher that trusted an artifact it
-      # merely downloaded would be checking the wrong thing.
+      # Two tools: apksigner reads an APK's signature block, a bundle is a
+      # signed jar and needs keytool.
       - name: Check both artifacts are signed with the release key
         run: |
           set -euo pipefail
@@ -241,8 +206,7 @@ jobs:
             exit 1
           fi
 
-      # Named here rather than in the publishers, so both artifacts leave this
-      # job under the name they will carry wherever they end up.
+      # Named here so both leave the job under the name they will carry.
       - name: Name the artifacts after the release
         run: |
           set -euo pipefail
@@ -250,16 +214,13 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk "dist/prosefchi-$VERSION.apk"
           cp build/app/outputs/bundle/release/app-release.aab "dist/prosefchi-$VERSION.aab"
 
-      # Two artifacts rather than one, so each publisher downloads only what it
-      # publishes. Both are signed but hold no secret the released APK does not;
-      # the keystore stays in the runner's temp directory and reaches neither.
+      # Two artifacts, so each publisher downloads only what it publishes.
       - uses: actions/upload-artifact@v7
         with:
           name: apk
           path: dist/prosefchi-${{ env.VERSION }}.apk
           if-no-files-found: error
-          # Long enough to re-run a publisher by hand days after a rejection,
-          # short of keeping signed build output around indefinitely.
+          # Long enough to re-run a publisher by hand after a rejection.
           retention-days: 7
 
       - uses: actions/upload-artifact@v7
