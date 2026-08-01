@@ -538,8 +538,8 @@ html[lang="el"] .prayer-list h2 {
   margin: 2.5rem 0 1.5rem;
 }
 
-/* Below the rule is about the text rather than part of it: the attribution on
-   a prayer, the date the policy last changed. */
+/* Below the rule is about the text rather than part of it: a prayer's
+   attribution. */
 .doc hr ~ p {
   font-family: var(--ui);
   font-size: 0.86rem;

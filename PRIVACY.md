@@ -89,11 +89,7 @@ a child either.
 
 ## Changes and questions
 
-If this policy changes, the new version is published here and the date below
-changes with it, and every past version is in the project's history. Questions
-can be raised as an issue:
+If this policy changes, the new version is published here, and every version it
+has had is in the project's history, with the date of each. Questions can be
+raised as an issue:
 [github.com/Prosefchi/prosefchi/issues](https://github.com/Prosefchi/prosefchi/issues).
-
----
-
-Last updated 1 August 2026.
