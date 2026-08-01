@@ -1,13 +1,7 @@
 <!--
-  PRIVACY.md in Greek, rendered to /el/about/privacy/ by tool/build_site.dart.
-  The two change together: this is the same policy, not a separate one, and a
-  claim that holds in one language has to hold in the other.
+  PRIVACY.md in Greek. The two change together.
 
-  Monotonic modern Greek, like every other interface string. The polytonic
-  spelling is for the liturgical text under res/, not for this.
-
-  No bullet lists, for the reason PRIVACY.md gives: the parser joins
-  consecutive lines into one paragraph.
+  No lists: the parser joins consecutive lines into one paragraph.
 -->
 
 # Πολιτική απορρήτου

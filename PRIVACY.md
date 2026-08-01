@@ -1,16 +1,8 @@
 <!--
-  The privacy policy, authored in the same small markup subset as res/prayers/
-  and site/download_*.md, and rendered to /about/privacy/ by
-  tool/build_site.dart. It is a document rather than a page in site/ so that
-  GitHub and Google Play find it where both look for one.
+  No lists: the parser joins consecutive lines into one paragraph. Headings and
+  short paragraphs instead.
 
-  No bullet lists: the parser joins consecutive lines into one paragraph, so a
-  list would arrive on the website as a run-on sentence with hyphens in it.
-  Headings and short paragraphs instead. See lib/models/markup.dart.
-
-  Every claim here is checkable against the source. Keep it that way: a policy
-  that overstates what the app avoids is worse than one that admits a detail.
-  PRIVACY.el.md is the same document in Greek and changes with it.
+  PRIVACY.el.md is the same policy in Greek and changes with it.
 -->
 
 # Privacy policy
