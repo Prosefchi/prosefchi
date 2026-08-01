@@ -43,7 +43,8 @@ The following languages are supported:
 ## Website
 
 The same day and the same prayers are on the web at
-<https://prosefchi.org/>, in both languages.
+<https://prosefchi.org/>, in both languages. It installs as a web app and the
+prayers stay readable offline, for anyone who cannot use the Android app.
 
 It is a static site built from this repository by `tool/build_site.dart`, and it
 runs the app's own code: the prayers are rendered through the same parser the
@@ -56,7 +57,10 @@ dart run tool/build_site.dart --serve
 
 That builds into `build/site`, downloads the published calendar so there is real
 data to look at, serves it at <http://localhost:8000>, and rebuilds and reloads
-whenever a source file changes.
+whenever a source file changes. The preview turns the service worker off, since
+one answering from its cache would serve the page from before the edit; to look
+at the installed app, build without `--serve` and serve `build/site` with any
+static server.
 
 ## Building
 

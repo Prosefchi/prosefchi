@@ -603,6 +603,47 @@ html[lang="el"] .prayer-list h2 {
   }
 }
 
+/* Required: any display on the element itself beats the user agent's
+   [hidden], and the badge ships hidden. */
+.download .webapp[hidden] {
+  display: none;
+}
+
+.download .webapp h2 {
+  margin-top: 1.8rem;
+}
+
+/* The container pair, not --red: in the dark theme that is a light pink. */
+.download .install {
+  font: inherit;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1.3rem 0.7rem 0.85rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--on-container);
+  color: var(--container);
+  cursor: pointer;
+}
+
+.download .install img {
+  border-radius: 6px;
+}
+
+/* Revealed by the badge, so the page is not carrying instructions for browsers
+   the reader is not using. */
+.download .how {
+  margin: 0.8rem 0 0;
+  text-align: center;
+  font-size: 0.92rem;
+}
+
+.download .how[hidden] {
+  display: none;
+}
+
 /* The screenshots. The same four images the README shows, from site/img so one
    set serves both. */
 .download .shots {

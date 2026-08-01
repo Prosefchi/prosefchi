@@ -28,3 +28,21 @@ alt="Get it on Obtainium" align="center" height="80" />
 <img src="{{root}}img/screenshots/today-el.png" alt="Η ημέρα στα ελληνικά" width="200" />
 <img src="{{root}}img/screenshots/morning-el.png" alt="Οι πρωινές προσευχές" width="200" />
 </div>
+
+<!-- Revealed by _installScript in tool/build_site.dart. The heading is a tag
+rather than ## so that it sits inside the element being hidden. -->
+
+<div class="webapp" hidden>
+<h2>Εφαρμογή ιστού</h2>
+<p>Εγκαταστήστε τον ίδιο τον ιστότοπο. Διαβάζεται εκτός σύνδεσης όπως η
+εφαρμογή και δεν χρειάζεται κατάστημα, αλλά δεν στέλνει υπενθυμίσεις.</p>
+<div align="center">
+<button type="button" class="install">
+<img src="{{root}}icon-192.png" alt="" width="28" height="28" />
+Εγκατάσταση εφαρμογής
+</button>
+</div>
+<p class="how" data-how="ios" hidden>Πατήστε Κοινή χρήση και μετά <b>Προσθήκη στην οθόνη αφετηρίας</b>.</p>
+<p class="how" data-how="mac" hidden>Από το μενού Αρχείο, επιλέξτε <b>Προσθήκη στο Dock</b>.</p>
+<p class="how" data-how="other" hidden>Το πρόγραμμα περιήγησής σας ίσως προσφέρει <b>Εγκατάσταση</b> ή <b>Προσθήκη στην οθόνη αφετηρίας</b> στο μενού του.</p>
+</div>

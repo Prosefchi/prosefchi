@@ -23,6 +23,10 @@
 //     reader's timezone, the date is unbounded, and the calendar is rebuilt
 //     daily. See site/day.dart.
 //
+// The output is a web app as well as a website. The preview turns the service
+// worker off, so to look at the installed thing, build without --serve and
+// serve the output with any static server.
+//
 // CI builds this and the calendar in separate jobs, merged into one Pages deploy.
 
 import 'dart:async';
@@ -72,7 +76,7 @@ Future<void> main(List<String> args) async {
 /// exactly the failure a preview exists to prevent.
 Future<void> _build(Directory outDir, String baseUrl) async {
   final shell = await File('site/shell.html').readAsString();
-  final strings = await _strings();
+  final strings = await siteStrings();
   final version = await _version();
 
   // The compile is a subprocess and much the longest part of a build; nothing
@@ -96,6 +100,9 @@ Future<void> _build(Directory outDir, String baseUrl) async {
 
   await compile;
 
+  // Last, because it lists what everything above wrote.
+  await _writeServiceWorker(outDir);
+
   final pages = counts.reduce((a, b) => a + b);
   stdout.writeln('site: wrote $pages pages to ${outDir.path}');
 }
@@ -108,7 +115,10 @@ Future<void> _build(Directory outDir, String baseUrl) async {
 /// The ARB is the app's and stays the single source for everything the two
 /// share, so a translation corrected in the app reaches the site on the next
 /// deploy with nothing to keep in step.
-Future<Map<String, Map<String, String>>> _strings() async {
+///
+/// Public so test/tool/ builds a manifest from the real strings rather than a
+/// table beside the test, which would agree with itself.
+Future<Map<String, Map<String, String>>> siteStrings() async {
   final siteOnly =
       jsonDecode(await File('site/extra_strings.json').readAsString())
           as Map<String, dynamic>;
@@ -235,11 +245,12 @@ Future<int> _writeLanguage({
     title: strings['about']!,
     description: strings['aboutSiteVersion']!,
     section: 'about',
+    scripts: _installScript,
     body: _aboutBody(
       strings,
       MarkupDocument.parse(
         (await File(
-          'site/download_$language.md',
+          downloadSource(language),
         ).readAsString()).replaceAll('{{root}}', _rootFor(about)),
       ),
       version,
@@ -262,6 +273,72 @@ Future<int> _writeLanguage({
 
   return written;
 }
+
+String downloadSource(String language) => 'site/download_$language.md';
+
+/// The web app manifest for [language], written into that language's own
+/// directory so every path in it can be relative.
+///
+/// No `id`: it resolves against the origin rather than against this file, so it
+/// would be the one value here that has to know whether the site is deployed at
+/// `/` or at `/prosefchi/`. Left out, a browser derives it from `start_url`.
+String webManifest({
+  required Map<String, String> strings,
+  required String language,
+}) {
+  final root = _rootFor(prefixFor(language));
+
+  return const JsonEncoder.withIndent('  ').convert({
+    'name': strings['appTitle'],
+    'short_name': strings['appTitle'],
+    'description': strings['appDescription'],
+    'lang': language,
+    'dir': 'ltr',
+    // This language's directory; the site root, so the language switcher stays
+    // inside the installed app.
+    'start_url': '.',
+    'scope': root.isEmpty ? '.' : root,
+    'display': 'standalone',
+    'theme_color': '#7b1113',
+    // Paints the splash before any CSS loads, so it cannot follow the theme.
+    'background_color': '#fbf8f6',
+    'icons': [
+      for (final icon in _icons)
+        {
+          'src': '$root${icon.file}',
+          'sizes': '${icon.size}x${icon.size}',
+          'type': 'image/png',
+          'purpose': icon.purpose,
+        },
+    ],
+  });
+}
+
+/// The icons the manifest names, checked in under `site/`. CLAUDE.md carries
+/// the commands they are cut with.
+///
+/// Both maskable sizes are needed: offered only a 512, Chrome fell back to an
+/// `any` icon and masked the flag, cutting its corner firesteels. `page` marks
+/// the ones the pages reference; the rest a browser fetches at install, so
+/// precaching them would cost every first visit 39 KB for nothing.
+const _icons = [
+  (file: 'icon-192.png', size: 192, purpose: 'any', page: true),
+  (file: 'icon-512.png', size: 512, purpose: 'any', page: false),
+  (file: 'icon-maskable-192.png', size: 192, purpose: 'maskable', page: false),
+  (file: 'icon-maskable-512.png', size: 512, purpose: 'maskable', page: false),
+];
+
+/// Public so test/tool/ can hold each to existing.
+final iconFiles = [for (final icon in _icons) icon.file];
+
+final _manifestOnlyIcons = {
+  for (final icon in _icons)
+    if (!icon.page) icon.file,
+};
+
+/// Keep `RUNTIME` in site/sw.js in step: the preview's cleanup filters on this,
+/// and the precache name's other half is a digest it cannot know.
+const _cachePrefix = 'prosefchi-';
 
 /// The authored privacy policy for [language].
 ///
@@ -321,6 +398,7 @@ Future<void> _writePage({
     // Verbatim: markup this file generated.
     'body': _Slot.markup(body),
     'scripts': _Slot.markup(scripts),
+    'swRegister': _Slot.markup(_registerScript),
     'dayCurrent': _Slot.markup(current(section == 'day')),
     'prayersCurrent': _Slot.markup(current(section == 'prayers')),
     'aboutCurrent': _Slot.markup(current(section == 'about')),
@@ -333,16 +411,10 @@ Future<void> _writePage({
     ),
   };
 
-  // Every placeholder in the shell must be filled, and an unknown one fails
-  // the build. Left to a per-key replaceAll, a placeholder added to the shell
-  // and forgotten here would ship the literal `{{whatever}}` to production.
-  final html = shell.replaceAllMapped(_placeholder, (match) {
-    final name = match[1]!;
-    final slot = slots[name];
-    if (slot == null) {
-      throw StateError('site: shell.html has no value for {{$name}}');
-    }
-    return slot.raw ? slot.value : _esc(slot.value);
+  // The slot decides the escaping, _fill does the substitution.
+  final html = _fill(shell, {
+    for (final slot in slots.entries)
+      slot.key: slot.value.raw ? slot.value.value : _esc(slot.value.value),
   });
 
   final file = File('${outDir.path}/${path}index.html');
@@ -693,22 +765,20 @@ Future<void> _copyAssets(
     await File(
       '${outDir.path}/strings.$language.json',
     ).writeAsString(jsonEncode(strings[language]));
+
+    // Beside that language's day view, so `start_url` can be `.`.
+    final manifest = File(
+      '${outDir.path}/${prefixFor(language)}manifest.webmanifest',
+    );
+    await manifest.parent.create(recursive: true);
+    await manifest.writeAsString(
+      webManifest(strings: strings[language]!, language: language),
+    );
   }
 
-  // The launcher artwork, for the larger icon slots. Not fatal if it is
-  // missing: it is a build input for the icon generator rather than something
-  // the app ships, so a checkout without it should still produce a site.
-  final icon = File('assets/icon/icon.png');
-  if (icon.existsSync()) {
-    await icon.copy('${outDir.path}/icon.png');
-  } else {
-    stdout.writeln('site: assets/icon/icon.png missing, no apple-touch icon');
+  for (final name in ['icon.svg', ...iconFiles]) {
+    await File('site/$name').copy('${outDir.path}/$name');
   }
-
-  // The tab icon: the app's notification cross on the brand red. A checked-in
-  // asset rather than something composited here, since it changes only when
-  // the artwork does. site/icon.svg explains why it is plated.
-  await File('site/icon.svg').copy('${outDir.path}/icon.svg');
 
   await _copyTree(Directory('site/img'), Directory('${outDir.path}/img'));
 }
@@ -732,6 +802,101 @@ Future<void> _copyTree(Directory from, Directory to) async {
     }
   }
 }
+
+// ----------------------------------------------------------- service worker
+
+/// Fills site/sw.js with what this build wrote, at the site root — a worker's
+/// scope is the directory it is served from, and this one has to reach every
+/// page.
+Future<void> _writeServiceWorker(Directory outDir) async {
+  final (assets, digest) = await _precache(outDir);
+
+  final worker = _fill(await File('site/sw.js').readAsString(), {
+    'cache': '$_cachePrefix$digest',
+    'assets': jsonEncode(assets),
+    'calendars': jsonEncode([
+      for (final language in supportedLanguages) Calendar.fileName(language),
+    ]),
+  });
+
+  await File('${outDir.path}/sw.js').writeAsString(worker);
+}
+
+/// Everything to precache, relative to the site root, and a digest of the lot.
+///
+/// The digest names the cache, and so is what makes a deploy reach a browser
+/// already holding one — a constant name leaves `sw.js` byte-identical, and a
+/// byte-identical worker is never reinstalled. A build stamp would refetch the
+/// site on every nightly Pages run, which mostly rebuilds identical files.
+/// FNV-1a rather than a real hash: the only question is whether it changed.
+Future<(List<String>, String)> _precache(Directory outDir) async {
+  final root = outDir.absolute.path;
+  final calendars = {
+    for (final language in supportedLanguages) Calendar.fileName(language),
+  };
+
+  final entries = <(String, File)>[];
+  await for (final entity in outDir.list(recursive: true)) {
+    if (entity is! File) continue;
+
+    final path = entity.absolute.path.substring(root.length + 1);
+    final name = path.split('/').last;
+
+    // The screenshots are an advert, and twice the weight of the rest of the
+    // site together. The calendar is the other CI job's output, so it is not in
+    // this build to be listed, and is fetched fresh anyway.
+    if (path == 'sw.js') continue;
+    if (path.startsWith('img/')) continue;
+    if (calendars.contains(path)) continue;
+    if (_manifestOnlyIcons.contains(path)) continue;
+
+    // A navigation asks for the directory, so cached under `index.html` a page
+    // would never be matched.
+    final url = name == 'index.html'
+        ? path.substring(0, path.length - name.length)
+        : path;
+    entries.add((url, entity));
+  }
+
+  // Sorted so the digest does not depend on the order the filesystem listed in.
+  entries.sort((a, b) => a.$1.compareTo(b.$1));
+
+  var digest = 0x811c9dc5;
+  void mix(List<int> bytes) {
+    for (final byte in bytes) {
+      digest = ((digest ^ byte) * 0x01000193) & 0xffffffff;
+    }
+  }
+
+  // Together, mixed in the sorted order: this runs after the compile, so its
+  // cost is all tail.
+  final contents = await Future.wait([
+    for (final (_, file) in entries) file.readAsBytes(),
+  ]);
+
+  for (var i = 0; i < entries.length; i++) {
+    // The path too, so a file moved or removed is a change with nothing edited.
+    mix(utf8.encode(entries[i].$1));
+    mix(contents[i]);
+  }
+
+  return (
+    [for (final (url, _) in entries) './$url'],
+    digest.toRadixString(16).padLeft(8, '0'),
+  );
+}
+
+/// Substitutes `{{name}}` in a template.
+///
+/// Every placeholder must have a value, and an unknown one fails the build:
+/// left to a per-key replaceAll, one added to the shell and forgotten would
+/// ship the literal `{{whatever}}` to production.
+String _fill(String template, Map<String, String> values) =>
+    template.replaceAllMapped(_placeholder, (match) {
+      final value = values[match[1]!];
+      if (value == null) throw StateError('site: no value for {{${match[1]}}}');
+      return value;
+    });
 
 /// Downloads the published calendars, for a local preview.
 ///
@@ -861,6 +1026,104 @@ const _reloadScript = '''
 </script>
 ''';
 
+/// Registers the worker, from every page so arriving at a prayer caches the
+/// whole site.
+///
+/// `data-root` rather than a per-page path so the string is identical on every
+/// page, which is what lets the preview swap it for [_unregisterScript].
+const _registerScript = '''
+<script>
+      if ('serviceWorker' in navigator) {
+        addEventListener('load', function () {
+          navigator.serviceWorker
+            .register(document.body.dataset.root + 'sw.js')
+            .catch(function () {});
+        });
+      }
+    </script>''';
+
+/// All that joins the authored badge to [_installScript]. Public so test/tool/
+/// can hold both documents to carrying it.
+const installSectionClass = 'webapp';
+
+/// Drives the about page's install badge.
+///
+/// Only Chromium has an install API, so the badge prompts where the event was
+/// handed over and reveals that browser's own route where it was not. Those
+/// lines are authored in `site/download_*.md`, being prose to translate.
+///
+/// The section ships hidden and is revealed here, so it never appears without
+/// JavaScript to work.
+const _installScript =
+    '''
+<script>
+      (function () {
+        var section = document.querySelector('.$installSectionClass');
+        var button = section && section.querySelector('button');
+        if (!button) return;
+
+        // Inside the installed app is the one place the badge stays hidden.
+        var app = matchMedia('(display-mode: standalone)');
+        if (app.matches || navigator.standalone) return;
+
+        // Installing does not reload: Chrome hands this document to the app
+        // window. Per document, unlike `appinstalled`, which also fires on a
+        // tab that stays a tab — as it always does on Android.
+        app.addEventListener('change', function (event) {
+          section.hidden = event.matches;
+        });
+
+        var agent = navigator.userAgent;
+        // iPadOS calls itself a Mac; the touch points tell the two apart.
+        var ios = /iPad|iPhone|iPod/.test(agent) ||
+          (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1);
+        var safari = !ios && /Macintosh/.test(agent) &&
+          /Safari/.test(agent) && !/Chrome|Chromium/.test(agent);
+        var how = section.querySelector(
+          '[data-how="' + (ios ? 'ios' : safari ? 'mac' : 'other') + '"]');
+
+        var offer = null;
+        addEventListener('beforeinstallprompt', function (event) {
+          // Or the browser shows its own bar as well as this badge.
+          event.preventDefault();
+          offer = event;
+        });
+
+        button.addEventListener('click', function () {
+          if (offer) {
+            offer.prompt();
+            offer = null;
+          } else if (how) {
+            how.hidden = false;
+          }
+        });
+
+        section.hidden = false;
+      })();
+    </script>''';
+
+/// What the preview serves in its place.
+///
+/// A worker answering from its cache serves the page before the edit. It does
+/// not merely skip registering: one installed by an earlier session, or by
+/// another project that once had this port, outlives both. Only this site's
+/// caches are deleted, since anything else on localhost belongs to something
+/// else.
+const _unregisterScript =
+    '''
+<script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          registrations.forEach(function (registration) { registration.unregister(); });
+        });
+        caches.keys().then(function (names) {
+          names.forEach(function (name) {
+            if (name.indexOf('$_cachePrefix') === 0) caches.delete(name);
+          });
+        });
+      }
+    </script>''';
+
 // -------------------------------------------------------------------- serve
 
 const _contentTypes = {
@@ -868,6 +1131,8 @@ const _contentTypes = {
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  // Served as anything else the manifest is ignored, with no error to say why.
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.png': 'image/png',
   // Without this the favicon is served as a byte stream and the browser
   // declines to render it, which reads as "the icon is broken" rather than as
@@ -925,11 +1190,14 @@ Future<void> _serve(Directory outDir, int port) async {
     request.response.headers.set(HttpHeaders.cacheControlHeader, 'no-store');
 
     // The reload script is injected on the way out rather than built into the
-    // page, so the deployed site never carries it.
+    // page, so the deployed site never carries it. The worker goes the other
+    // way for the same reason.
     if (extension == '.html') {
       final html = await file.readAsString();
       request.response.write(
-        html.replaceFirst('</body>', '$_reloadScript</body>'),
+        html
+            .replaceFirst(_registerScript, _unregisterScript)
+            .replaceFirst('</body>', '$_reloadScript</body>'),
       );
       await request.response.close();
       continue;
