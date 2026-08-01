@@ -1,0 +1,157 @@
+name: Pages
+
+# Builds the calendar JSON and the web frontend in separate jobs, deploys both.
+# A Pages deploy replaces the whole site, so deploy publishes the two together.
+
+on:
+  schedule:
+    # Off the hour: scheduled runs queue heavily at :00 and nothing here is time-critical.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'tool/build_calendar.dart'
+      - 'tool/build_site.dart'
+      - 'lib/models/calendar.dart'
+      # The site compiles these into its JavaScript and renders through the app's parser.
+      - 'lib/liturgics/**'
+      - 'lib/models/markup.dart'
+      - 'lib/models/prayer.dart'
+      - 'lib/l10n/*.arb'
+      - 'site/**'
+      - 'res/prayers/**'
+      - 'pubspec.yaml'
+      - '.github/workflows/pages.yml'
+
+permissions:
+  contents: read
+
+# Queue rather than cancel, so a scheduled run cannot discard a manual one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.44.8
+
+jobs:
+  # In front of both builds: a red suite fetches no feed and publishes nothing.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # pubspec.yaml depends on the Flutter SDK, so `dart pub get` needs it present.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter test
+
+  calendar:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Build calendar
+        run: |
+          set -eo pipefail
+          dart run tool/build_calendar.dart --out public 2>&1 | tee build.log
+
+      # The feed has a hard end date and stops rather than rolling forward.
+      - name: Report feed runway
+        run: |
+          {
+            echo '### Calendar build'
+            echo
+            echo '```'
+            grep -E '^(en|el): [0-9]+ days|^  upstream last modified' build.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if grep -q 'WARNING' build.log; then
+            grep 'WARNING' build.log | while read -r line; do
+              echo "::warning title=Calendar feed runway::${line#*WARNING: }"
+            done
+            {
+              echo
+              echo '> [!WARNING]'
+              grep 'WARNING' build.log | sed 's/^ *WARNING: /> /'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: calendar
+          path: public
+          if-no-files-found: error
+          retention-days: 1
+
+  site:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Build site
+        run: dart run tool/build_site.dart --out public
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: site
+          path: public
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    needs: [calendar, site]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # Both into one directory. Named rather than merged, so a missing one fails here.
+      - uses: actions/download-artifact@v8
+        with:
+          name: site
+          path: public
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: calendar
+          path: public
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: public
+
+      - id: deployment
+        uses: actions/deploy-pages@v5
