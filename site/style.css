@@ -474,28 +474,41 @@ html[lang="el"] .prayer-list h2 {
   color: var(--muted);
 }
 
-/* The prayer text itself. This is the one thing on the site anybody reads at
-   length, so it gets the serif, a narrow measure and generous leading. */
-.prayer {
-  font-family: var(--serif);
+/*
+  `.doc` is anything read straight through rather than scanned — a prayer, the
+  privacy policy — and carries everything that makes text readable at length:
+  the measure, the leading, the heading scale, the rule and what follows it.
+
+  `.prayer` is a modifier on top of it and sets one thing, the face, because the
+  serif is for liturgical text. It is deliberately not a second class listing
+  the same rules: written that way every one of these blocks had to name both,
+  and the next long-form page would have had to be added to seven selector
+  lists, where missing the print block at the bottom is the easy mistake and
+  nothing tests for it.
+*/
+.doc {
   max-width: var(--measure);
   margin: 0 auto;
 }
 
-.prayer h1 {
+.doc.prayer {
+  font-family: var(--serif);
+}
+
+.doc h1 {
   font-size: 1.7rem;
   line-height: 1.25;
   margin: 0 0 1.5rem;
 }
 
-.prayer h2 {
+.doc h2 {
   font-size: 1.15rem;
   font-weight: 600;
   margin: 2.2rem 0 0.9rem;
   color: var(--red);
 }
 
-.prayer p,
+.doc p,
 .items {
   margin: 0 0 1.15rem;
   line-height: 1.7;
@@ -529,14 +542,15 @@ html[lang="el"] .prayer-list h2 {
   margin: 0 0 1.15rem;
 }
 
-.prayer hr {
+.doc hr {
   border: 0;
   border-top: 1px solid var(--line);
   margin: 2.5rem 0 1.5rem;
 }
 
-/* Below the rule is about the text rather than part of it: the attribution. */
-.prayer hr ~ p {
+/* Below the rule is about the text rather than part of it: the attribution on
+   a prayer, the date the policy last changed. */
+.doc hr ~ p {
   font-family: var(--ui);
   font-size: 0.86rem;
   color: var(--muted);
@@ -679,8 +693,10 @@ a.row:hover {
   margin-top: 0.1rem;
 }
 
-/* A link leaving the site says so, rather than surprising someone mid-read. */
-a.row .row-title::after {
+/* A link leaving the site says so, rather than surprising someone mid-read.
+   Keyed on the new tab rather than on a class, so the row that stays here — the
+   privacy policy — cannot pick the mark up by being styled like its neighbours. */
+a.row[target] .row-title::after {
   content: " ↗";
   color: var(--muted);
   font-weight: 400;
@@ -707,7 +723,7 @@ a.row .row-title::after {
     color: #000;
   }
 
-  .prayer {
+  .doc {
     max-width: none;
   }
 }

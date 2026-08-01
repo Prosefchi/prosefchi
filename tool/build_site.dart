@@ -34,19 +34,30 @@ import 'dart:io';
 // note in a prayer is a rubric.
 import 'package:prosefchi/models/calendar.dart' show Calendar;
 import 'package:prosefchi/models/prayer.dart';
+import 'package:prosefchi/models/site.dart';
 
 import '../site/languages.dart';
 import 'args.dart';
 
 /// Where the site is served from, for canonical and alternate links.
-const _defaultBaseUrl = 'https://prosefchi.github.io/prosefchi/';
+///
+/// From lib/models/site.dart, which is also where the app reads it to link to
+/// the privacy policy. A canonical naming a host that merely redirects to the
+/// real one is a canonical pointing at a redirect.
+final _defaultBaseUrl = siteUrl.toString();
 
 /// Published calendars, fetched by `--calendar` for a local preview.
 ///
 /// Deliberately the *published* files rather than a local
 /// `tool/build_calendar.dart` run: that downloads ~32 MB of iCal from upstream,
 /// which is a great deal to pay to look at a stylesheet change.
-const _publishedCalendars = _defaultBaseUrl;
+///
+/// `defaultCalendarBaseUrl`, not [_defaultBaseUrl] — the calendar is fetched
+/// from the GitHub Pages host and the site is *served* at the custom domain,
+/// and lib/models/site.dart says at length why those two must not be folded
+/// into one. Aliasing them here would drag this fetch along behind any future
+/// move of the site's own address.
+final _publishedCalendars = defaultCalendarBaseUrl;
 
 Future<void> main(List<String> args) async {
   final options = parseArgs(args);
@@ -225,7 +236,9 @@ Future<int> _writeLanguage({
           : document.title,
       description: strings['prayersIntro']!,
       section: 'prayers',
-      body: _documentHtml(document, tag: 'article', className: 'prayer'),
+      // `doc` is how anything read at length is set and `prayer` only adds the
+      // serif, so a prayer is both rather than a class of its own.
+      body: _documentHtml(document, tag: 'article', className: 'doc prayer'),
     );
   }
 
@@ -249,11 +262,42 @@ Future<int> _writeLanguage({
         ).readAsString()).replaceAll('{{root}}', _rootFor(about)),
       ),
       version,
+      privacyHref: '${_rootFor(about)}${privacyPagePath(language)}',
+    ),
+  );
+
+  // The privacy policy, under the about page that links to it.
+  //
+  // Authored at the repository root rather than in site/, because GitHub and
+  // Google Play both look for a PRIVACY.md there, and rendered here so the one
+  // document serves the repository, the store listing and the app's own link.
+  // It is `about` in the nav, not a section of its own: a policy is something
+  // to be able to find rather than somewhere to be sent.
+  await page(
+    privacyPagePath(language),
+    title: strings['privacyPolicy']!,
+    description: strings['privacyPolicySubtitle']!,
+    section: 'about',
+    body: _documentHtml(
+      MarkupDocument.parse(await File(privacySource(language)).readAsString()),
+      tag: 'article',
+      className: 'doc',
     ),
   );
 
   return written;
 }
+
+/// The authored privacy policy for [language].
+///
+/// English keeps the bare `PRIVACY.md`, which is where GitHub and Google Play
+/// look, and every translation sits beside it under its code — the same shape
+/// `prefixFor` gives the site's own paths.
+///
+/// Public so test/tool/ can hold the files to existing and parsing.
+String privacySource(String language) => language == supportedLanguages.first
+    ? 'PRIVACY.md'
+    : 'PRIVACY.$language.md';
 
 /// Fills the shell and writes it at [path], which is a directory path ending in
 /// `/` (or empty for the site root).
@@ -477,22 +521,37 @@ String _documentHtml(
 String _aboutBody(
   Map<String, String> strings,
   MarkupDocument download,
-  String version,
-) {
+  String version, {
+  required String privacyHref,
+}) {
   final out = StringBuffer()
     ..write(_documentHtml(download, tag: 'section', className: 'download'))
     ..writeln('<h2 class="about-heading">${_esc(strings['about']!)}</h2>')
     ..writeln('<div class="rows">');
 
-  // Mirrors lib/screens/about_section.dart. The repository opens in a new tab
-  // for the reason the app opens it in an external browser rather than the
-  // in-app one: it is somewhere to go and act, not to read and come back from.
+  // Mirrors lib/screens/about_section.dart, in its order. The repository opens
+  // in a new tab for the reason the app opens it in an external browser rather
+  // than the in-app one: it is somewhere to go and act, not to read and come
+  // back from.
   out
     ..writeln(
       _row(
         title: strings['sourceCode']!,
         subtitle: strings['sourceCodeSubtitle']!,
         href: 'https://github.com/Prosefchi/prosefchi',
+      ),
+    )
+    // The one row that stays on this site, so it is an ordinary link: no new
+    // tab, and no arrow, since there is nothing to warn anyone they are
+    // leaving. Resolved from the page's own root rather than written as
+    // `privacy/`, which is only right while the policy sits directly under the
+    // about page — moving `privacyPath` would otherwise leave this link behind
+    // on a 404 that nothing checks.
+    ..writeln(
+      _row(
+        title: strings['privacyPolicy']!,
+        subtitle: strings['privacyPolicySubtitle']!,
+        href: privacyHref,
       ),
     )
     ..writeln(
@@ -518,15 +577,25 @@ String _aboutBody(
 }
 
 /// One about row: a title over a subtitle, linked or not.
+///
+/// Whether the link leaves the site is read off [href] rather than passed in
+/// beside it. Every off-site link the generator emits is absolute and every
+/// on-site one is relative, so the flag could only ever restate what the URL
+/// already says — and the row that gets it wrong is the *next* same-site one
+/// somebody adds, which would open in a new tab with an "outside" arrow on it.
+/// The stylesheet hangs the ↗ off the `target` this sets rather than off a
+/// class of its own, so the two cannot disagree either.
 String _row({required String title, required String subtitle, String? href}) {
   final content =
       '<span class="row-title">${_esc(title)}</span>'
       '<span class="row-sub">${_esc(subtitle)}</span>';
 
-  return href == null
-      ? '  <div class="row">$content</div>'
-      : '  <a class="row" href="${_esc(href)}" target="_blank" '
-            'rel="noopener">$content</a>';
+  if (href == null) return '  <div class="row">$content</div>';
+
+  final target = Uri.parse(href).hasScheme
+      ? ' target="_blank" rel="noopener"'
+      : '';
+  return '  <a class="row" href="${_esc(href)}"$target>$content</a>';
 }
 
 /// The app version, from the one place that states it.
@@ -714,9 +783,7 @@ Future<void> _fetchPublishedCalendars(Directory outDir) async {
       if (file.existsSync()) continue;
 
       final name = Calendar.fileName(language);
-      final request = await client.getUrl(
-        Uri.parse(_publishedCalendars).resolve(name),
-      );
+      final request = await client.getUrl(_publishedCalendars.resolve(name));
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {
         stdout.writeln('site: could not fetch $name (${response.statusCode})');
@@ -745,7 +812,17 @@ var _buildSerial = 0;
 ///
 /// `lib/` is in here because site/day.dart compiles the liturgics in, so a fix
 /// to the Paschalion has to reach the preview too.
-const _watched = ['site', 'res/prayers', 'lib', 'pubspec.yaml'];
+// PRIVACY*.md by name rather than the repository root, which would sweep in
+// build output and .git. They are build inputs like any authored document, so
+// a policy saved during a preview should reload the page it is rendered on.
+const _watched = [
+  'site',
+  'res/prayers',
+  'lib',
+  'pubspec.yaml',
+  'PRIVACY.md',
+  'PRIVACY.el.md',
+];
 
 /// Rebuilds whenever a source file changes.
 void _watch(Directory outDir, String baseUrl) {

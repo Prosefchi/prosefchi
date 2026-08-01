@@ -3,10 +3,24 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/site.dart';
+import '../services/calendar_repository.dart' show languageFor;
 import 'link.dart';
 
 /// Where the repository lives.
 final repositoryUrl = Uri.parse('https://github.com/Prosefchi/prosefchi');
+
+/// The privacy policy for [language], on the website.
+///
+/// [privacyPagePath] rather than a URL written out here, because that is what
+/// tool/build_site.dart writes the page at: a policy Google Play requires a
+/// working link to is not somewhere a second spelling can be allowed to drift.
+///
+/// The language is the content language rather than the device's, so a reader
+/// who chose Greek is sent to the Greek policy — the same document, and the
+/// only one of the two they can read.
+Uri privacyPolicyUrl(String language) =>
+    siteUrl.resolve(privacyPagePath(language));
 
 /// The version, the source, and the licences of everything the app depends on.
 ///
@@ -54,6 +68,15 @@ class _AboutSectionState extends State<AboutSection> {
     launch: widget.launch,
   );
 
+  /// The default in-app browser view, unlike the repository above it: a policy
+  /// is read and returned from, so closing it should put the reader back in
+  /// settings rather than leave the app behind a browser.
+  Future<void> _openPrivacyPolicy() => openLink(
+    context,
+    privacyPolicyUrl(languageFor(Localizations.localeOf(context))),
+    launch: widget.launch,
+  );
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -67,6 +90,16 @@ class _AboutSectionState extends State<AboutSection> {
           subtitle: Text(l10n.sourceCodeSubtitle),
           trailing: const Icon(Icons.open_in_new, size: 18),
           onTap: _openRepository,
+        ),
+        // Above the version rather than at the end, since it is the row a
+        // reader comes to this section looking for and the two below it are
+        // reference.
+        ListTile(
+          leading: const Icon(Icons.privacy_tip_outlined),
+          title: Text(l10n.privacyPolicy),
+          subtitle: Text(l10n.privacyPolicySubtitle),
+          trailing: const Icon(Icons.open_in_new, size: 18),
+          onTap: _openPrivacyPolicy,
         ),
         ListTile(
           leading: const Icon(Icons.info_outline),

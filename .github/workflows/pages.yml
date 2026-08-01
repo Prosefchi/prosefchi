@@ -21,6 +21,10 @@ on:
       - 'lib/l10n/*.arb'
       - 'site/**'
       - 'res/prayers/**'
+      # Rendered into the site, so an edit to the policy has to deploy one.
+      # Without this a correction waits for the next nightly run, which is not
+      # what anyone expects of a document Play holds us to.
+      - 'PRIVACY*.md'
       - 'pubspec.yaml'
       - '.github/workflows/pages.yml'
 
