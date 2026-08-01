@@ -1,41 +1,20 @@
 name: Pages
 
-# Publishes everything that lives on GitHub Pages: the calendar JSON the app
-# fetches, and the web frontend that reads the same JSON.
-#
-# The two are built by separate jobs. They share a destination and nothing else
-# — one downloads ~32 MB of iCal from GOARCH and reduces it, the other renders
-# prayers through the app's parser and compiles the day view to JavaScript —
-# and keeping them apart means a failure names which of the two broke, and the
-# calendar's feed-runway reporting sits with the calendar rather than in the
-# middle of a job that also builds a website.
-#
-# What joins them is the deploy and only the deploy: a Pages deploy replaces
-# the whole site with the uploaded artifact, so publishing needs both halves in
-# hand. A run that uploaded only the calendar would take the web frontend down
-# until the next push, and one that uploaded only the site would strip the
-# calendar out from under every client. So each job uploads its own build as an
-# ordinary artifact and `deploy` merges them into the one directory Pages gets.
+# Builds the calendar JSON and the web frontend in separate jobs, deploys both.
+# A Pages deploy replaces the whole site, so deploy publishes the two together.
 
 on:
   schedule:
-    # Deliberately off the hour: GitHub queues scheduled runs heavily at :00 and
-    # delays are routine. Nothing here is time-critical, so a late run is fine.
+    # Off the hour: scheduled runs queue heavily at :00 and nothing here is time-critical.
     - cron: '17 3 * * *'
   workflow_dispatch:
   push:
     branches: [master]
-    # Path filters are per workflow and cannot be narrowed to one job, which
-    # costs nothing here: every deploy republishes both halves regardless of
-    # which one an edit touched, so there is no run this list could usefully
-    # shorten.
     paths:
       - 'tool/build_calendar.dart'
       - 'tool/build_site.dart'
       - 'lib/models/calendar.dart'
-      # The site compiles the liturgics into its JavaScript and renders the
-      # prayers through the app's own parser, so a change to any of them
-      # changes what is published.
+      # The site compiles these into its JavaScript and renders through the app's parser.
       - 'lib/liturgics/**'
       - 'lib/models/markup.dart'
       - 'lib/models/prayer.dart'
@@ -47,33 +26,26 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-# Never let two deploys race; queue instead of cancelling so a scheduled run
-# cannot discard a manually triggered one.
+# Queue rather than cancel, so a scheduled run cannot discard a manual one.
 concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  FLUTTER_VERSION: 3.44.8
+
 jobs:
-  # The gate, in front of both builds rather than inside either. The generator
-  # writes through lib/models/calendar.dart and the site renders through
-  # lib/models/markup.dart, so a break in either would publish something wrong
-  # to every client. Running it here also means a red suite costs nothing
-  # downstream — in particular upstream is never asked for its ~32 MB.
+  # In front of both builds: a red suite fetches no feed and publishes nothing.
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
-      # The tools are plain Dart, but pubspec.yaml depends on the Flutter SDK,
-      # so `dart pub get` cannot resolve without Flutter present. Each job is a
-      # fresh runner, so all three set it up; the action's cache makes that
-      # cheap rather than free.
+      # pubspec.yaml depends on the Flutter SDK, so `dart pub get` needs it present.
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.44.8
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
@@ -89,7 +61,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.44.8
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
@@ -100,8 +72,7 @@ jobs:
           set -eo pipefail
           dart run tool/build_calendar.dart --out public 2>&1 | tee build.log
 
-      # The feed has a hard end date and simply stops rather than rolling
-      # forward. Surface that on the run page, not just buried in the log.
+      # The feed has a hard end date and stops rather than rolling forward.
       - name: Report feed runway
         run: |
           {
@@ -127,12 +98,7 @@ jobs:
         with:
           name: calendar
           path: public
-          # An empty upload would deploy a site with no calendar in it, and the
-          # app reads a missing file as "no entry for this day", so fail here
-          # rather than publish that.
           if-no-files-found: error
-          # Rebuilt daily and superseded by the deploy; nothing ever goes back
-          # to yesterday's copy.
           retention-days: 1
 
   site:
@@ -143,7 +109,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.44.8
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
@@ -162,13 +128,15 @@ jobs:
   deploy:
     needs: [calendar, site]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # Both into one directory. They write disjoint names — the site owns the
-      # pages and their assets, the calendar owns calendar.<lang>.json at the
-      # root — so the merge is a union rather than a decision about precedence.
+      # Both into one directory. Named rather than merged, so a missing one fails here.
       - uses: actions/download-artifact@v8
         with:
           name: site

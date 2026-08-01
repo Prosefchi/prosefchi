@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 # Only the newest push on a branch matters, so supersede rather than queue.
-# The opposite of the calendar workflow, where a cancelled run would mean a
+# The opposite of the Pages workflow, where a cancelled run would mean a
 # missed deploy.
 concurrency:
   group: test-${{ github.ref }}

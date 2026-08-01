@@ -24,7 +24,7 @@ permissions:
   attestations: write # record the attestation against the repository
 
 # Queue rather than cancel: a superseded run here leaves a release published
-# with no APK on it. Same reasoning as the calendar workflow, the opposite of
+# with no APK on it. Same reasoning as the Pages workflow, the opposite of
 # the test one.
 concurrency:
   group: release-${{ inputs.tag || github.event.release.tag_name }}
