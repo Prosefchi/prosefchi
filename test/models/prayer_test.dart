@@ -184,6 +184,112 @@ who are everywhere present and fill all things.
       ]);
     });
 
+    test('reads consecutive marked lines as one list', () {
+      final set = PrayerSet.parse('''
+# Set
+
+The rules of the day:
+
+- Morning
+- Midday
+- Night
+
+Amen.
+''');
+
+      expect(set.blocks, [
+        isA<PrayerText>(),
+        isA<PrayerList>(),
+        isA<PrayerText>(),
+      ]);
+      final list = set.blocks[1] as PrayerList;
+      expect(list.ordered, isFalse);
+      expect(list.items.map((i) => i.text), ['Morning', 'Midday', 'Night']);
+    });
+
+    test('numbers a list written with digits', () {
+      final set = PrayerSet.parse('# Set\n\n1. First\n2. Second\n');
+
+      final list = set.blocks.single as PrayerList;
+      expect(list.ordered, isTrue);
+      expect(list.items.map((i) => i.text), ['First', 'Second']);
+    });
+
+    test('starts a second list where the marker changes', () {
+      final set = PrayerSet.parse('# Set\n\n- Bullet\n1. Number\n');
+
+      expect(set.blocks, [isA<PrayerList>(), isA<PrayerList>()]);
+      expect((set.blocks[0] as PrayerList).ordered, isFalse);
+      expect((set.blocks[1] as PrayerList).ordered, isTrue);
+    });
+
+    test('continues an item on an unmarked line', () {
+      // Lazy continuation, as a rubric has. An author wraps a long item for
+      // readability and does not expect a paragraph out of the second line.
+      final set = PrayerSet.parse('''
+# Set
+
+- An item long enough
+  to wrap in the source
+- A second
+''');
+
+      expect((set.blocks.single as PrayerList).items.map((i) => i.text), [
+        'An item long enough to wrap in the source',
+        'A second',
+      ]);
+    });
+
+    test('needs a space after the marker', () {
+      // Otherwise a line opening with a dash, which prose does, becomes a list.
+      final set = PrayerSet.parse('# Set\n\n-Not a list\n');
+
+      expect(set.blocks.single, isA<PrayerText>());
+    });
+
+    test('keeps a spaced thematic break a break rather than an item', () {
+      // `- - -` and `* * *` match both patterns, so only the order they are
+      // tested in decides. `---` matches neither and proves nothing.
+      final set = PrayerSet.parse('# Set\n\n- - -\n\n* * *\n');
+
+      expect(set.blocks, [isA<PrayerDivider>(), isA<PrayerDivider>()]);
+    });
+
+    test('ends a list at a blank line', () {
+      // The one place this subset departs from Markdown, which would keep the
+      // list open and read the two runs as one.
+      final set = PrayerSet.parse('# Set\n\n- One\n\n- Two\n');
+
+      expect(set.blocks, [isA<PrayerList>(), isA<PrayerList>()]);
+    });
+
+    test('keeps a rubric written under a list in its authored order', () {
+      // Every branch that opens a run has to close the others. The list was
+      // the third such run, and the rubric branch was emitting a note before
+      // the list above it.
+      final set = PrayerSet.parse('# Set\n\n- One\n> Say it three times.\n');
+
+      expect(set.blocks, [isA<PrayerList>(), isA<PrayerRubric>()]);
+    });
+
+    test('reads a link inside an item', () {
+      final set = PrayerSet.parse(
+        '# Set\n\n- See [the source](https://x.org)\n',
+      );
+
+      final item = (set.blocks.single as PrayerList).items.single;
+      expect(item.spans.last, isA<MarkupLink>());
+      expect((item.spans.last as MarkupLink).url, 'https://x.org');
+    });
+
+    test('counts a list as content', () {
+      // Otherwise a document that is a title and a list reads as unwritten,
+      // and the rule it belongs to would be offered as awaiting text.
+      final set = PrayerSet.parse('# Set\n\n- Only a list\n');
+
+      expect(set.hasContent, isTrue);
+    });
+
     test('ends a rubric at a thematic break', () {
       // No blank line between them, so only the rule separates them.
       final set = PrayerSet.parse('# Set\n\n> Say three times.\n---\n');

@@ -8,6 +8,7 @@ import '../services/document_repository.dart';
 import '../services/notification_service.dart';
 import '../services/reminder_store.dart';
 import '../services/settings_controller.dart';
+import 'markup_list.dart';
 import 'markup_paragraph.dart';
 import 'reminders_screen.dart';
 
@@ -190,6 +191,13 @@ class _WelcomePage extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: MarkupParagraph(
                   spans,
+                  style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
+                ),
+              ),
+              MarkupList() => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: MarkupItems(
+                  block,
                   style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
                 ),
               ),

@@ -9,6 +9,7 @@
 //   # Title of the document
 //   ## Name of a section
 //   > A note: an instruction, not something to be said aloud
+//   - An item of a list; `1.` numbers one instead
 //   --- a thematic break, which is where a source attribution goes
 //   [label](https://example.org) anywhere in a paragraph or a note
 //   <!-- a note to whoever maintains the text, which may span lines -->
@@ -39,6 +40,11 @@
 // thematic break ends it. Every one of those is a line an author would
 // reasonably write, and each used to produce a rubric rendered as prayer text
 // or a sentence broken in half.
+//
+// A list follows the same rules: consecutive marked lines are one list, an
+// unmarked line continues the item above, and a blank line ends it. Markdown
+// keeps a list open across a blank line and this does not, which is the one
+// place the two differ. Items do not nest.
 //
 // Links are parsed after a run has been joined, so one may be hard-wrapped
 // across two source lines like any other sentence.
@@ -170,14 +176,43 @@ class MarkupHtmlBlock extends MarkupBlock {
   final String html;
 }
 
+/// A run of spans: a block of prose, or an item of a list.
+mixin MarkupRun {
+  List<MarkupSpan> get spans;
+
+  /// The run as one string, for anything that does not render it. A tag reads
+  /// as nothing, so the words between two of them survive.
+  String get text => spans.map((span) => span.text).join();
+}
+
+/// One item of a list. A run, but never a block in its own right.
+class MarkupListItem with MarkupRun {
+  MarkupListItem(String source) : spans = _spansOf(source);
+
+  @override
+  final List<MarkupSpan> spans;
+}
+
+/// A run of items, bulleted or numbered.
+///
+/// The whole run rather than an item per block, so a renderer is handed the
+/// numbering and the grouping rather than having to recover them.
+class MarkupList extends MarkupBlock {
+  const MarkupList({required this.ordered, required this.items});
+
+  /// True for `1.`, false for `-`. The authored numbers are not kept: like
+  /// Markdown, the position in the run is what numbers an item.
+  final bool ordered;
+
+  final List<MarkupListItem> items;
+}
+
 /// A block of prose, which may hold links and so is kept as spans.
-sealed class MarkupProse extends MarkupBlock {
+sealed class MarkupProse extends MarkupBlock with MarkupRun {
   MarkupProse(String source) : spans = _spansOf(source);
 
+  @override
   final List<MarkupSpan> spans;
-
-  /// The block as one string, for anything that does not render it.
-  String get text => spans.map((span) => span.text).join();
 }
 
 /// An aside addressed to the reader rather than part of the text proper.
@@ -195,6 +230,12 @@ class MarkupText extends MarkupProse {
 
 /// Three or more of the same mark, alone on a line, spaces allowed between.
 final _thematicBreak = RegExp(r'^([-*_])(?:\s*\1){2,}$');
+
+/// A line opening a list item: the marker, a space, then the item.
+///
+/// The space is required, as in Markdown, so a hyphenated word does not open a
+/// list. Tested after [_thematicBreak], which is what keeps `- - -` a divider.
+final _listItem = RegExp(r'^([-*+]|\d+\.)\s+(.*)$');
 
 const _commentOpen = '<!--';
 const _commentClose = '-->';
@@ -256,6 +297,23 @@ class MarkupDocument {
     // the only state needed to know whether one is.
     final html = StringBuffer();
 
+    final items = <MarkupListItem>[];
+    final item = StringBuffer();
+    var ordered = false;
+
+    void flushItem() {
+      final text = item.toString().trim();
+      if (text.isNotEmpty) items.add(MarkupListItem(text));
+      item.clear();
+    }
+
+    void flushList() {
+      flushItem();
+      if (items.isEmpty) return;
+      blocks.add(MarkupList(ordered: ordered, items: List.of(items)));
+      items.clear();
+    }
+
     void flushAll() {
       final raw = html.toString().trimRight();
       if (raw.isNotEmpty) blocks.add(MarkupHtmlBlock(raw));
@@ -263,6 +321,7 @@ class MarkupDocument {
 
       flush(paragraph, MarkupText.new);
       flush(note, MarkupNote.new);
+      flushList();
     }
 
     // Set while a `<!--` has been opened and not yet closed. Comments are
@@ -327,12 +386,27 @@ class MarkupDocument {
           blocks.add(MarkupHeading(line.substring(2).trim()));
         }
       } else if (line.startsWith('>')) {
+        // Each of these opens one run and so closes the others. Miss one and
+        // the block it left open is emitted out of authored order.
         flush(paragraph, MarkupText.new);
+        flushList();
         // Markdown allows one optional space after the marker. The rest of the
         // line is trimmed rather than that single space consumed, which is the
         // same thing here: this subset has no construct where the remaining
         // indentation would mean anything.
         append(note, line.substring(1).trim());
+      } else if (_listItem.firstMatch(line) case final marked?) {
+        flush(paragraph, MarkupText.new);
+        flush(note, MarkupNote.new);
+        // A change from bullets to numbers or back is a second list, not a
+        // stray item in the first.
+        final numbered = marked[1]!.endsWith('.');
+        if (numbered != ordered) flushList();
+        flushItem();
+        ordered = numbered;
+        append(item, marked[2]!.trim());
+      } else if (item.isNotEmpty) {
+        append(item, line);
       } else if (note.isNotEmpty) {
         // Lazy continuation: a wrapped note whose second line lost its marker
         // is still that note, not a paragraph of prayer text.
@@ -356,7 +430,7 @@ class MarkupDocument {
   /// A document can hold real text *and* a marked gap — the morning rule does
   /// — so availability keys on this rather than on [hasPlaceholder], which
   /// would hide finished text because the document is not yet complete.
-  bool get hasContent => blocks.any((b) => b is MarkupText);
+  bool get hasContent => blocks.any((b) => b is MarkupText || b is MarkupList);
 
   /// True when some part of the document is still an unfilled placeholder.
   bool get hasPlaceholder =>

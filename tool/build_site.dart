@@ -565,6 +565,16 @@ String _renderBlocks(List<MarkupBlock> blocks) {
         out.writeln('  <p class="rubric">${_renderSpans(spans)}</p>');
       case MarkupText(:final spans):
         out.writeln('  <p>${_renderSpans(spans)}</p>');
+      // Classed like a rubric, and styled off that class rather than off the
+      // document around it: every kind of document can hold a list, and a
+      // browser's own list styling is nothing like the rest of the page.
+      case MarkupList(:final ordered, :final items):
+        final tag = ordered ? 'ol' : 'ul';
+        out.writeln('  <$tag class="items">');
+        for (final item in items) {
+          out.writeln('    <li>${_renderSpans(item.spans)}</li>');
+        }
+        out.writeln('  </$tag>');
       // Verbatim, and outside a <p>: a run of HTML is block-level markup the
       // author wrote for this renderer, and wrapping a <div> in a paragraph
       // would close the paragraph early and leave a stray tag behind.
