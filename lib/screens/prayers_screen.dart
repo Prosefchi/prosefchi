@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../l10n/occasion_labels.dart';
 import '../models/prayer.dart';
 import '../models/text_size.dart';
+import 'markup_list.dart';
 import 'markup_paragraph.dart';
 import 'reading_scrollbar.dart';
 import '../services/calendar_repository.dart' show languageFor;
@@ -192,6 +193,13 @@ class _PrayerScreenState extends State<PrayerScreen> {
       padding: const EdgeInsets.only(bottom: 14),
       child: MarkupParagraph(
         spans,
+        style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
+      ),
+    ),
+    PrayerList() => Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: MarkupItems(
+        block,
         style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
       ),
     ),

@@ -500,6 +500,17 @@ html[lang="el"] .prayer-list h2 {
   line-height: 1.7;
 }
 
+.prayer ul,
+.prayer ol {
+  margin: 0 0 1.15rem;
+  padding-inline-start: 1.5rem;
+  line-height: 1.7;
+}
+
+.prayer li {
+  margin: 0 0 0.35rem;
+}
+
 /*
   A rubric: an instruction to the reader, not words to be said aloud. Reading
   one out as though it were the prayer is exactly the confusion that styling it
