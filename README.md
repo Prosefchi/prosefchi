@@ -1,10 +1,23 @@
 # Orthodox Prayer · Προσευχητάριον
 
 <div align="center">
+<a href="https://play.google.com/store/apps/details?id=io.github.prosefchi.prosefchi">
+<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+alt="Get it on Google Play" align="center" height="80" />
+</a>
 <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Prosefchi/prosefchi">
-<img src="https://github.com/ImranR98/Obtainium/blob/main/assets/graphics/badge_obtainium.png"
+<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png"
 alt="Get it on Obtainium" align="center" height="80" />
 </a>
+</div>
+
+<div align="center">
+<sub>
+Google Play is a closed beta for now. Join the
+<a href="https://groups.google.com/g/prosefchi">testers group</a>, then
+<a href="https://play.google.com/apps/testing/io.github.prosefchi.prosefchi">opt in</a>
+and that link will open. Obtainium works for everyone.
+</sub>
 </div>
 
 A Greek Orthodox daily prayer app for Android and iOS. It shows the day's
