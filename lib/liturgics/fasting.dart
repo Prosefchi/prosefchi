@@ -7,7 +7,6 @@
 // where otherwise the app could say nothing at all.
 
 import '../models/calendar.dart' show CalendarStyle;
-import 'julian.dart';
 import 'paschalion.dart';
 
 /// A season of fasting in the Orthodox year.
@@ -60,8 +59,6 @@ FastSeason? fastSeasonFor(
   DateTime date, {
   CalendarStyle style = CalendarStyle.gregorian,
 }) {
-  // The same day counted the other way, for the fixed boundaries only.
-  final fixed = style == CalendarStyle.julian ? julianDateOf(date) : date;
   if (_within(
     date,
     addDays(MovableFeast.meatfareSunday.inYear(date.year), 1),
@@ -78,12 +75,18 @@ FastSeason? fastSeasonFor(
     return FastSeason.greatLent;
   }
 
+  // Below the two movable seasons, which never read it: the same day as this
+  // calendar counts it, which is what every fixed boundary below compares to.
+  final fixed = style.dateOf(date);
+
   // Ends on 28 June, the eve of Saints Peter and Paul: movable at one end and
-  // fixed at the other, so it is the one season both dates are read for. On
-  // the old calendar that end is 11 July and the fast is 13 days longer, which
-  // is also why it can no longer vanish — a late Pascha leaves it 8 days.
+  // fixed at the other, so it is the one season compared in both spaces. The
+  // start is a civil date; the end is stated in this calendar's own terms and
+  // converted back. On the old calendar that end is 11 July and the fast is 13
+  // days longer, which is also why it can no longer vanish — a late Pascha
+  // leaves it 8 days.
   final apostlesStart = MovableFeast.apostlesFastBegins.inYear(date.year);
-  final apostlesEnd = _fixed(date, style, 6, 28);
+  final apostlesEnd = style.civilDateOf(DateTime(fixed.year, 6, 28));
   if (!apostlesStart.isAfter(apostlesEnd) &&
       _within(date, apostlesStart, apostlesEnd)) {
     return FastSeason.apostles;
@@ -103,16 +106,6 @@ FastSeason? fastSeasonFor(
 
   return null;
 }
-
-/// The Gregorian date of the fixed [month]/[day] under [style], in the year
-/// [date] falls in.
-///
-/// Needed where a season is compared against a movable date and a fixed one at
-/// once, which is only the Apostles' Fast.
-DateTime _fixed(DateTime date, CalendarStyle style, int month, int day) =>
-    style == CalendarStyle.julian
-    ? gregorianDateOf(DateTime(julianDateOf(date).year, month, day))
-    : DateTime(date.year, month, day);
 
 /// Days that fast whatever the weekday and whatever season they fall in.
 ///
@@ -150,7 +143,7 @@ FastFreeWeek? fastFreeWeekFor(
   // the fixed date is what they are read against. The eve of Theophany on 5
   // January is a strict fast in the middle of it, excluded above by
   // _fixedFastDays; Theophany itself on the 6th is free again.
-  final fixed = style == CalendarStyle.julian ? julianDateOf(date) : date;
+  final fixed = style.dateOf(date);
   if (_within(
         fixed,
         DateTime(fixed.year, 12, 25),
@@ -172,7 +165,7 @@ FastFreeWeek? fastFreeWeekFor(
 /// the season, the day of the week and the rank of the feast, and is exactly
 /// what `CalendarDay.fasting` answers where it is available.
 bool isFastDay(DateTime date, {CalendarStyle style = CalendarStyle.gregorian}) {
-  final fixed = style == CalendarStyle.julian ? julianDateOf(date) : date;
+  final fixed = style.dateOf(date);
   if (_fixedFastDays.contains((fixed.month, fixed.day))) return true;
   if (fastFreeWeekFor(date, style: style) != null) return false;
   if (fastSeasonFor(date, style: style) != null) return true;

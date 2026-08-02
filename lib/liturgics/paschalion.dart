@@ -22,7 +22,7 @@ DateTime orthodoxPascha(int year) {
   final month = (d + e + 114) ~/ 31;
   final day = (d + e + 114) % 31 + 1;
 
-  return gregorianFromJulianDay(julianDayFromJulian(year, month, day));
+  return gregorianDateOf(DateTime(year, month, day));
 }
 
 /// A feast whose date is fixed relative to Pascha rather than to the month.

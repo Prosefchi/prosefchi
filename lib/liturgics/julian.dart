@@ -18,7 +18,7 @@
 // anyway, so read it from the Gregorian date.
 
 /// The Julian Day Number of a Gregorian calendar date.
-int julianDayFromGregorian(int year, int month, int day) {
+int _julianDayFromGregorian(int year, int month, int day) {
   final a = (14 - month) ~/ 12;
   final y = year + 4800 - a;
   final m = month + 12 * a - 3;
@@ -32,7 +32,7 @@ int julianDayFromGregorian(int year, int month, int day) {
 }
 
 /// The Julian Day Number of a Julian calendar date.
-int julianDayFromJulian(int year, int month, int day) {
+int _julianDayFromJulian(int year, int month, int day) {
   final a = (14 - month) ~/ 12;
   final y = year + 4800 - a;
   final m = month + 12 * a - 3;
@@ -40,7 +40,7 @@ int julianDayFromJulian(int year, int month, int day) {
 }
 
 /// The Gregorian calendar date of a Julian Day Number.
-DateTime gregorianFromJulianDay(int julianDay) {
+DateTime _gregorianFromJulianDay(int julianDay) {
   final a = julianDay + 32044;
   final b = (4 * a + 3) ~/ 146097;
   final c = a - (146097 * b) ~/ 4;
@@ -56,7 +56,7 @@ DateTime gregorianFromJulianDay(int julianDay) {
 }
 
 /// The Julian calendar date of a Julian Day Number.
-DateTime julianFromJulianDay(int julianDay) {
+DateTime _julianFromJulianDay(int julianDay) {
   final c = julianDay + 32082;
   final d = (4 * c + 3) ~/ 1461;
   final e = c - (1461 * d) ~/ 4;
@@ -73,11 +73,11 @@ DateTime julianFromJulianDay(int julianDay) {
 ///
 /// Gregorian 7 January 2026 is Julian 25 December 2025, which is why the
 /// Nativity is kept on the 7th by anyone following the old calendar.
-DateTime julianDateOf(DateTime date) => julianFromJulianDay(
-  julianDayFromGregorian(date.year, date.month, date.day),
+DateTime julianDateOf(DateTime date) => _julianFromJulianDay(
+  _julianDayFromGregorian(date.year, date.month, date.day),
 );
 
 /// The Gregorian calendar date falling on the same day as Julian [date].
-DateTime gregorianDateOf(DateTime date) => gregorianFromJulianDay(
-  julianDayFromJulian(date.year, date.month, date.day),
+DateTime gregorianDateOf(DateTime date) => _gregorianFromJulianDay(
+  _julianDayFromJulian(date.year, date.month, date.day),
 );

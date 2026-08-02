@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/liturgical_labels.dart';
 import '../liturgics/fasting.dart';
-import '../liturgics/julian.dart';
 import '../liturgics/octoechos.dart';
 import '../liturgics/paschalion.dart';
 import '../models/calendar.dart';
@@ -145,8 +144,20 @@ class _TodayScreenState extends State<TodayScreen> {
           children: [
             _DayHeader(
               date: _date,
-              style: _style,
               locale: _language ?? 'en',
+              // The civil date stays the headline even on the old calendar:
+              // it is the date the phone and everyone around the reader are
+              // using. The Julian date goes under it, and the weekday is
+              // written once against the civil date because julianDateOf
+              // returns calendar fields rather than an instant — its own
+              // weekday would be a fortnight out.
+              secondaryDate: _style == CalendarStyle.gregorian
+                  ? null
+                  : l10n.julianDate(
+                      DateFormat.yMMMMd(
+                        _language ?? 'en',
+                      ).format(_style.dateOf(_date)),
+                    ),
               title: day?.title,
               marks: day?.marks ?? const [],
               // Upstream states the rule on most days it covers and is
@@ -212,16 +223,20 @@ class _TodayScreenState extends State<TodayScreen> {
 class _DayHeader extends StatelessWidget {
   const _DayHeader({
     required this.date,
-    required this.style,
     required this.locale,
+    required this.secondaryDate,
     required this.title,
     required this.marks,
     required this.fasting,
   });
 
   final DateTime date;
-  final CalendarStyle style;
   final String locale;
+
+  /// The same day on another calendar, where the reader keeps one. Resolved by
+  /// the caller, like [fasting] beside it — this draws words, it does not
+  /// decide them.
+  final String? secondaryDate;
   final String? title;
   final List<DayMark> marks;
 
@@ -249,16 +264,9 @@ class _DayHeader extends StatelessWidget {
                 ),
               ),
             ),
-            // The civil date stays the headline even on the old calendar: it
-            // is the date the phone and everyone around the reader are using.
-            // The Julian date sits under it, which is also why the weekday is
-            // only written once — julianDateOf returns calendar fields rather
-            // than an instant, and its weekday would be a fortnight out.
-            if (style == CalendarStyle.julian)
+            if (secondaryDate case final line?)
               Text(
-                l10n.julianDate(
-                  DateFormat.yMMMMd(locale).format(julianDateOf(date)),
-                ),
+                line,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.onPrimaryContainer.withValues(
                     alpha: 0.6,

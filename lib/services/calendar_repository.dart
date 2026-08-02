@@ -66,17 +66,15 @@ class CalendarRepository {
   /// every language has a Gregorian calendar but only English has a Julian
   /// one. Callers already handle it by falling back to the computed layer,
   /// which is what a reader in that position should get.
-  Future<Calendar?> load(
-    String language, {
-    CalendarStyle style = CalendarStyle.gregorian,
-  }) => _cache[_key(language, style)] ??= _readStored(language, style);
+  Future<Calendar?> load(String language, {required CalendarStyle style}) =>
+      _cache[_jsonName(language, style)] ??= _readStored(language, style);
 
   /// The entry for [date], or null if nothing is stored or the calendar does
   /// not reach that far.
   Future<CalendarDay?> dayFor(
     DateTime date,
     String language, {
-    CalendarStyle style = CalendarStyle.gregorian,
+    required CalendarStyle style,
   }) async => (await load(language, style: style))?.forDate(date);
 
   /// Fetches [language] from the network, storing it if it changed.
@@ -84,10 +82,13 @@ class CalendarRepository {
   /// Returns true only when new data was stored. A conditional request means
   /// the usual outcome is a bodiless 304, so calling this on every launch is
   /// cheap.
-  Future<bool> refresh(
-    String language, {
-    CalendarStyle style = CalendarStyle.gregorian,
-  }) async {
+  Future<bool> refresh(String language, {required CalendarStyle style}) async {
+    // Nothing publishes every combination, and asking for one that does not
+    // exist is a round trip that can only 404 — on every launch, before the
+    // day screen gives up waiting on it. The reader falls back to the computed
+    // layer, which is what they should get.
+    if (!style.isPublishedFor(language)) return false;
+
     try {
       // Both are independent, and neither reads the calendar body: a 304 with
       // no stored copy would leave us with nothing, so the conditional request
@@ -105,7 +106,7 @@ class CalendarRepository {
       if (response.statusCode == HttpStatus.notModified) return false;
       if (response.statusCode != HttpStatus.ok) {
         debugPrint(
-          'calendar: ${_key(language, style)} got ${response.statusCode}',
+          'calendar: ${_jsonName(language, style)} got ${response.statusCode}',
         );
         return false;
       }
@@ -129,12 +130,12 @@ class CalendarRepository {
         await _store.delete(_etagName(language, style));
       }
 
-      _cache[_key(language, style)] = Future.value(calendar);
+      _cache[_jsonName(language, style)] = Future.value(calendar);
       return true;
     } on Object catch (error) {
       // Offline, DNS failure, TLS problem, malformed payload: all the same
       // outcome. Keep whatever is already stored.
-      debugPrint('calendar: ${_key(language, style)} refresh failed ($error)');
+      debugPrint('calendar: ${_jsonName(language, style)} failed ($error)');
       return false;
     }
   }
@@ -145,14 +146,12 @@ class CalendarRepository {
       if (raw == null) return null;
       return Calendar.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } on Object catch (error) {
-      debugPrint('calendar: cannot read ${_key(language, style)} ($error)');
+      debugPrint(
+        'calendar: cannot read ${_jsonName(language, style)} ($error)',
+      );
       return null;
     }
   }
-
-  /// What a language and style are called together, for the cache and the log.
-  static String _key(String language, CalendarStyle style) =>
-      '$language.${style.name}';
 
   static String _jsonName(String language, CalendarStyle style) =>
       Calendar.fileName(language, style: style);

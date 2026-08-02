@@ -107,11 +107,7 @@ class SettingsScreen extends StatelessWidget {
             child: Column(
               children: [
                 for (final style in CalendarStyle.values)
-                  RadioListTile<CalendarStyle>(
-                    value: style,
-                    title: Text(_calendarStyleName(l10n, style)),
-                    subtitle: Text(_calendarStyleNote(l10n, style)),
-                  ),
+                  _calendarStyleTile(l10n, style),
               ],
             ),
           ),
@@ -163,9 +159,6 @@ class SettingsScreen extends StatelessWidget {
   /// loaded directly from the delegate rather than waiting for a rebuild, so
   /// this does not depend on frame timing.
   ///
-  /// Reschedules through the shared refresh rather than looping over the prayer
-  /// reminders here, which used to leave the fasting block in the old language
-  /// until the next launch.
   Future<void> _setLanguage(BuildContext context, String? language) async {
     final settings = SettingsScope.of(context);
     if (language == settings.language) return;
@@ -175,12 +168,6 @@ class SettingsScreen extends StatelessWidget {
   }
 
   /// Switches the calendar and rebuilds the schedule behind it.
-  ///
-  /// The reschedule is the whole point rather than tidiness. The fasting block
-  /// is a bounded horizon of one-off notifications whose days were chosen
-  /// under the old setting, and `ReminderRefresher` is throttled to once a
-  /// day, so without this someone who switched would be reminded to fast on
-  /// the other calendar's days until tomorrow.
   Future<void> _setCalendarStyle(
     BuildContext context,
     CalendarStyle style,
@@ -192,9 +179,15 @@ class SettingsScreen extends StatelessWidget {
     await _reschedule(settings);
   }
 
-  /// Re-arms everything through the shared refresh rather than looping over the
-  /// prayer reminders here, which used to leave the fasting block on the old
-  /// setting until the next launch.
+  /// Re-arms everything a setting change invalidates.
+  ///
+  /// Both callers need it for the same reason: a notification's text and its
+  /// date are both fixed when it is scheduled, so a reminder already pending
+  /// carries the old language and the old calendar's fast days until something
+  /// rebuilds it. `ReminderRefresher` is throttled to once a day and will not.
+  ///
+  /// Through the shared refresh rather than looping over the prayer reminders
+  /// here, which used to leave the fasting block behind until the next launch.
   Future<void> _reschedule(SettingsController settings) async {
     await refreshReminders(
       store: reminderStore ?? PreferencesReminderStore(),
@@ -214,26 +207,29 @@ class SettingsScreen extends StatelessWidget {
         _ => l10n.languageEnglish,
       };
 
-  static String _calendarStyleName(
-    AppLocalizations l10n,
-    CalendarStyle style,
-  ) => switch (style) {
-    CalendarStyle.gregorian => l10n.calendarStyleNew,
-    CalendarStyle.julian => l10n.calendarStyleOld,
-  };
-
-  /// What choosing it actually changes, since the names alone do not say.
+  /// The option, with what choosing it actually changes underneath.
   ///
-  /// Worth the second line because the obvious guess — that this moves Pascha
-  /// too — is wrong, and someone who believes it would not trust the app in
-  /// Holy Week.
-  static String _calendarStyleNote(
-    AppLocalizations l10n,
-    CalendarStyle style,
-  ) => switch (style) {
-    CalendarStyle.gregorian => l10n.calendarStyleNewNote,
-    CalendarStyle.julian => l10n.calendarStyleOldNote,
-  };
+  /// The note is worth the second line because the obvious guess — that this
+  /// moves Pascha too — is wrong, and someone who believed it would not trust
+  /// the app in Holy Week. Name and note in one switch so a style cannot end
+  /// up described by the other one's sentence.
+  static Widget _calendarStyleTile(AppLocalizations l10n, CalendarStyle style) {
+    final (name, note) = switch (style) {
+      CalendarStyle.gregorian => (
+        l10n.calendarStyleNew,
+        l10n.calendarStyleNewNote,
+      ),
+      CalendarStyle.julian => (
+        l10n.calendarStyleOld,
+        l10n.calendarStyleOldNote,
+      ),
+    };
+    return RadioListTile<CalendarStyle>(
+      value: style,
+      title: Text(name),
+      subtitle: Text(note),
+    );
+  }
 
   static String _textSizeName(AppLocalizations l10n, TextSize size) =>
       switch (size) {

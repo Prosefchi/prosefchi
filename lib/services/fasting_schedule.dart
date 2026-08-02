@@ -33,7 +33,7 @@ List<FastingDay> fastingDaysFrom(
   Calendar? calendar,
   int within = 60,
   int limit = FastingReminder.idCapacity,
-  CalendarStyle style = CalendarStyle.gregorian,
+  required CalendarStyle style,
 }) {
   final days = <FastingDay>[];
 
@@ -67,7 +67,7 @@ Future<void> refreshFastingReminders({
   required String language,
   required AppLocalizations l10n,
   DateTime? from,
-  CalendarStyle style = CalendarStyle.gregorian,
+  required CalendarStyle style,
 }) async {
   final calendar = await calendars.load(language, style: style);
   final days = fastingDaysFrom(

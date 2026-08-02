@@ -4,6 +4,7 @@ import 'dart:io' show SocketException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:prosefchi/models/calendar.dart';
 import 'package:prosefchi/services/calendar_repository.dart';
 
 import '../support/calendar_fixture.dart';
@@ -29,8 +30,18 @@ void main() {
         MockClient((_) async => http.Response('', 500)),
       );
 
-      expect(await repository.load('en'), isNull);
-      expect(await repository.dayFor(calendarFixtureDate, 'en'), isNull);
+      expect(
+        await repository.load('en', style: CalendarStyle.gregorian),
+        isNull,
+      );
+      expect(
+        await repository.dayFor(
+          calendarFixtureDate,
+          'en',
+          style: CalendarStyle.gregorian,
+        ),
+        isNull,
+      );
     });
 
     test('reads back what refresh stored, without the network', () async {
@@ -45,10 +56,16 @@ void main() {
         }),
       );
 
-      expect(await repository.refresh('en'), isTrue);
+      expect(
+        await repository.refresh('en', style: CalendarStyle.gregorian),
+        isTrue,
+      );
       repository.clearCache();
 
-      final calendar = await repository.load('en');
+      final calendar = await repository.load(
+        'en',
+        style: CalendarStyle.gregorian,
+      );
       expect(calendar, isNotNull);
       expect(
         calendar!.forDate(calendarFixtureDate)?.title,
@@ -73,8 +90,8 @@ void main() {
         }),
       );
 
-      await repository.refresh('en');
-      await repository.refresh('en');
+      await repository.refresh('en', style: CalendarStyle.gregorian);
+      await repository.refresh('en', style: CalendarStyle.gregorian);
 
       expect(sent, [null, 'W/"abc123"']);
     });
@@ -88,9 +105,18 @@ void main() {
         ),
       );
 
-      expect(await repository.refresh('en'), isTrue);
-      expect(await repository.refresh('en'), isFalse);
-      expect(await repository.load('en'), isNotNull);
+      expect(
+        await repository.refresh('en', style: CalendarStyle.gregorian),
+        isTrue,
+      );
+      expect(
+        await repository.refresh('en', style: CalendarStyle.gregorian),
+        isFalse,
+      );
+      expect(
+        await repository.load('en', style: CalendarStyle.gregorian),
+        isNotNull,
+      );
     });
 
     test('keeps the stored copy when the server returns garbage', () async {
@@ -104,14 +130,23 @@ void main() {
         ),
       );
 
-      expect(await repository.refresh('en'), isTrue);
+      expect(
+        await repository.refresh('en', style: CalendarStyle.gregorian),
+        isTrue,
+      );
 
       serveGarbage = true;
-      expect(await repository.refresh('en'), isFalse);
+      expect(
+        await repository.refresh('en', style: CalendarStyle.gregorian),
+        isFalse,
+      );
 
       repository.clearCache();
       expect(
-        (await repository.load('en'))?.forDate(calendarFixtureDate)?.title,
+        (await repository.load(
+          'en',
+          style: CalendarStyle.gregorian,
+        ))?.forDate(calendarFixtureDate)?.title,
         'Good Data',
       );
     });
@@ -125,14 +160,23 @@ void main() {
         }),
       );
 
-      expect(await repository.refresh('en'), isTrue);
+      expect(
+        await repository.refresh('en', style: CalendarStyle.gregorian),
+        isTrue,
+      );
 
       offline = true;
-      expect(await repository.refresh('en'), isFalse);
+      expect(
+        await repository.refresh('en', style: CalendarStyle.gregorian),
+        isFalse,
+      );
 
       repository.clearCache();
       expect(
-        (await repository.load('en'))?.forDate(calendarFixtureDate)?.title,
+        (await repository.load(
+          'en',
+          style: CalendarStyle.gregorian,
+        ))?.forDate(calendarFixtureDate)?.title,
         'Cached',
       );
     });
@@ -151,11 +195,14 @@ void main() {
         ),
       );
 
-      await repository.refresh('el');
+      await repository.refresh('el', style: CalendarStyle.gregorian);
       repository.clearCache();
 
       expect(
-        (await repository.load('el'))?.forDate(calendarFixtureDate)?.title,
+        (await repository.load(
+          'el',
+          style: CalendarStyle.gregorian,
+        ))?.forDate(calendarFixtureDate)?.title,
         title,
       );
     });
@@ -165,8 +212,14 @@ void main() {
         MockClient((_) async => http.Response('nope', 503)),
       );
 
-      expect(await repository.refresh('en'), isFalse);
-      expect(await repository.load('en'), isNull);
+      expect(
+        await repository.refresh('en', style: CalendarStyle.gregorian),
+        isFalse,
+      );
+      expect(
+        await repository.load('en', style: CalendarStyle.gregorian),
+        isNull,
+      );
       expect(store.entries, isEmpty);
     });
   });
@@ -188,8 +241,8 @@ void main() {
         ),
       );
 
-      await repository.refresh('en');
-      await repository.refresh('el');
+      await repository.refresh('en', style: CalendarStyle.gregorian);
+      await repository.refresh('el', style: CalendarStyle.gregorian);
 
       expect(
         store.entries.keys,
@@ -198,8 +251,14 @@ void main() {
           'calendar.el.gregorian.json',
         ]),
       );
-      expect(await repository.load('en'), isNotNull);
-      expect(await repository.load('el'), isNotNull);
+      expect(
+        await repository.load('en', style: CalendarStyle.gregorian),
+        isNotNull,
+      );
+      expect(
+        await repository.load('el', style: CalendarStyle.gregorian),
+        isNotNull,
+      );
     });
 
     test('switching back costs a 304 rather than a download', () async {
@@ -218,9 +277,9 @@ void main() {
         }),
       );
 
-      await repository.refresh('en');
-      await repository.refresh('el');
-      await repository.refresh('en');
+      await repository.refresh('en', style: CalendarStyle.gregorian);
+      await repository.refresh('el', style: CalendarStyle.gregorian);
+      await repository.refresh('en', style: CalendarStyle.gregorian);
 
       expect(bodies, [
         '/calendar.en.gregorian.json',
@@ -232,5 +291,72 @@ void main() {
   test('exposes Greek as el, the code intl expects', () {
     expect(supportedLanguages, contains('el'));
     expect(supportedLanguages, isNot(contains('gr')));
+  });
+
+  group('the calendar style names the file', () {
+    test('asks for the file the chosen calendar is published as', () async {
+      final asked = <String>[];
+      final repository = repositoryWith(
+        MockClient((request) async {
+          asked.add(request.url.path);
+          return http.Response(calendarJson(), 200);
+        }),
+      );
+
+      await repository.refresh('en', style: CalendarStyle.gregorian);
+      await repository.refresh('en', style: CalendarStyle.julian);
+
+      expect(asked, ['/calendar.en.json', '/calendar.en.julian.json']);
+    });
+
+    test('keeps the two apart in the store and the cache', () async {
+      // Same language, two files. Sharing a key would serve whichever was
+      // fetched last under both settings.
+      final repository = repositoryWith(
+        MockClient(
+          (request) async => request.url.path.contains('julian')
+              ? http.Response(calendarJson(title: 'Old calendar day'), 200)
+              : http.Response(calendarJson(title: 'New calendar day'), 200),
+        ),
+      );
+
+      await repository.refresh('en', style: CalendarStyle.gregorian);
+      await repository.refresh('en', style: CalendarStyle.julian);
+
+      expect(
+        (await repository.load(
+          'en',
+          style: CalendarStyle.gregorian,
+        ))?.forDate(calendarFixtureDate)?.title,
+        'New calendar day',
+      );
+      expect(
+        (await repository.load(
+          'en',
+          style: CalendarStyle.julian,
+        ))?.forDate(calendarFixtureDate)?.title,
+        'Old calendar day',
+      );
+    });
+
+    test('never asks for a combination nothing publishes', () async {
+      // Only English has a Julian file. A Greek reader who chooses the old
+      // calendar falls back to the computed layer, and should not pay for a
+      // round trip that can only 404 on every launch to find that out.
+      var requests = 0;
+      final repository = repositoryWith(
+        MockClient((_) async {
+          requests++;
+          return http.Response(calendarJson(), 200);
+        }),
+      );
+
+      expect(
+        await repository.refresh('el', style: CalendarStyle.julian),
+        isFalse,
+      );
+      expect(requests, 0);
+      expect(await repository.load('el', style: CalendarStyle.julian), isNull);
+    });
   });
 }
