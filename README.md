@@ -31,6 +31,13 @@ The following languages are supported:
 | Koine Greek    | **Full**  |
 | Modern English | **Full**  |
 
+Either calendar can be chosen in settings: the new (Revised Julian) calendar the
+Archdiocese publishes, or the old (Julian) one. Both keep Pascha and everything
+counted from it on the same day, so Great Lent, Holy Week, the tone and the
+eothinon are shared; only the fixed feasts move, falling thirteen days later on
+the old calendar. The old calendar is English only, since its source publishes
+English only.
+
 ## Screenshots
 
 <div align="center">
@@ -57,10 +64,7 @@ dart run tool/build_site.dart --serve
 
 That builds into `build/site`, downloads the published calendar so there is real
 data to look at, serves it at <http://localhost:8000>, and rebuilds and reloads
-whenever a source file changes. The preview turns the service worker off, since
-one answering from its cache would serve the page from before the edit; to look
-at the installed app, build without `--serve` and serve `build/site` with any
-static server.
+whenever a source file changes. It shows the new calendar only.
 
 ## Building
 
@@ -79,8 +83,13 @@ republished as JSON by a daily GitHub Actions run:
 
 - `https://prosefchi.github.io/prosefchi/calendar.en.gregorian.json`
 - `https://prosefchi.github.io/prosefchi/calendar.el.gregorian.json`
+- `https://prosefchi.github.io/prosefchi/calendar.en.julian.json`
 
-The app fetches those and keeps a copy on the device. To rebuild them locally:
+The Archdiocese publishes the new calendar only, so the old calendar is built
+from [orthocal.info](https://orthocal.info/), which computes both reckonings.
+
+The app fetches whichever file matches the chosen language and calendar, and
+keeps a copy on the device. To rebuild them locally:
 
 ```bash
 dart run tool/build_calendar.dart
@@ -98,32 +107,18 @@ Everything derives from the date of Pascha, which
 yields a Julian calendar date which is then converted to Gregorian, and that
 conversion is why Orthodox and Western Easter usually differ.
 
-The movable feasts are day offsets from Pascha: Clean Monday at -48, Thomas
-Sunday at +7, Pentecost at +49. The two weekly cycles count from one of them:
+The movable feasts are day offsets from Pascha, and the two weekly cycles count
+from one of them: the tone through the eight from Thomas Sunday, the eothinon
+through the eleven from the Sunday of All Saints. Both anchors were checked
+against the published calendar rather than assumed, and each matched every day
+it states one.
 
-- Tone: weeks since Thomas Sunday, cycling through the eight.
-- Eothinon: weeks since the Sunday of All Saints, cycling through the eleven.
-
-No tone is shown during Bright Week, when the Octoechos is set aside and every
-day has its own proper texts. Between Pascha and All Saints the eothinon follows
-the previous year's cycle.
-
-Both anchors were checked against the published calendar rather than assumed. It
-states a tone on 86 days and an eothinon on 84. Thomas Sunday matched all 86 and
-All Saints all 84, and the other plausible anchors matched none.
-
-Whether a day fasts is resolved in four steps:
-
-1. Some days fast whatever else is true: the Beheading, the Exaltation, and the
-   eves of the Nativity and of Theophany.
-2. The fast-free weeks lift the fast completely: Bright Week, the week after
-   Pentecost, the week following the Publican and the Pharisee, and
-   Christmastide.
-3. The fasting seasons fast, some anchored to Pascha and some to the civil
-   calendar. The Apostles' Fast begins the day after All Saints but always ends
-   on 28 June, so its length varies with Pascha and a late enough Pascha removes
-   it entirely.
-4. Whatever is left fasts on Wednesdays and Fridays.
+A day fasts if it is one of the few that always do, or falls in a fasting
+season, or is a Wednesday or Friday outside a fast-free week. The seasons are
+anchored partly to Pascha and partly to the civil calendar, which is where the
+two reckonings diverge: the Apostles' Fast ends on a fixed date, so it is
+thirteen days longer on the old calendar and cannot be erased by a late Pascha
+as it can on the new one.
 
 That is only whether a day fasts. What may be eaten varies with the season, the
 weekday and the rank of the feast, and comes from the published calendar.
@@ -133,5 +128,5 @@ Against its rules the computed seasons agree on all 3287 days it covers.
 
 [GNU AGPL v3](LICENSE).
 
-Calendar content belongs to the Greek Orthodox Archdiocese of America and is not
-covered by that licence.
+Calendar content belongs to the Greek Orthodox Archdiocese of America and to
+orthocal.info, and is not covered by that licence.
