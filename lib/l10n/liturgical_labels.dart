@@ -28,17 +28,16 @@ extension LiturgicalLabels on AppLocalizations {
     FastSeason.nativity => fastSeasonNativity,
   };
 
-  /// The published fasting rule in words.
+  /// The published fasting rule in words, or null where none was published.
   ///
-  /// The wording is upstream's own, so what the app draws is unchanged from
-  /// when the calendar carried the sentence itself. The difference is that it
-  /// is now the app saying it, which is what lets a day parsed out of an
-  /// English-only source be read in Greek.
-  String fastAllowanceLabel(FastAllowance allowance) => switch (allowance) {
+  /// Nullable in and out so callers keep the `??` shape the rest of the day's
+  /// resolution uses — every one of them falls back to the computed layer.
+  String? fastAllowanceLabel(FastAllowance? allowance) => switch (allowance) {
     FastAllowance.strict => fastAllowanceStrict,
     FastAllowance.wineAndOil => fastAllowanceWineAndOil,
     FastAllowance.fish => fastAllowanceFish,
     FastAllowance.dairyEggsAndFish => fastAllowanceDairyEggsAndFish,
     FastAllowance.free => fastAllowanceFree,
+    null => null,
   };
 }

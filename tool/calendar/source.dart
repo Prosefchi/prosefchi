@@ -9,16 +9,36 @@
 
 import 'package:prosefchi/models/calendar.dart';
 
+/// Why a source left something unaccounted for.
+///
+/// The two are not equally serious, so they are told apart by the type rather
+/// than by a prefix on the message: one is cosmetic and the other silently
+/// changes what the app says about a day.
+enum FindingKind {
+  /// A line in a slot we parse that matched nothing we know.
+  ///
+  /// Usually a feast name upstream put where the fasting rule goes. Nothing is
+  /// lost by it — the line is simply not shown.
+  unrecognised,
+
+  /// A statement about fasting whose wording is not in the source's table.
+  ///
+  /// The day then publishes no rule at all, which every reader takes as a day
+  /// that does not fast. This is the one that has to be acted on.
+  unmappedFastingRule,
+}
+
+/// Something a source could not account for, and where.
+typedef Finding = ({String date, String line, FindingKind kind});
+
 /// The days a source yielded, plus what it could not account for.
 typedef ParsedCalendar = ({
   Map<String, CalendarDay> days,
   DateTime? sourceUpdatedAt,
 
-  /// Lines the parser recognised as meaningful but could not classify.
-  ///
   /// Reported at build time and never shown. Loud on purpose: the previous
   /// one of these put the Matins reading in the Gospel slot on 648 days.
-  List<String> unparsed,
+  List<Finding> findings,
 });
 
 /// A published calendar one of our files can be built from.

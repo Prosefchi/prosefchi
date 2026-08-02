@@ -241,7 +241,7 @@ ParsedCalendar parseEvents(String ics, Feed feed) {
   final unfolded = ics.replaceAll(_folded, '');
 
   final result = <String, CalendarDay>{};
-  final unparsed = <String>[];
+  final findings = <Finding>[];
   DateTime? sourceUpdatedAt;
 
   for (final block in unfolded.split('BEGIN:VEVENT').skip(1)) {
@@ -265,8 +265,8 @@ ParsedCalendar parseEvents(String ics, Feed feed) {
     final parts = sections(unescapeIcs(description), feed);
     final headline = DayMark.split(unescapeIcs(summary));
     final saints = commemorations(parts[Section.saints], feed);
-    for (final line in saints.unparsed) {
-      unparsed.add('$date  $line');
+    for (final (:line, :kind) in saints.findings) {
+      findings.add((date: date, line: line, kind: kind));
     }
 
     result[date] = CalendarDay(
@@ -283,7 +283,7 @@ ParsedCalendar parseEvents(String ics, Feed feed) {
       oldTestament: readingFrom(parts[Section.oldTestament]),
     );
   }
-  return (days: result, sourceUpdatedAt: sourceUpdatedAt, unparsed: unparsed);
+  return (days: result, sourceUpdatedAt: sourceUpdatedAt, findings: findings);
 }
 
 /// Splits the saints section into everything upstream packs into it.
@@ -303,7 +303,7 @@ ParsedCalendar parseEvents(String ics, Feed feed) {
   FastAllowance? fastAllowance,
   int? tone,
   int? eothinon,
-  List<String> unparsed,
+  List<({String line, FindingKind kind})> findings,
 })
 commemorations(String? body, Feed feed) {
   const empty = (
@@ -311,7 +311,7 @@ commemorations(String? body, Feed feed) {
     fastAllowance: null,
     tone: null,
     eothinon: null,
-    unparsed: <String>[],
+    findings: <({String line, FindingKind kind})>[],
   );
   if (body == null || body.isEmpty) return empty;
 
@@ -325,7 +325,7 @@ commemorations(String? body, Feed feed) {
   int? tone;
   int? eothinon;
   FastAllowance? allowance;
-  final unparsed = <String>[];
+  final findings = <({String line, FindingKind kind})>[];
   final isFasting = _pattern(feed.fastingPattern);
 
   for (final paragraph in paragraphs.skip(1)) {
@@ -339,11 +339,12 @@ commemorations(String? body, Feed feed) {
       } else if (feed.fastingRules[line] case final value?) {
         allowance = value;
       } else if (isFasting.hasMatch(line)) {
-        // Reads as a fasting rule and is not one we know. Reported rather than
-        // guessed at: a rule silently dropped shows the day as not fasting.
-        unparsed.add('unmapped fasting rule: $line');
+        // Reads as a fasting rule and is not one we know. This is the whole
+        // job fastingPattern still has: telling a rule we failed to map from
+        // a line that was never one.
+        findings.add((line: line, kind: FindingKind.unmappedFastingRule));
       } else {
-        unparsed.add(line);
+        findings.add((line: line, kind: FindingKind.unrecognised));
       }
     }
   }
@@ -357,7 +358,7 @@ commemorations(String? body, Feed feed) {
     fastAllowance: allowance,
     tone: tone,
     eothinon: eothinon,
-    unparsed: unparsed,
+    findings: findings,
   );
 }
 

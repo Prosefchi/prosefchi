@@ -81,10 +81,9 @@ Future<void> refreshFastingReminders({
         // "Strict Fast" rather than merely that the day fasts.
         (
           date: day.date,
-          body: switch (day.allowance) {
-            final allowance? => l10n.fastAllowanceLabel(allowance),
-            null => l10n.fastingReminderBody,
-          },
+          body:
+              l10n.fastAllowanceLabel(day.allowance) ??
+              l10n.fastingReminderBody,
         ),
     ],
     channelName: l10n.fastingReminder,

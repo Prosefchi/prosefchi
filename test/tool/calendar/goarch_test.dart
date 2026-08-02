@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/models/calendar.dart';
 
 import '../../../tool/calendar/goarch.dart';
+import '../../../tool/calendar/source.dart';
 
 /// Wraps a description the way the feed does, as a single folded line.
 String event(String date, String summary, String description) =>
@@ -149,8 +150,11 @@ void main() {
       );
 
       expect(result.fastAllowance, isNull);
-      expect(result.unparsed, [
-        'The Theophany of Our Lord and Saviour Jesus Christ',
+      expect(result.findings, [
+        (
+          line: 'The Theophany of Our Lord and Saviour Jesus Christ',
+          kind: FindingKind.unrecognised,
+        ),
       ]);
     });
 
@@ -160,7 +164,7 @@ void main() {
       final result = commemorations('A\n\nWine & Oil Allowed', feeds['en']!);
 
       expect(result.fastAllowance, FastAllowance.wineAndOil);
-      expect(result.unparsed, isEmpty);
+      expect(result.findings, isEmpty);
     });
 
     test('reports a fasting rule it cannot map instead of dropping it', () {
@@ -172,9 +176,15 @@ void main() {
         feeds['en']!,
       );
 
+      // Told apart by the type rather than by a prefix on the message: this
+      // one silently makes the day read as one that does not fast, and the
+      // build reports it separately and in full for that reason.
       expect(result.fastAllowance, isNull);
-      expect(result.unparsed, [
-        'unmapped fasting rule: Fast Day (Squid Allowed)',
+      expect(result.findings, [
+        (
+          line: 'Fast Day (Squid Allowed)',
+          kind: FindingKind.unmappedFastingRule,
+        ),
       ]);
     });
 

@@ -8,7 +8,7 @@ import 'dart:convert';
 import 'dart:io';
 
 /// Where a cached response for [key] lives. Gitignored, like all of .dart_tool.
-File cacheFile(String key) => File('.dart_tool/calendar_cache/$key');
+File _cacheFile(String key) => File('.dart_tool/calendar_cache/$key');
 
 /// Fetches [url], writing the body to the cache under [key].
 ///
@@ -20,7 +20,7 @@ Future<String> fetch(
   required String label,
   required bool useCache,
 }) async {
-  final cache = cacheFile(key);
+  final cache = _cacheFile(key);
   if (useCache && cache.existsSync()) {
     stdout.writeln('$label: using cached ${cache.path}');
     return cache.readAsString();

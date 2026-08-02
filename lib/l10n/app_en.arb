@@ -212,7 +212,7 @@
   },
   "fastAllowanceStrict": "Strict Fast",
   "@fastAllowanceStrict": {
-    "description": "Fasting rule: nothing is lifted. The app owns these five strings rather than the calendar carrying them, so a calendar built from a source that publishes only English can still be read in Greek."
+    "description": "Fasting rule: nothing is lifted, so no oil and no wine."
   },
   "fastAllowanceWineAndOil": "Fast Day (Wine and Oil Allowed)",
   "@fastAllowanceWineAndOil": {

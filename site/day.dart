@@ -224,10 +224,8 @@ web.HTMLElement _header(CalendarDay? day) {
   // so a day with no fast says so rather than leaving the slot empty — an
   // empty slot is ambiguous between there being no fast and our not knowing,
   // and those are different answers to give someone who came to check.
-  final fasting = switch (day?.fastAllowance) {
-    final allowance? => _strings[_fastAllowanceKey(allowance)],
-    null => _computedFasting(_date),
-  };
+  final fasting =
+      _fastAllowanceLabel(day?.fastAllowance) ?? _computedFasting(_date);
 
   final pills = _el('div', className: 'pills');
   for (final mark in day?.marks ?? const <DayMark>[]) {
@@ -356,13 +354,20 @@ String _fastSeasonKey(FastSeason season) => switch (season) {
   FastSeason.nativity => 'fastSeasonNativity',
 };
 
-/// Mirrors `fastAllowanceLabel` in the app's `liturgical_labels.dart`.
-String _fastAllowanceKey(FastAllowance allowance) => switch (allowance) {
-  FastAllowance.strict => 'fastAllowanceStrict',
-  FastAllowance.wineAndOil => 'fastAllowanceWineAndOil',
-  FastAllowance.fish => 'fastAllowanceFish',
-  FastAllowance.dairyEggsAndFish => 'fastAllowanceDairyEggsAndFish',
-  FastAllowance.free => 'fastAllowanceFree',
+/// Mirrors `fastAllowanceLabel` in the app's `liturgical_labels.dart`, down to
+/// being nullable, since both are read through `??`.
+///
+/// Spelled out rather than derived from the enum name so that adding a value
+/// fails the compile here as well as in the app. `Strings` falls back to the
+/// key itself, so a computed key that stopped matching the ARB would render
+/// `fastAllowanceStrict` into the page and nothing would say so.
+String? _fastAllowanceLabel(FastAllowance? allowance) => switch (allowance) {
+  FastAllowance.strict => _strings['fastAllowanceStrict'],
+  FastAllowance.wineAndOil => _strings['fastAllowanceWineAndOil'],
+  FastAllowance.fish => _strings['fastAllowanceFish'],
+  FastAllowance.dairyEggsAndFish => _strings['fastAllowanceDairyEggsAndFish'],
+  FastAllowance.free => _strings['fastAllowanceFree'],
+  null => null,
 };
 
 String _markLabel(DayMark mark) => switch (mark) {

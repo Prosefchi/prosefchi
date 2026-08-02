@@ -16,9 +16,8 @@ const supportedLanguages = ['en', 'el'];
 /// saints arrive clean and only the title needs splitting.
 ///
 /// These mark *allowances* only, so an unmarked day is ambiguous between a
-/// strict fast and no fast at all. [CalendarDay.fasting] resolves that: on the
-/// days it is present upstream states the rule outright, and it should be
-/// preferred over these.
+/// strict fast and no fast at all. [CalendarDay.fastAllowance] resolves that
+/// and should be preferred over these wherever it is present.
 enum DayMark {
   /// A great feast.
   majorFeast('☦'),
@@ -37,7 +36,7 @@ enum DayMark {
   /// The bare codepoint, without the variation selector upstream appends.
   final String symbol;
 
-  static DayMark? byName(String name) => values.asNameMap()[name];
+  static DayMark? byName(String? name) => _byName(values, name);
 
   /// Splits the markers off a raw title.
   ///
@@ -58,22 +57,14 @@ enum DayMark {
 
 /// What a fast day permits.
 ///
-/// This is the vocabulary the whole pipeline branches on, and it is upstream's
-/// own rather than an invention: GOARCH states the rule in words, six phrasings
-/// in English and nine in Greek, and across the 1917 days of the feed that
-/// carry one the two languages never disagree and every phrasing collapses to
-/// one of these five. The extra Greek strings are spelling variants of the same
-/// rule, monotonic beside polytonic.
+/// A code rather than words, so a calendar built from a source that publishes
+/// one language can be read in another: the words come from the app's own ARB.
+/// The five are upstream's own vocabulary, not a compression of it. See the
+/// CLAUDE.md section on the fasting rule for why, and for what a source
+/// drawing finer distinctions has to do.
 ///
-/// Deliberately the *allowance* and not the season. What is permitted on a fast
-/// day depends on the rank of the feast and cannot be computed from a date; the
-/// season is `fastSeasonFor` in `liturgics/fasting.dart` and needs no data at
-/// all. Publishing this and computing that is the same division the rest of the
-/// app draws.
-///
-/// A source that draws finer distinctions has to map into these — see
-/// `tool/calendar/` — which is what lets a calendar built from one source be
-/// rendered in a language that source does not publish.
+/// Deliberately the *allowance* and not the season, which is
+/// `fastSeasonFor` in `liturgics/fasting.dart` and needs no data at all.
 enum FastAllowance {
   /// Nothing lifted: no oil, no wine.
   strict,
@@ -88,12 +79,19 @@ enum FastAllowance {
   /// The fast lifted entirely.
   free;
 
-  static FastAllowance? byName(String? name) =>
-      name == null ? null : values.asNameMap()[name];
+  static FastAllowance? byName(String? name) => _byName(values, name);
 
   /// Whether a day under this allowance fasts at all.
   bool get fasts => this != FastAllowance.free;
 }
+
+/// The value of [values] named [name], or null for an absent or unknown name.
+///
+/// Both enums here are read straight out of published JSON, where an unknown
+/// name is an ordinary state — a file built by a newer version of the tool —
+/// and has to resolve to null rather than throw.
+T? _byName<T extends Enum>(List<T> values, String? name) =>
+    name == null ? null : values.asNameMap()[name];
 
 /// An appointed scripture reading.
 ///
