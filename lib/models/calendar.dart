@@ -17,11 +17,10 @@ const supportedLanguages = ['en', 'el'];
 /// Which reckoning of the calendar a published file was built for.
 ///
 /// Both keep Pascha on the same day, the Revised Julian calendar having kept
-/// the Julian paschalion, so only the fixed feasts and their fasts differ.
+/// the Julian paschalion, so only the fixed feasts and their fasts differ,
+/// falling 13 days later until 2100.
 enum CalendarStyle {
   gregorian,
-
-  /// The old calendar, whose fixed feasts fall 13 days later until 2100.
   julian;
 
   static CalendarStyle? byName(String? name) => _byName(values, name);
@@ -307,18 +306,9 @@ class Calendar {
     },
   };
 
-  /// What a published calendar is named.
-  ///
-  /// The Gregorian file keeps the bare name because a shipped build cannot be
-  /// repointed: installs already out there ask for it. Others are suffixed,
-  /// the rule `PRIVACY.md` and its translations follow.
-  static String fileName(
-    String language, {
-    CalendarStyle style = CalendarStyle.gregorian,
-  }) => switch (style) {
-    CalendarStyle.gregorian => 'calendar.$language.json',
-    _ => 'calendar.$language.${style.name}.json',
-  };
+  /// What a published calendar is named. Also the name it is stored under.
+  static String fileName(String language, {required CalendarStyle style}) =>
+      'calendar.$language.${style.name}.json';
 
   /// The canonical `YYYY-MM-DD` key for [date], ignoring any time component.
   static String dateKey(DateTime date) =>

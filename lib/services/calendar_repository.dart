@@ -135,7 +135,8 @@ class CalendarRepository {
     }
   }
 
-  static String _jsonName(String language) => Calendar.fileName(language);
+  static String _jsonName(String language) =>
+      Calendar.fileName(language, style: CalendarStyle.gregorian);
 
   static String _etagName(String language) => 'calendar.$language.etag';
 

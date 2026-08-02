@@ -36,7 +36,7 @@ import 'dart:io';
 // prayer.dart re-exports markup.dart, so the parser and the occasions arrive
 // together. The aliases are what make prayer code read in prayer terms — a
 // note in a prayer is a rubric.
-import 'package:prosefchi/models/calendar.dart' show Calendar;
+import 'package:prosefchi/models/calendar.dart' show Calendar, CalendarStyle;
 import 'package:prosefchi/models/prayer.dart';
 import 'package:prosefchi/models/site.dart';
 
@@ -815,7 +815,8 @@ Future<void> _writeServiceWorker(Directory outDir) async {
     'cache': '$_cachePrefix$digest',
     'assets': jsonEncode(assets),
     'calendars': jsonEncode([
-      for (final language in supportedLanguages) Calendar.fileName(language),
+      for (final language in supportedLanguages)
+        Calendar.fileName(language, style: CalendarStyle.gregorian),
     ]),
   });
 
@@ -832,7 +833,8 @@ Future<void> _writeServiceWorker(Directory outDir) async {
 Future<(List<String>, String)> _precache(Directory outDir) async {
   final root = outDir.absolute.path;
   final calendars = {
-    for (final language in supportedLanguages) Calendar.fileName(language),
+    for (final language in supportedLanguages)
+      Calendar.fileName(language, style: CalendarStyle.gregorian),
   };
 
   final entries = <(String, File)>[];
@@ -906,10 +908,10 @@ Future<void> _fetchPublishedCalendars(Directory outDir) async {
   final client = HttpClient();
   try {
     for (final language in supportedLanguages) {
-      final file = File('${outDir.path}/${Calendar.fileName(language)}');
+      final name = Calendar.fileName(language, style: CalendarStyle.gregorian);
+      final file = File('${outDir.path}/$name');
       if (file.existsSync()) continue;
 
-      final name = Calendar.fileName(language);
       final request = await client.getUrl(defaultCalendarBaseUrl.resolve(name));
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {

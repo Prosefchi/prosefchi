@@ -1,4 +1,4 @@
-// Builds calendar.<lang>.json from the published sources.
+// Builds calendar.<lang>.<style>.json from the published sources.
 //
 // This file is the entry point and the orchestration: which sources to run,
 // what window to keep, where to write, and what to complain about. Reading any
@@ -10,7 +10,7 @@
 //
 //   --out DIR      output directory (default: build/calendar)
 //   --from DATE    earliest day to keep, YYYY-MM-DD (default: 90 days ago)
-//   --to DATE      latest day to keep, YYYY-MM-DD (default: no limit)
+//   --to DATE      latest day to keep, YYYY-MM-DD (default: buildHorizonDays)
 //   --cache        reuse previously downloaded responses instead of refetching
 
 import 'dart:convert';
@@ -29,11 +29,10 @@ import 'calendar/source.dart';
 /// by users.
 const runwayWarningDays = 60;
 
-/// How far past today a build reaches when `--to` says nothing.
+/// The last day a build writes, counted from today, unless `--to` says which.
 ///
-/// Not every source has an end of its own — orthocal answers for any year to
-/// 4099 — and owning the bound here keeps `--to` meaning one thing for all of
-/// them, and lets the runway warning tell upstream stopping from us stopping.
+/// Orthocal has no end of its own and would answer to the year 4099, so the
+/// bound is stated here rather than left to a source.
 const buildHorizonDays = 400;
 
 /// The sources a build reads, in the order they are read. One file each.

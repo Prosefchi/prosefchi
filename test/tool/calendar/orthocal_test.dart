@@ -256,15 +256,11 @@ void main() {
   });
 
   group('fileName', () {
-    test('the Gregorian calendar keeps the name the app already asks for', () {
-      expect(Calendar.fileName('en'), 'calendar.en.json');
+    test('names the language and the style, with no case of its own', () {
       expect(
         Calendar.fileName('en', style: CalendarStyle.gregorian),
-        'calendar.en.json',
+        'calendar.en.gregorian.json',
       );
-    });
-
-    test('every other style sits beside it under its own', () {
       expect(
         Calendar.fileName('en', style: CalendarStyle.julian),
         'calendar.en.julian.json',

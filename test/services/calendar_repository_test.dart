@@ -193,7 +193,10 @@ void main() {
 
       expect(
         store.entries.keys,
-        containsAll(['calendar.en.json', 'calendar.el.json']),
+        containsAll([
+          'calendar.en.gregorian.json',
+          'calendar.el.gregorian.json',
+        ]),
       );
       expect(await repository.load('en'), isNotNull);
       expect(await repository.load('el'), isNotNull);
@@ -220,8 +223,8 @@ void main() {
       await repository.refresh('en');
 
       expect(bodies, [
-        '/calendar.en.json',
-        '/calendar.el.json',
+        '/calendar.en.gregorian.json',
+        '/calendar.el.gregorian.json',
       ], reason: 'the second visit to en is conditional');
     });
   });

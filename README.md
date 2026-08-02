@@ -77,8 +77,8 @@ Saints, feasts and readings come from the calendar published by the
 [Greek Orthodox Archdiocese of America](https://www.goarch.org/), fetched and
 republished as JSON by a daily GitHub Actions run:
 
-- `https://prosefchi.github.io/prosefchi/calendar.en.json`
-- `https://prosefchi.github.io/prosefchi/calendar.el.json`
+- `https://prosefchi.github.io/prosefchi/calendar.en.gregorian.json`
+- `https://prosefchi.github.io/prosefchi/calendar.el.gregorian.json`
 
 The app fetches those and keeps a copy on the device. To rebuild them locally:
 
