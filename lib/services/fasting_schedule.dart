@@ -8,9 +8,6 @@ import 'calendar_repository.dart';
 import 'notification_service.dart';
 
 /// A day that fasts, and the rule published for it where there is one.
-///
-/// The rule is the enum rather than words, so choosing the days stays free of
-/// localization and can be tested without one.
 typedef FastingDay = ({DateTime date, FastAllowance? allowance});
 
 /// The fast days to schedule reminders for, starting at [from].

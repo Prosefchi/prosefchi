@@ -3,6 +3,9 @@ import '../models/calendar.dart';
 import 'app_localizations.dart';
 
 /// Display names for the computed and published liturgical values.
+///
+/// The getters reached here are the ARB entries `liturgical_keys.dart` names,
+/// which is how the website reaches the same words.
 extension LiturgicalLabels on AppLocalizations {
   /// The tone by its traditional name rather than its number.
   ///
@@ -18,6 +21,13 @@ extension LiturgicalLabels on AppLocalizations {
     6 => tone6,
     7 => tone7,
     _ => tone8,
+  };
+
+  String dayMarkLabel(DayMark mark) => switch (mark) {
+    DayMark.majorFeast => markMajorFeast,
+    DayMark.wineAndOil => markWineAndOil,
+    DayMark.fish => markFish,
+    DayMark.dairy => markDairy,
   };
 
   String fastSeasonLabel(FastSeason season) => switch (season) {

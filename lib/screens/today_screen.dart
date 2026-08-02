@@ -267,7 +267,7 @@ class _DayHeader extends StatelessWidget {
       if (fasting == null || mark == DayMark.majorFeast)
         _Pill(
           leading: Text(mark.symbol, style: const TextStyle(fontSize: 13)),
-          label: _markLabel(l10n, mark),
+          label: l10n.dayMarkLabel(mark),
         ),
     if (fasting case final rule?)
       _Pill(
@@ -275,14 +275,6 @@ class _DayHeader extends StatelessWidget {
         label: rule,
       ),
   ];
-
-  static String _markLabel(AppLocalizations l10n, DayMark mark) =>
-      switch (mark) {
-        DayMark.majorFeast => l10n.markMajorFeast,
-        DayMark.wineAndOil => l10n.markWineAndOil,
-        DayMark.fish => l10n.markFish,
-        DayMark.dairy => l10n.markDairy,
-      };
 }
 
 class _Pill extends StatelessWidget {

@@ -3,6 +3,11 @@
 // Both sides of the pipeline use these types: tool/build_calendar.dart writes
 // them via toJson, and the app reads them back with fromJson. One definition
 // means the generator and the reader cannot drift apart.
+//
+// A field holds what a source published, so any of it may be absent and no
+// source reaches every date. That is ordinary rather than a fault: the tone,
+// the eothinon and the fasting are computed from the date alone in
+// lib/liturgics/, and a published value is preferred only where there is one.
 
 import '../liturgics/paschalion.dart';
 
@@ -56,10 +61,6 @@ enum DayMark {
 }
 
 /// What a fast day permits.
-///
-/// A code rather than words, so a calendar built from an English-only source
-/// can be read in Greek; the words come from the app's own ARB. The allowance
-/// and not the season, which `fastSeasonFor` computes. See CLAUDE.md.
 enum FastAllowance {
   /// Nothing lifted: no oil, no wine.
   strict,
@@ -88,7 +89,7 @@ T? _byName<T extends Enum>(List<T> values, String? name) =>
 
 /// An appointed scripture reading.
 ///
-/// [text] is absent on the rare entries where upstream gives only a citation.
+/// [text] is absent where the source gives only a citation.
 class Reading {
   const Reading({required this.reference, this.text});
 
@@ -107,9 +108,6 @@ class Reading {
 }
 
 /// One day's commemorations and readings.
-///
-/// Roughly 9% of days carry no appointed readings, so [epistle] and [gospel]
-/// are routinely null rather than exceptionally so.
 class CalendarDay {
   const CalendarDay({
     required this.date,
@@ -162,11 +160,8 @@ class CalendarDay {
 
   /// What the day's fast permits, where the source states a rule.
   ///
-  /// Unambiguous in a way [marks] is not: a marker only records an allowance,
-  /// so an unmarked day could be a strict fast or no fast at all.
-  ///
-  /// Null on the ~42% of days stating no rule. The weekday fast still applies
-  /// to those and is computed — see `isFastDay`.
+  /// Where it states none the weekday fast still applies, computed by
+  /// `isFastDay`.
   final FastAllowance? fastAllowance;
 
   /// Whether the day fasts at all.
@@ -175,14 +170,11 @@ class CalendarDay {
   /// are different facts with the same answer to this question.
   bool get fasts => fastAllowance?.fasts ?? false;
 
-  /// The Octoechos tone, 1 to 8, where upstream publishes it.
-  ///
-  /// Rarely: 86 days of the feed. The cycle is computable for any date, and
-  /// those days are what the computation was checked against.
+  /// The Octoechos tone, 1 to 8, where the source publishes it.
   final int? tone;
 
   /// The eothinon, 1 to 11: which of the eleven resurrectional Matins gospels
-  /// is appointed. Published as rarely as [tone], and computable the same way.
+  /// is appointed.
   final int? eothinon;
 
   final Reading? epistle;

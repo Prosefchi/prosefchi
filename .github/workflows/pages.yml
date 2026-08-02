@@ -12,8 +12,6 @@ on:
     branches: [master]
     paths:
       - 'tool/build_calendar.dart'
-      # The sources the calendar is parsed out of. Without this a parser change
-      # deploys nothing and says nothing.
       - 'tool/calendar/**'
       - 'tool/build_site.dart'
       - 'lib/models/calendar.dart'
@@ -21,6 +19,7 @@ on:
       - 'lib/liturgics/**'
       - 'lib/models/markup.dart'
       - 'lib/models/prayer.dart'
+      - 'lib/l10n/liturgical_keys.dart'
       - 'lib/l10n/*.arb'
       - 'site/**'
       - 'res/prayers/**'
