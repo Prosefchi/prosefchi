@@ -31,18 +31,14 @@ const runwayWarningDays = 60;
 
 /// How far past today a build reaches when `--to` says nothing.
 ///
-/// A bound is needed because not every source has an end of its own: orthocal
-/// answers for any year from 1583 to 4099, so an unbounded `to` would ask it
-/// for four thousand years a month at a time. Owning it here rather than in
-/// the source is what keeps `--to` meaning one thing for all of them, and what
-/// lets the runway warning tell upstream stopping from us stopping.
+/// Not every source has an end of its own — orthocal answers for any year to
+/// 4099 — and owning the bound here keeps `--to` meaning one thing for all of
+/// them, and lets the runway warning tell upstream stopping from us stopping.
 const buildHorizonDays = 400;
 
 /// The sources a build reads, in the order they are read. One file each.
 ///
-/// The Julian calendar is English only because orthocal publishes English
-/// only. A Greek reader on the old calendar gets the computed layer, which is
-/// the same day's fasting and tone without the commemorations.
+/// The Julian calendar is English only, orthocal publishing English only.
 List<CalendarSource> sources() => [
   for (final entry in feeds.entries) GoarchSource(entry.key, entry.value),
   const OrthocalSource(),
@@ -136,10 +132,8 @@ Future<void> main(List<String> args) async {
   }
 }
 
-/// Fails loudly if two sources would write the same file.
-///
-/// One source, one file is an invariant nothing else enforces, and breaking it
-/// is silent: the later source simply overwrites the earlier one's output.
+/// Fails loudly if two sources would write the same file, which nothing else
+/// enforces and which is silent: the later one overwrites the earlier.
 void _assertOneFileEach() {
   final names = <String>{};
   for (final source in sources()) {

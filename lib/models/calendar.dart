@@ -16,9 +16,8 @@ const supportedLanguages = ['en', 'el'];
 
 /// Which reckoning of the calendar a published file was built for.
 ///
-/// Both keep Pascha on the same day — the Revised Julian calendar kept the
-/// Julian paschalion — so the two differ only in the fixed feasts and the
-/// fasts tied to them. Nothing about the movable cycle changes with this.
+/// Both keep Pascha on the same day, the Revised Julian calendar having kept
+/// the Julian paschalion, so only the fixed feasts and their fasts differ.
 enum CalendarStyle {
   gregorian,
 
@@ -311,9 +310,8 @@ class Calendar {
   /// What a published calendar is named.
   ///
   /// The Gregorian file keeps the bare name because a shipped build cannot be
-  /// repointed: the installs already out there ask for `calendar.en.json` and
-  /// have to keep getting it. Every other style is suffixed and sits beside
-  /// it, which is also the rule `PRIVACY.md` and its translations follow.
+  /// repointed: installs already out there ask for it. Others are suffixed,
+  /// the rule `PRIVACY.md` and its translations follow.
   static String fileName(
     String language, {
     CalendarStyle style = CalendarStyle.gregorian,

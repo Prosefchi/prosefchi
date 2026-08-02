@@ -43,10 +43,8 @@ abstract interface class CalendarSource {
   /// Which reckoning these days are for, which names the file.
   CalendarStyle get style;
 
-  /// What to call this source in the build log and the cache.
-  ///
-  /// One definition, because it was briefly three: the log derived it by
-  /// taking the file name apart again, and each source spelled its own.
+  /// What to call this source in the build log and the cache. One definition,
+  /// because it was briefly three.
   String get label;
 
   /// Where the data came from, kept in [Calendar.source] for attribution.

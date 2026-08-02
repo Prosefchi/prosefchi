@@ -1,19 +1,12 @@
 // orthocal.info's JSON API, which is where the old calendar comes from.
 //
-// GOARCH publishes the new calendar only, so nothing in its feeds can answer
-// what an Old Calendarist keeps today. orthocal computes both, has no end date
-// at all — the API accepts any year from 1583 to 4099 — and states the fasting
-// rule as two numbers rather than a sentence, which is what lets its days be
-// read in a language it does not publish.
+// GOARCH publishes the new calendar only. orthocal computes both, has no end
+// date, and states the fasting rule as two numbers rather than a sentence. It
+// publishes English only, which is why the Julian calendar is English only.
 //
-// It publishes English only. That is why the Julian calendar is built for
-// English alone; see the CLAUDE.md section on the old calendar.
-//
-// Licence: the code is MIT and the service is offered "with no strings
-// attached", asking only to be told about usage. The lives of the saints it
-// carries are used *by permission* from Abbamoses.com rather than licensed, so
-// the `stories` field is deliberately not read here — this pipeline
-// republishes what it reads.
+// `stories`, the lives of the saints, is deliberately not read: orthocal has
+// it by permission rather than under a licence, and this pipeline republishes
+// what it reads. See CLAUDE.md.
 
 import 'dart:convert';
 
@@ -33,10 +26,8 @@ enum Tradition { slavic, greek }
 class OrthocalSource implements CalendarSource {
   const OrthocalSource();
 
-  /// Facts about this source rather than parameters, because it has no second
-  /// safe value for any of them. Upstream publishes English only; the Julian
-  /// calendar is the whole reason this source exists; and a Gregorian one
-  /// would write over GOARCH's own file.
+  /// Facts rather than parameters: there is no second safe value. A Gregorian
+  /// one would write over GOARCH's own file.
   @override
   String get language => 'en';
 
@@ -56,19 +47,8 @@ class OrthocalSource implements CalendarSource {
 
   /// Fetches a month at a time and keys every day by the date requested.
   ///
-  /// **The response's own `year`/`month`/`day` are the Julian date and must
-  /// not be used as the key.** Asking `/julian/2026/1/7/` — a Gregorian date —
-  /// returns the Nativity, reported as 2025-12-25. Keying on what comes back
-  /// would shift the whole calendar thirteen days, which reads as the app
-  /// simply being wrong about the date rather than as a parsing bug.
-  ///
-  /// So the position in the month's list is the day of that month, and the
-  /// count is checked against the month's length rather than trusted.
-  ///
-  /// [to] is obeyed rather than clamped. The source has no end of its own —
-  /// the API answers for any year from 1583 to 4099 — so the bound is the
-  /// orchestrator's `buildHorizonDays`, which is also what stops the runway
-  /// warning blaming upstream for a limit we chose.
+  /// [to] is obeyed rather than clamped: the source has no end of its own, so
+  /// the bound is the orchestrator's `buildHorizonDays`.
   @override
   Future<ParsedCalendar> load({
     required String from,
@@ -111,11 +91,10 @@ class OrthocalSource implements CalendarSource {
 
   /// One month's response, keyed by the Gregorian date of each entry.
   ///
-  /// The key comes from the entry's *position*, because the response states
-  /// the Julian date and using that would move the whole calendar. The count
-  /// is checked against the month's length rather than assumed: if upstream
-  /// ever returns a short month, position stops meaning the day and every
-  /// date after the gap would be silently wrong.
+  /// **By position, never by the response's own date, which is the Julian
+  /// one**: asking `/julian/2026/1/7/` returns the Nativity as 2025-12-25, so
+  /// keying on it shifts the calendar thirteen days. Position is then the only
+  /// thing giving the date, hence the length check.
   Map<String, CalendarDay> parseMonth(
     String body,
     DateTime month,
@@ -180,14 +159,11 @@ class OrthocalSource implements CalendarSource {
 
   /// The four readings the schema has room for, and the eothinon.
   ///
-  /// One pass, because the eothinon is carried in the *name* of the Matins
-  /// gospel rather than as a field and so falls out of the same match.
-  ///
-  /// Upstream names far more than four — the Hours, the twelve Passion
-  /// gospels, the Great Blessing of Waters — and those are dropped rather than
-  /// reported: they are perfectly well understood, there is simply nowhere in
-  /// `CalendarDay` for them. Vespers readings are the Old Testament prophecies
-  /// and are the one mapping the names do not give away.
+  /// One pass: the eothinon is carried in the Matins gospel's *name*, so it
+  /// falls out of the same match. Upstream names far more than four — the
+  /// Hours, the Passion gospels — and those are dropped rather than reported,
+  /// there being nowhere in `CalendarDay` for them. Vespers readings are the
+  /// Old Testament prophecies, which is the one mapping the names hide.
   static (Map<_Slot, Reading>, int?) _readings(Map<String, dynamic> json) {
     final readings = <_Slot, Reading>{};
     int? eothinon;
@@ -224,16 +200,12 @@ class OrthocalSource implements CalendarSource {
 
   /// What the day permits, from the two numbers upstream states.
   ///
-  /// `fast_level` is the season and `fast_exception` the allowance, and the
-  /// day fasts unless the level is 0 or the exception lifts it outright. Null
-  /// where it does not fast and nothing was lifted, which is an ordinary day
-  /// and the same thing the feed says by publishing no rule.
+  /// `fast_level` is the season and `fast_exception` the allowance. Null where
+  /// the day does not fast, which is what the feed says by publishing no rule.
   ///
-  /// Upstream draws finer distinctions than the five here, and three of them
-  /// flatten: wine without oil and the caviar allowance both arrive as
-  /// [FastAllowance.wineAndOil], and "Strict Fast (Wine and Oil)" is recorded
-  /// by what it permits rather than by its name. Those are Slavic distinctions
-  /// the Greek usage does not draw, and each falls on about one day a year.
+  /// Three Slavic distinctions the Greek usage does not draw flatten into
+  /// [FastAllowance.wineAndOil]: wine without oil, caviar, and "Strict Fast
+  /// (Wine and Oil)". About one day a year each.
   static FastAllowance? _allowance(
     Map<String, dynamic> json,
     List<Finding> findings,
