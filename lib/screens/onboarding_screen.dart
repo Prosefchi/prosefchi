@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/markup.dart';
 import '../models/text_size.dart';
-import '../services/calendar_repository.dart' show supportedLanguages;
+import '../services/calendar_repository.dart'
+    show CalendarRepository, supportedLanguages;
 import '../services/document_repository.dart';
 import '../services/notification_service.dart';
+import '../services/reminder_refresh.dart';
 import '../services/reminder_store.dart';
 import '../services/settings_controller.dart';
+import 'calendar_style_options.dart';
 import 'markup_list.dart';
 import 'markup_paragraph.dart';
 import 'reminders_screen.dart';
@@ -20,11 +23,16 @@ class OnboardingScreen extends StatefulWidget {
     this.documents,
     this.reminderStore,
     this.scheduler,
+    this.calendars,
   });
 
   final DocumentRepository? documents;
   final ReminderStore? reminderStore;
   final ReminderScheduler? scheduler;
+
+  /// Read when a setting on the reader page sends the fasting block back to be
+  /// rebuilt, which is the only thing here that needs a calendar.
+  final CalendarRepository? calendars;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -76,6 +84,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (Navigator.of(context).canPop()) Navigator.of(context).pop();
   }
 
+  /// Brings the reminders with a setting the reader page changed. On a first
+  /// launch there is nothing scheduled yet and this does nothing; replayed
+  /// from settings there is, and it carries the old language and calendar.
+  Future<void> _reschedule() => rescheduleReminders(
+    SettingsScope.of(context),
+    store: widget.reminderStore,
+    calendars: widget.calendars,
+    scheduler: widget.scheduler,
+  );
+
   void _next() => _controller.nextPage(
     duration: const Duration(milliseconds: 250),
     curve: Curves.easeOut,
@@ -97,8 +115,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   _WelcomePage(document: _welcome, loading: _loading),
                   // Before the reminders, because a reader who needs the large
-                  // size needs it on the next page too.
-                  const _ReaderPage(),
+                  // size needs it on the next page too, and because a fasting
+                  // reminder armed there is scheduled on the calendar chosen
+                  // here.
+                  _ReaderPage(onChanged: _reschedule),
                   _RemindersPage(
                     store: widget.reminderStore,
                     scheduler: widget.scheduler,
@@ -244,9 +264,13 @@ class _RemindersPage extends StatelessWidget {
   }
 }
 
-/// Language and text size, the two settings that shape the reading.
+/// Language, text size and calendar: what the reader is given, before they are
+/// asked what to be reminded of.
 class _ReaderPage extends StatelessWidget {
-  const _ReaderPage();
+  const _ReaderPage({required this.onChanged});
+
+  /// Called after a setting is written, to re-arm what it invalidated.
+  final Future<void> Function() onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -280,7 +304,7 @@ class _ReaderPage extends StatelessWidget {
         _SectionLabel(l10n.language),
         RadioGroup<String?>(
           groupValue: settings.language,
-          onChanged: settings.setLanguage,
+          onChanged: (value) => _set(settings.setLanguage(value)),
           child: Column(
             children: [
               // Null is a real option: following the device.
@@ -322,8 +346,23 @@ class _ReaderPage extends StatelessWidget {
             ],
           ),
         ),
+        _SectionLabel(l10n.calendarStyle),
+        CalendarStyleOptions(
+          value: settings.calendarStyle,
+          onChanged: (style) => _set(settings.setCalendarStyle(style)),
+        ),
       ],
     );
+  }
+
+  /// Writes the setting, then re-arms what it invalidated.
+  ///
+  /// The controller's setters return early where nothing changed, so this does
+  /// not tell a real switch from a tap on the option already selected; the
+  /// refresh is idempotent and a reader taps one of these a handful of times.
+  Future<void> _set(Future<void> written) async {
+    await written;
+    await onChanged();
   }
 }
 
