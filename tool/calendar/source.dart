@@ -1,30 +1,24 @@
 // What every calendar source has to produce, so the tool can treat them alike.
 //
-// One of our files is built from exactly one source, and the source decides
-// nothing about how it is rendered: it hands back `CalendarDay`s carrying a
-// `FastAllowance` rather than a rule in words, so a calendar built from an
-// English-only source can still be read in Greek. That normalisation is the
-// whole reason this boundary exists — see the CLAUDE.md section on the data
-// pipeline.
+// A source decides nothing about rendering: it hands back a `FastAllowance`
+// rather than a rule in words. That normalisation is why this boundary is
+// here, and it is what lets a source's language differ from the reader's.
 
 import 'package:prosefchi/models/calendar.dart';
 
 /// Why a source left something unaccounted for.
 ///
-/// The two are not equally serious, so they are told apart by the type rather
-/// than by a prefix on the message: one is cosmetic and the other silently
-/// changes what the app says about a day.
+/// Told apart by the type rather than a prefix on the message, because one is
+/// cosmetic and the other silently changes what the app says about a day.
 enum FindingKind {
-  /// A line in a slot we parse that matched nothing we know.
-  ///
-  /// Usually a feast name upstream put where the fasting rule goes. Nothing is
-  /// lost by it — the line is simply not shown.
+  /// A line matching nothing we know, usually a feast name upstream put where
+  /// the fasting rule goes. Nothing is lost: it is simply not shown.
   unrecognised,
 
-  /// A statement about fasting whose wording is not in the source's table.
+  /// A fasting rule whose wording is not in the source's table.
   ///
-  /// The day then publishes no rule at all, which every reader takes as a day
-  /// that does not fast. This is the one that has to be acted on.
+  /// The day then publishes no rule at all, which reads as a day that does not
+  /// fast. This is the one to act on.
   unmappedFastingRule,
 }
 
@@ -51,11 +45,9 @@ abstract interface class CalendarSource {
 
   /// Everything the source has for [from]..[to] inclusive, and possibly more.
   ///
-  /// The range is what a source needs to know to fetch at all — an API queried
-  /// a month at a time cannot be asked for its whole span — but it is not a
-  /// promise about what comes back. A feed that arrives whole returns whole,
-  /// and the caller trims either way, so the window and the runway warning are
-  /// applied identically however the days were obtained.
+  /// The range is what an API queried a month at a time needs to fetch at all,
+  /// not a promise about what comes back: the caller trims either way, so the
+  /// window and the runway warning apply identically to every source.
   Future<ParsedCalendar> load({
     required String from,
     required String to,

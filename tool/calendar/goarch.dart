@@ -1,11 +1,7 @@
 // The GOARCH iCal feeds, and everything needed to read one.
 //
-// The feeds are ~32 MB combined and Google serves them with `no-store`, so no
-// CDN or client can cache them. This runs in CI instead; the app fetches the
-// small JSON built from it.
-//
-// The parsing helpers here are public so `test/tool/` can exercise them
-// directly. Nothing under `tool/` ships.
+// ~32 MB combined and served `no-store`, so nothing can cache them and this
+// runs in CI. The helpers are public for `test/tool/`; nothing here ships.
 
 import 'package:prosefchi/models/calendar.dart';
 
@@ -44,24 +40,18 @@ class Feed {
 
   /// Recognises a line as a statement about fasting.
   ///
-  /// Matches the vocabulary the phrasings are built from rather than the
-  /// phrasings themselves, so a wording upstream has not used before is still
-  /// caught. What it catches and [fastingRules] does not know is reported at
-  /// build time, because a line in that slot is occasionally a feast name and
-  /// rendering it as the fasting rule states something false about the day.
+  /// Matches the vocabulary rather than the phrasings, so a wording upstream
+  /// has not used before is still caught and reported. Its only job now that
+  /// [fastingRules] selects: telling a rule we failed to map from a line that
+  /// was never one.
   final String fastingPattern;
 
   /// Every rule upstream states, to what it permits.
   ///
-  /// Exact strings rather than patterns, and that is the point: this is the
-  /// one place a source's wording is interpreted, so it should be a table
-  /// somebody can read and check against the feed rather than a regex whose
-  /// coverage has to be reasoned about.
-  ///
-  /// Greek needs the care. Κατάλυσις means a release, not a fast-free day: it
-  /// appears in three rules and only Κατάλυσις Πάντων, a release of
-  /// everything, lifts the fast. Matching the word would get the other two
-  /// wrong; listing them cannot.
+  /// Exact strings, so this is a table to check against the feed rather than a
+  /// regex whose coverage has to be argued about. Κατάλυσις is why: it means a
+  /// release, appears in three Greek rules, and only Κατάλυσις Πάντων lifts
+  /// the fast. Matching the word got the other two wrong.
   final Map<String, FastAllowance> fastingRules;
 }
 

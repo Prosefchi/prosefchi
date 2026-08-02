@@ -57,14 +57,9 @@ enum DayMark {
 
 /// What a fast day permits.
 ///
-/// A code rather than words, so a calendar built from a source that publishes
-/// one language can be read in another: the words come from the app's own ARB.
-/// The five are upstream's own vocabulary, not a compression of it. See the
-/// CLAUDE.md section on the fasting rule for why, and for what a source
-/// drawing finer distinctions has to do.
-///
-/// Deliberately the *allowance* and not the season, which is
-/// `fastSeasonFor` in `liturgics/fasting.dart` and needs no data at all.
+/// A code rather than words, so a calendar built from an English-only source
+/// can be read in Greek; the words come from the app's own ARB. The allowance
+/// and not the season, which `fastSeasonFor` computes. See CLAUDE.md.
 enum FastAllowance {
   /// Nothing lifted: no oil, no wine.
   strict,
@@ -85,11 +80,9 @@ enum FastAllowance {
   bool get fasts => this != FastAllowance.free;
 }
 
-/// The value of [values] named [name], or null for an absent or unknown name.
+/// The value of [values] named [name], or null if absent or unknown.
 ///
-/// Both enums here are read straight out of published JSON, where an unknown
-/// name is an ordinary state — a file built by a newer version of the tool —
-/// and has to resolve to null rather than throw.
+/// Unknown is ordinary here: JSON written by another version of the tool.
 T? _byName<T extends Enum>(List<T> values, String? name) =>
     name == null ? null : values.asNameMap()[name];
 
@@ -169,14 +162,11 @@ class CalendarDay {
 
   /// What the day's fast permits, where the source states a rule.
   ///
-  /// Resolved when the calendar is built, so no reader ever interprets a
-  /// source's wording. Unambiguous in a way [marks] is not: the markers only
-  /// ever record an allowance, so an unmarked day could be a strict fast or no
-  /// fast at all. This says which.
+  /// Unambiguous in a way [marks] is not: a marker only records an allowance,
+  /// so an unmarked day could be a strict fast or no fast at all.
   ///
-  /// Null on the roughly 42% of days no rule is stated for, which are ordinary
-  /// days. The weekday fast still applies to them and is computed, not
-  /// published — see `isFastDay`.
+  /// Null on the ~42% of days stating no rule. The weekday fast still applies
+  /// to those and is computed — see `isFastDay`.
   final FastAllowance? fastAllowance;
 
   /// Whether the day fasts at all.

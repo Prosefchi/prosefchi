@@ -74,10 +74,8 @@ Future<void> main(List<String> args) async {
     final file = File('${outDir.path}/${Calendar.fileName(language)}');
     await file.writeAsString(jsonEncode(calendar.toJson()));
 
-    // Loud on purpose, and the two kinds are reported apart. A rewording that
-    // unmaps a rule across the whole of Great Lent would otherwise be a
-    // bumped count with five unrelated feast names printed under it, and the
-    // days it covers all read as days that do not fast.
+    // Reported apart, or a rewording that unmaps a rule across Great Lent is
+    // a bumped count with five unrelated feast names printed under it.
     _report(
       language,
       parsed.findings,
@@ -118,9 +116,8 @@ Future<void> main(List<String> args) async {
 
 /// Prints the findings of one [kind], if there are any.
 ///
-/// [limit] caps how many are listed; null lists them all, which is what the
-/// unmappable rules get — they are the ones somebody has to go and fix, and
-/// truncating them is how one hides behind the noisier kind.
+/// [limit] null lists them all, which the unmappable rules get: truncating
+/// them is how one hides behind the noisier kind.
 void _report(
   String language,
   List<Finding> findings,
