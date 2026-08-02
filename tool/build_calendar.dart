@@ -21,6 +21,7 @@ import 'package:prosefchi/models/calendar.dart';
 
 import 'args.dart';
 import 'calendar/goarch.dart';
+import 'calendar/orthocal.dart';
 import 'calendar/source.dart';
 
 /// Warn when a source runs this close to its end. GOARCH populates the
@@ -28,11 +29,14 @@ import 'calendar/source.dart';
 /// by users.
 const runwayWarningDays = 60;
 
-/// The sources a build reads, in the order they are read.
+/// The sources a build reads, in the order they are read. One file each.
 ///
-/// One file each, named after the source's language.
+/// The Julian calendar is English only because orthocal publishes English
+/// only. A Greek reader on the old calendar gets the computed layer, which is
+/// the same day's fasting and tone without the commemorations.
 List<CalendarSource> sources() => [
   for (final entry in feeds.entries) GoarchSource(entry.key, entry.value),
+  const OrthocalSource(),
 ];
 
 Future<void> main(List<String> args) async {
@@ -47,6 +51,10 @@ Future<void> main(List<String> args) async {
 
   for (final source in sources()) {
     final language = source.language;
+    final fileName = Calendar.fileName(language, style: source.style);
+    // What the build log calls this file, so a language with two of them can
+    // be told apart: "en", "el", "en.julian".
+    final label = fileName.replaceAll(RegExp(r'^calendar\.|\.json$'), '');
     final parsed = await source.load(from: from, to: to, useCache: useCache);
 
     final keys =
@@ -56,7 +64,7 @@ Future<void> main(List<String> args) async {
           ..sort();
 
     if (keys.isEmpty) {
-      stderr.writeln('$language: no days in range $from..$to');
+      stderr.writeln('$label: no days in range $from..$to');
       exitCode = 1;
       continue;
     }
@@ -71,20 +79,20 @@ Future<void> main(List<String> args) async {
       days: {for (final key in keys) key: parsed.days[key]!},
     );
 
-    final file = File('${outDir.path}/${Calendar.fileName(language)}');
+    final file = File('${outDir.path}/$fileName');
     await file.writeAsString(jsonEncode(calendar.toJson()));
 
     // Reported apart, or a rewording that unmaps a rule across Great Lent is
     // a bumped count with five unrelated feast names printed under it.
     _report(
-      language,
+      label,
       parsed.findings,
       FindingKind.unmappedFastingRule,
       'fasting rule(s) it could not map, so those days publish no rule',
       limit: null,
     );
     _report(
-      language,
+      label,
       parsed.findings,
       FindingKind.unrecognised,
       'unrecognised line(s)',
@@ -95,7 +103,7 @@ Future<void> main(List<String> args) async {
         .where((k) => parsed.days[k]!.fastAllowance != null)
         .length;
     stdout.writeln(
-      '$language: ${keys.length} days  ${keys.first}..${keys.last}  '
+      '$label: ${keys.length} days  ${keys.first}..${keys.last}  '
       '$withReadings with readings  $withFasting with a fasting rule  '
       '${((await file.length()) / 1024).toStringAsFixed(0)} KB  -> ${file.path}',
     );
@@ -107,7 +115,7 @@ Future<void> main(List<String> args) async {
     final runway = calendar.runwayFrom(today);
     if (runway <= runwayWarningDays) {
       stdout.writeln(
-        '  WARNING: $language ends in $runway days (${keys.last}). Upstream '
+        '  WARNING: $label ends in $runway days (${keys.last}). Upstream '
         'needs to extend it, or the app falls back to computed data only.',
       );
     }
@@ -119,7 +127,7 @@ Future<void> main(List<String> args) async {
 /// [limit] null lists them all, which the unmappable rules get: truncating
 /// them is how one hides behind the noisier kind.
 void _report(
-  String language,
+  String label,
   List<Finding> findings,
   FindingKind kind,
   String what, {
@@ -128,7 +136,7 @@ void _report(
   final matching = findings.where((f) => f.kind == kind).toList();
   if (matching.isEmpty) return;
 
-  stdout.writeln('  WARNING: $language has ${matching.length} $what:');
+  stdout.writeln('  WARNING: $label has ${matching.length} $what:');
   for (final finding in limit == null ? matching : matching.take(limit)) {
     stdout.writeln('    ${finding.date}  ${finding.line}');
   }

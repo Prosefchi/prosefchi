@@ -14,6 +14,21 @@ import '../liturgics/paschalion.dart';
 /// Languages the calendar is published in, as ISO 639-1 codes.
 const supportedLanguages = ['en', 'el'];
 
+/// Which reckoning of the calendar a published file was built for.
+///
+/// Both keep Pascha on the same day — the Revised Julian calendar kept the
+/// Julian paschalion — so the two differ only in the fixed feasts and the
+/// fasts tied to them. Nothing about the movable cycle changes with this.
+enum CalendarStyle {
+  gregorian,
+
+  /// The old calendar, whose fixed feasts fall 13 days later until 2100.
+  julian;
+
+  static CalendarStyle? byName(String? name) =>
+      name == null ? null : values.asNameMap()[name];
+}
+
 /// A marker GOARCH prefixes to a day's title.
 ///
 /// These encode the fasting allowance and the rank of the feast. They appear
@@ -294,8 +309,19 @@ class Calendar {
     },
   };
 
-  /// What a published calendar is named, for one language.
-  static String fileName(String language) => 'calendar.$language.json';
+  /// What a published calendar is named.
+  ///
+  /// The Gregorian file keeps the bare name and every other style sits beside
+  /// it under its own, which is the rule `PRIVACY.md` and its translations
+  /// already follow. It also means the file the app has always asked for is
+  /// still the file it gets.
+  static String fileName(
+    String language, {
+    CalendarStyle style = CalendarStyle.gregorian,
+  }) => switch (style) {
+    CalendarStyle.gregorian => 'calendar.$language.json',
+    _ => 'calendar.$language.${style.name}.json',
+  };
 
   /// The canonical `YYYY-MM-DD` key for [date], ignoring any time component.
   static String dateKey(DateTime date) =>

@@ -40,6 +40,9 @@ abstract interface class CalendarSource {
   /// The language the days come out in, as an ISO 639-1 code.
   String get language;
 
+  /// Which reckoning these days are for, which names the file.
+  CalendarStyle get style;
+
   /// Where the data came from, kept in [Calendar.source] for attribution.
   String get attribution;
 
