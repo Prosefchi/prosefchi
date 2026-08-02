@@ -2,9 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/models/calendar.dart';
 import 'package:prosefchi/services/fasting_schedule.dart';
 
-Calendar calendarWith(
-  Map<String, ({bool fasts, String? rule})> days,
-) => Calendar(
+/// A calendar of days keyed to what each one's fast permits.
+///
+/// Null is a day the source states no rule for, which is an ordinary day and
+/// does not fast; [FastAllowance.free] is a day it states the fast is lifted.
+/// Both answer `fasts` with false and they are not the same fact.
+Calendar calendarWith(Map<String, FastAllowance?> days) => Calendar(
   language: 'en',
   source: 'https://example.test/feed.ics',
   generatedAt: DateTime(2026, 7, 26),
@@ -15,8 +18,7 @@ Calendar calendarWith(
       entry.key: CalendarDay(
         date: DateTime.parse(entry.key),
         title: 'A day',
-        fasts: entry.value.fasts,
-        fasting: entry.value.rule,
+        fastAllowance: entry.value,
       ),
   },
 );
@@ -27,9 +29,9 @@ void main() {
       // 2026-07-27 is a Monday, which the computed rules would call no fast.
       // The published calendar overrides that in both directions.
       final calendar = calendarWith({
-        '2026-07-26': (fasts: false, rule: null),
-        '2026-07-27': (fasts: true, rule: 'Strict Fast'),
-        '2026-07-28': (fasts: false, rule: 'Fast Free'),
+        '2026-07-26': null,
+        '2026-07-27': FastAllowance.strict,
+        '2026-07-28': FastAllowance.free,
       });
 
       final days = fastingDaysFrom(
@@ -40,13 +42,11 @@ void main() {
 
       expect(days, hasLength(1));
       expect(days.single.date, DateTime(2026, 7, 27));
-      expect(days.single.rule, 'Strict Fast');
+      expect(days.single.allowance, FastAllowance.strict);
     });
 
     test('carries the rule so the notification can name it', () {
-      final calendar = calendarWith({
-        '2026-07-29': (fasts: true, rule: 'Fast Day (Wine and Oil Allowed)'),
-      });
+      final calendar = calendarWith({'2026-07-29': FastAllowance.wineAndOil});
 
       final days = fastingDaysFrom(
         DateTime(2026, 7, 29),
@@ -54,20 +54,20 @@ void main() {
         within: 1,
       );
 
-      expect(days.single.rule, 'Fast Day (Wine and Oil Allowed)');
+      expect(days.single.allowance, FastAllowance.wineAndOil);
     });
 
     test('computes past the end of the calendar', () {
       // The feed stops on 2026-08-31, and the Nativity Fast is well beyond it.
       final days = fastingDaysFrom(
         DateTime(2026, 11, 20),
-        calendar: calendarWith({'2026-07-26': (fasts: false, rule: null)}),
+        calendar: calendarWith({'2026-07-26': null}),
         within: 3,
       );
 
       expect(days, hasLength(3), reason: 'every day of the Nativity Fast');
       expect(
-        days.every((d) => d.rule == null),
+        days.every((d) => d.allowance == null),
         isTrue,
         reason:
             'nothing published to quote, so the caller supplies the wording',

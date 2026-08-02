@@ -12,6 +12,9 @@ on:
     branches: [master]
     paths:
       - 'tool/build_calendar.dart'
+      # The sources the calendar is parsed out of. Without this a parser change
+      # deploys nothing and says nothing.
+      - 'tool/calendar/**'
       - 'tool/build_site.dart'
       - 'lib/models/calendar.dart'
       # The site compiles these into its JavaScript and renders through the app's parser.

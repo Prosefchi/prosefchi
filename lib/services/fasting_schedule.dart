@@ -1,4 +1,5 @@
 import '../l10n/app_localizations.dart';
+import '../l10n/liturgical_labels.dart';
 import '../liturgics/fasting.dart';
 import '../liturgics/paschalion.dart';
 import '../models/calendar.dart';
@@ -6,8 +7,11 @@ import '../models/reminder.dart';
 import 'calendar_repository.dart';
 import 'notification_service.dart';
 
-/// A day that fasts, and the rule stated for it where one is published.
-typedef FastingDay = ({DateTime date, String? rule});
+/// A day that fasts, and the rule published for it where there is one.
+///
+/// The rule is the enum rather than words, so choosing the days stays free of
+/// localization and can be tested without one.
+typedef FastingDay = ({DateTime date, FastAllowance? allowance});
 
 /// The fast days to schedule reminders for, starting at [from].
 ///
@@ -40,9 +44,11 @@ List<FastingDay> fastingDaysFrom(
     final published = calendar?.forDate(date);
 
     if (published != null) {
-      if (published.fasts) days.add((date: date, rule: published.fasting));
+      if (published.fasts) {
+        days.add((date: date, allowance: published.fastAllowance));
+      }
     } else if (isFastDay(date)) {
-      days.add((date: date, rule: null));
+      days.add((date: date, allowance: null));
     }
   }
 
@@ -73,7 +79,13 @@ Future<void> refreshFastingReminders({
       for (final day in days)
         // The published rule where there is one, so the notification says
         // "Strict Fast" rather than merely that the day fasts.
-        (date: day.date, body: day.rule ?? l10n.fastingReminderBody),
+        (
+          date: day.date,
+          body: switch (day.allowance) {
+            final allowance? => l10n.fastAllowanceLabel(allowance),
+            null => l10n.fastingReminderBody,
+          },
+        ),
     ],
     channelName: l10n.fastingReminder,
     title: l10n.fastingReminder,

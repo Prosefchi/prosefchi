@@ -224,7 +224,10 @@ web.HTMLElement _header(CalendarDay? day) {
   // so a day with no fast says so rather than leaving the slot empty — an
   // empty slot is ambiguous between there being no fast and our not knowing,
   // and those are different answers to give someone who came to check.
-  final fasting = day?.fasting ?? _computedFasting(_date);
+  final fasting = switch (day?.fastAllowance) {
+    final allowance? => _strings[_fastAllowanceKey(allowance)],
+    null => _computedFasting(_date),
+  };
 
   final pills = _el('div', className: 'pills');
   for (final mark in day?.marks ?? const <DayMark>[]) {
@@ -351,6 +354,15 @@ String _fastSeasonKey(FastSeason season) => switch (season) {
   FastSeason.apostles => 'fastSeasonApostles',
   FastSeason.dormition => 'fastSeasonDormition',
   FastSeason.nativity => 'fastSeasonNativity',
+};
+
+/// Mirrors `fastAllowanceLabel` in the app's `liturgical_labels.dart`.
+String _fastAllowanceKey(FastAllowance allowance) => switch (allowance) {
+  FastAllowance.strict => 'fastAllowanceStrict',
+  FastAllowance.wineAndOil => 'fastAllowanceWineAndOil',
+  FastAllowance.fish => 'fastAllowanceFish',
+  FastAllowance.dairyEggsAndFish => 'fastAllowanceDairyEggsAndFish',
+  FastAllowance.free => 'fastAllowanceFree',
 };
 
 String _markLabel(DayMark mark) => switch (mark) {

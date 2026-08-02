@@ -141,7 +141,10 @@ class _TodayScreenState extends State<TodayScreen> {
               // authoritative there. Past the end of the feed, and on the
               // handful of days it puts something else in that slot, the
               // computed season stands in.
-              fasting: day?.fasting ?? _computedFasting(l10n, _date),
+              fasting: switch (day?.fastAllowance) {
+                final allowance? => l10n.fastAllowanceLabel(allowance),
+                null => _computedFasting(l10n, _date),
+              },
             ),
             // All computed, so this appears in every state. It also means the
             // no-data screen keeps the same shape as the ordinary one rather

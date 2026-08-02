@@ -56,6 +56,45 @@ enum DayMark {
   }
 }
 
+/// What a fast day permits.
+///
+/// This is the vocabulary the whole pipeline branches on, and it is upstream's
+/// own rather than an invention: GOARCH states the rule in words, six phrasings
+/// in English and nine in Greek, and across the 1917 days of the feed that
+/// carry one the two languages never disagree and every phrasing collapses to
+/// one of these five. The extra Greek strings are spelling variants of the same
+/// rule, monotonic beside polytonic.
+///
+/// Deliberately the *allowance* and not the season. What is permitted on a fast
+/// day depends on the rank of the feast and cannot be computed from a date; the
+/// season is `fastSeasonFor` in `liturgics/fasting.dart` and needs no data at
+/// all. Publishing this and computing that is the same division the rest of the
+/// app draws.
+///
+/// A source that draws finer distinctions has to map into these — see
+/// `tool/calendar/` — which is what lets a calendar built from one source be
+/// rendered in a language that source does not publish.
+enum FastAllowance {
+  /// Nothing lifted: no oil, no wine.
+  strict,
+
+  wineAndOil,
+
+  fish,
+
+  /// Cheesefare week, where everything but meat is kept.
+  dairyEggsAndFish,
+
+  /// The fast lifted entirely.
+  free;
+
+  static FastAllowance? byName(String? name) =>
+      name == null ? null : values.asNameMap()[name];
+
+  /// Whether a day under this allowance fasts at all.
+  bool get fasts => this != FastAllowance.free;
+}
+
 /// An appointed scripture reading.
 ///
 /// [text] is absent on the rare entries where upstream gives only a citation.
@@ -86,8 +125,7 @@ class CalendarDay {
     required this.title,
     this.saints = const [],
     this.marks = const [],
-    this.fasting,
-    this.fasts = false,
+    this.fastAllowance,
     this.tone,
     this.eothinon,
     this.epistle,
@@ -108,8 +146,7 @@ class CalendarDay {
             .map(DayMark.byName)
             .nonNulls
             .toList(),
-        fasting: json['fasting'] as String?,
-        fasts: json['fasts'] as bool? ?? false,
+        fastAllowance: FastAllowance.byName(json['fastAllowance'] as String?),
         tone: json['tone'] as int?,
         eothinon: json['eothinon'] as int?,
         epistle: _reading(json['epistle']),
@@ -132,20 +169,23 @@ class CalendarDay {
   /// Fasting allowances and feast rank, as marked upstream.
   final List<DayMark> marks;
 
-  /// The fasting rule in words, as upstream states it: "Strict Fast", "Fast
-  /// Day (Wine and Oil Allowed)", "Fast Free" and so on.
+  /// What the day's fast permits, where the source states a rule.
   ///
-  /// Authoritative where it exists, and unambiguous in a way [marks] is not:
-  /// the markers only ever record an allowance, so an unmarked day could be a
-  /// strict fast or no fast at all. This says which.
-  final String? fasting;
+  /// Resolved when the calendar is built, so no reader ever interprets a
+  /// source's wording. Unambiguous in a way [marks] is not: the markers only
+  /// ever record an allowance, so an unmarked day could be a strict fast or no
+  /// fast at all. This says which.
+  ///
+  /// Null on the roughly 42% of days no rule is stated for, which are ordinary
+  /// days. The weekday fast still applies to them and is computed, not
+  /// published — see `isFastDay`.
+  final FastAllowance? fastAllowance;
 
   /// Whether the day fasts at all.
   ///
-  /// Decided when the calendar is built, so the app never interprets the rule
-  /// text. False both when no rule is stated, which means an ordinary day, and
-  /// when the rule lifts the fast.
-  final bool fasts;
+  /// False both when no rule is stated and when the rule lifts the fast, which
+  /// are different facts with the same answer to this question.
+  bool get fasts => fastAllowance?.fasts ?? false;
 
   /// The Octoechos tone, 1 to 8, where upstream publishes it.
   ///
@@ -178,8 +218,7 @@ class CalendarDay {
     'title': title,
     if (saints.isNotEmpty) 'saints': saints,
     if (marks.isNotEmpty) 'marks': [for (final mark in marks) mark.name],
-    if (fasting != null) 'fasting': fasting,
-    if (fasts) 'fasts': true,
+    if (fastAllowance != null) 'fastAllowance': fastAllowance!.name,
     if (tone != null) 'tone': tone,
     if (eothinon != null) 'eothinon': eothinon,
     if (epistle != null) 'epistle': epistle!.toJson(),

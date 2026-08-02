@@ -1,4 +1,5 @@
 import '../liturgics/fasting.dart';
+import '../models/calendar.dart';
 import 'app_localizations.dart';
 
 /// Display names for the computed and published liturgical values.
@@ -25,5 +26,19 @@ extension LiturgicalLabels on AppLocalizations {
     FastSeason.apostles => fastSeasonApostles,
     FastSeason.dormition => fastSeasonDormition,
     FastSeason.nativity => fastSeasonNativity,
+  };
+
+  /// The published fasting rule in words.
+  ///
+  /// The wording is upstream's own, so what the app draws is unchanged from
+  /// when the calendar carried the sentence itself. The difference is that it
+  /// is now the app saying it, which is what lets a day parsed out of an
+  /// English-only source be read in Greek.
+  String fastAllowanceLabel(FastAllowance allowance) => switch (allowance) {
+    FastAllowance.strict => fastAllowanceStrict,
+    FastAllowance.wineAndOil => fastAllowanceWineAndOil,
+    FastAllowance.fish => fastAllowanceFish,
+    FastAllowance.dairyEggsAndFish => fastAllowanceDairyEggsAndFish,
+    FastAllowance.free => fastAllowanceFree,
   };
 }

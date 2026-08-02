@@ -210,6 +210,26 @@
   "@fastDay": {
     "description": "Shown when the day fasts but falls in no named season, as an ordinary Wednesday or Friday does."
   },
+  "fastAllowanceStrict": "Strict Fast",
+  "@fastAllowanceStrict": {
+    "description": "Fasting rule: nothing is lifted. The app owns these five strings rather than the calendar carrying them, so a calendar built from a source that publishes only English can still be read in Greek."
+  },
+  "fastAllowanceWineAndOil": "Fast Day (Wine and Oil Allowed)",
+  "@fastAllowanceWineAndOil": {
+    "description": "Fasting rule: wine and oil are permitted."
+  },
+  "fastAllowanceFish": "Fast Day (Fish Allowed)",
+  "@fastAllowanceFish": {
+    "description": "Fasting rule: fish is permitted."
+  },
+  "fastAllowanceDairyEggsAndFish": "Fast Day (Dairy, Eggs, and Fish Allowed)",
+  "@fastAllowanceDairyEggsAndFish": {
+    "description": "Fasting rule: everything but meat, as through Cheesefare week."
+  },
+  "fastAllowanceFree": "Fast Free",
+  "@fastAllowanceFree": {
+    "description": "Fasting rule: the fast is lifted entirely."
+  },
   "@oldTestamentReading": {
     "description": "Heading above the appointed Old Testament reading."
   },
