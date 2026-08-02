@@ -25,8 +25,7 @@ enum CalendarStyle {
   /// The old calendar, whose fixed feasts fall 13 days later until 2100.
   julian;
 
-  static CalendarStyle? byName(String? name) =>
-      name == null ? null : values.asNameMap()[name];
+  static CalendarStyle? byName(String? name) => _byName(values, name);
 }
 
 /// A marker GOARCH prefixes to a day's title.
@@ -98,7 +97,7 @@ enum FastAllowance {
 
 /// The value of [values] named [name], or null if absent or unknown.
 ///
-/// Unknown is ordinary here: JSON written by another version of the tool.
+/// Unknown is ordinary here: JSON or a setting written by another version.
 T? _byName<T extends Enum>(List<T> values, String? name) =>
     name == null ? null : values.asNameMap()[name];
 
@@ -311,10 +310,10 @@ class Calendar {
 
   /// What a published calendar is named.
   ///
-  /// The Gregorian file keeps the bare name and every other style sits beside
-  /// it under its own, which is the rule `PRIVACY.md` and its translations
-  /// already follow. It also means the file the app has always asked for is
-  /// still the file it gets.
+  /// The Gregorian file keeps the bare name because a shipped build cannot be
+  /// repointed: the installs already out there ask for `calendar.en.json` and
+  /// have to keep getting it. Every other style is suffixed and sits beside
+  /// it, which is also the rule `PRIVACY.md` and its translations follow.
   static String fileName(
     String language, {
     CalendarStyle style = CalendarStyle.gregorian,

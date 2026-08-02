@@ -31,31 +31,25 @@ enum Tradition { slavic, greek }
 
 /// One orthocal calendar, as a source the tool can build a file from.
 class OrthocalSource implements CalendarSource {
-  const OrthocalSource({
-    this.language = 'en',
-    this.style = CalendarStyle.julian,
-    this.tradition = Tradition.greek,
-    this.horizonDays = 400,
-  });
+  const OrthocalSource();
+
+  /// Facts about this source rather than parameters, because it has no second
+  /// safe value for any of them. Upstream publishes English only; the Julian
+  /// calendar is the whole reason this source exists; and a Gregorian one
+  /// would write over GOARCH's own file.
+  @override
+  String get language => 'en';
 
   @override
-  final String language;
+  CalendarStyle get style => CalendarStyle.julian;
 
-  @override
-  final CalendarStyle style;
-
-  final Tradition tradition;
-
-  /// How far past today to build, in days.
-  ///
-  /// The source itself has no end, so without a bound the default `--to` of
-  /// 9999-12-31 would ask for four thousand years a month at a time. This is
-  /// the runway the published file carries instead, and a little over a year
-  /// keeps the whole build to fourteen requests.
-  final int horizonDays;
+  static const _tradition = Tradition.greek;
 
   String get _base =>
-      'https://orthocal.info/api/${tradition.name}/${style.name}';
+      'https://orthocal.info/api/${_tradition.name}/${style.name}';
+
+  @override
+  String get label => '$language.${style.name}';
 
   @override
   String get attribution => '$_base/';
@@ -70,6 +64,11 @@ class OrthocalSource implements CalendarSource {
   ///
   /// So the position in the month's list is the day of that month, and the
   /// count is checked against the month's length rather than trusted.
+  ///
+  /// [to] is obeyed rather than clamped. The source has no end of its own —
+  /// the API answers for any year from 1583 to 4099 — so the bound is the
+  /// orchestrator's `buildHorizonDays`, which is also what stops the runway
+  /// warning blaming upstream for a limit we chose.
   @override
   Future<ParsedCalendar> load({
     required String from,
@@ -77,7 +76,7 @@ class OrthocalSource implements CalendarSource {
     required bool useCache,
   }) async {
     final start = DateTime.parse(from);
-    final end = _earlier(DateTime.parse(to), _horizonEnd());
+    final end = DateTime.parse(to);
 
     final days = <String, CalendarDay>{};
     final findings = <Finding>[];
@@ -90,15 +89,17 @@ class OrthocalSource implements CalendarSource {
       final body = await fetch(
         '$_base/${month.year}/${month.month}/',
         key:
-            'orthocal.${tradition.name}.${style.name}.'
+            'orthocal.${_tradition.name}.${style.name}.'
             '${month.year}-${month.month}.json',
-        label: '$language.${style.name}',
+        label: label,
         useCache: useCache,
       );
 
       for (final entry in parseMonth(body, month, findings).entries) {
-        final date = DateTime.parse(entry.key);
-        if (date.isBefore(start) || date.isAfter(end)) continue;
+        // The caller trims to the window too, but a month is fetched whole and
+        // the last one runs past `to`, so this keeps the file's own `end`
+        // honest rather than leaving it a fortnight long.
+        if (entry.value.date.isAfter(end)) continue;
         days[entry.key] = entry.value;
       }
     }
@@ -130,14 +131,12 @@ class OrthocalSource implements CalendarSource {
       );
     }
 
-    return {
-      for (var i = 0; i < entries.length; i++)
-        Calendar.dateKey(DateTime(month.year, month.month, i + 1)): dayFrom(
-          DateTime(month.year, month.month, i + 1),
-          entries[i],
-          findings,
-        ),
-    };
+    final days = <String, CalendarDay>{};
+    for (var i = 0; i < entries.length; i++) {
+      final date = DateTime(month.year, month.month, i + 1);
+      days[Calendar.dateKey(date)] = dayFrom(date, entries[i], findings);
+    }
+    return days;
   }
 
   /// Public, like the GOARCH helpers, so `test/tool/` can reach it.
@@ -151,14 +150,7 @@ class OrthocalSource implements CalendarSource {
     final saints = (json['saints'] as List<dynamic>? ?? const [])
         .cast<String>();
 
-    Reading? first(String source) {
-      for (final entry in (json['readings'] as List<dynamic>? ?? const [])) {
-        final reading = entry as Map<String, dynamic>;
-        if (_sourceKind(reading['source'] as String? ?? '') != source) continue;
-        return Reading(reference: reading['display'] as String? ?? '');
-      }
-      return null;
-    }
+    final (readings, eothinon) = _readings(json);
 
     return CalendarDay(
       date: date,
@@ -172,51 +164,63 @@ class OrthocalSource implements CalendarSource {
         // equivalent either, being what fastAllowance already carries.
         if ((json['feast_level'] as int? ?? 0) >= 6) DayMark.majorFeast,
       ],
-      fastAllowance: _allowance(json, findings, Calendar.dateKey(date)),
+      fastAllowance: _allowance(json, findings, date),
       // 0 is the sentinel for no tone, and rendering it would read as "Tone 0".
       tone: switch (json['tone'] as int?) {
         0 || null => null,
         final tone => tone,
       },
-      eothinon: _eothinon(json),
-      epistle: first('epistle'),
-      gospel: first('gospel'),
-      matinsGospel: first('matinsGospel'),
-      oldTestament: first('oldTestament'),
+      eothinon: eothinon,
+      epistle: readings[_Slot.epistle],
+      gospel: readings[_Slot.gospel],
+      matinsGospel: readings[_Slot.matinsGospel],
+      oldTestament: readings[_Slot.oldTestament],
     );
   }
 
-  /// Which of our four slots a reading belongs in, or the empty string.
+  /// The four readings the schema has room for, and the eothinon.
+  ///
+  /// One pass, because the eothinon is carried in the *name* of the Matins
+  /// gospel rather than as a field and so falls out of the same match.
   ///
   /// Upstream names far more than four — the Hours, the twelve Passion
   /// gospels, the Great Blessing of Waters — and those are dropped rather than
   /// reported: they are perfectly well understood, there is simply nowhere in
-  /// `CalendarDay` for them. The Vespers readings are the Old Testament
-  /// prophecies and are the one non-obvious mapping.
-  static String _sourceKind(String source) {
-    if (source == 'Epistle') return 'epistle';
-    if (source == 'Gospel') return 'gospel';
-    if (source == 'Vespers') return 'oldTestament';
-    if (_matinsGospel.hasMatch(source)) return 'matinsGospel';
-    return '';
+  /// `CalendarDay` for them. Vespers readings are the Old Testament prophecies
+  /// and are the one mapping the names do not give away.
+  static (Map<_Slot, Reading>, int?) _readings(Map<String, dynamic> json) {
+    final readings = <_Slot, Reading>{};
+    int? eothinon;
+
+    for (final entry in (json['readings'] as List<dynamic>? ?? const [])) {
+      final reading = entry as Map<String, dynamic>;
+      final source = reading['source'] as String? ?? '';
+      final matins = _matinsGospel.firstMatch(source);
+      final slot = matins != null ? _Slot.matinsGospel : _named[source];
+      if (slot == null) continue;
+
+      // The first where upstream appoints two: a Sunday carries its own
+      // epistle and the saint's, and the day's own comes first.
+      readings.putIfAbsent(
+        slot,
+        () => Reading(reference: reading['display'] as String? ?? ''),
+      );
+      // A feast's own Matins gospel is written without a number and is not one
+      // of the eleven, so it fills the slot without supplying an eothinon.
+      eothinon ??= int.tryParse(matins?.group(1) ?? '');
+    }
+
+    return (readings, eothinon);
   }
 
   static final _matinsGospel = RegExp(r'^(?:(\d+)\w{2} )?Matins Gospel$');
 
-  /// The eothinon, taken from the name of the Matins gospel.
-  ///
-  /// Upstream carries it as "11th Matins Gospel" rather than as a field, and
-  /// writes a bare "Matins Gospel" where a feast has one of its own, which is
-  /// not one of the eleven and so is no eothinon at all.
-  static int? _eothinon(Map<String, dynamic> json) {
-    for (final entry in (json['readings'] as List<dynamic>? ?? const [])) {
-      final match = _matinsGospel.firstMatch(
-        (entry as Map<String, dynamic>)['source'] as String? ?? '',
-      );
-      if (match?.group(1) case final number?) return int.parse(number);
-    }
-    return null;
-  }
+  /// The reading names that map straight to a slot.
+  static const _named = {
+    'Epistle': _Slot.epistle,
+    'Gospel': _Slot.gospel,
+    'Vespers': _Slot.oldTestament,
+  };
 
   /// What the day permits, from the two numbers upstream states.
   ///
@@ -233,7 +237,7 @@ class OrthocalSource implements CalendarSource {
   static FastAllowance? _allowance(
     Map<String, dynamic> json,
     List<Finding> findings,
-    String date,
+    DateTime date,
   ) {
     final level = json['fast_level'] as int? ?? 0;
     final exception = json['fast_exception'] as int? ?? 0;
@@ -241,35 +245,33 @@ class OrthocalSource implements CalendarSource {
     if (exception == 11) return FastAllowance.free;
     if (level == 0) return null;
 
-    return switch (exception) {
+    final allowance = switch (exception) {
       0 || 9 || 10 => FastAllowance.strict,
       1 || 3 || 5 || 6 || 8 => FastAllowance.wineAndOil,
       2 || 4 => FastAllowance.fish,
       7 => FastAllowance.dairyEggsAndFish,
-      _ => () {
-        // An exception upstream has added. Reported rather than guessed at,
-        // and under the same kind as an unmapped rule from the feed: both mean
-        // the day's rule is not the one published.
-        findings.add((
-          date: date,
-          line:
-              'fast_exception $exception (${json['fast_exception_desc']}) '
-              'under fast_level ${json['fast_level']}',
-          kind: FindingKind.unmappedFastingRule,
-        ));
-        return FastAllowance.strict;
-      }(),
+      _ => null,
     };
-  }
+    if (allowance != null) return allowance;
 
-  DateTime _horizonEnd() {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day + horizonDays);
+    // An exception upstream has added. Reported rather than guessed at, and
+    // under the same kind as an unmapped rule from the feed: both mean the
+    // day's published rule is not the one upstream states. The strict fallback
+    // is the safe direction to be wrong in.
+    findings.add((
+      date: Calendar.dateKey(date),
+      line:
+          'fast_exception $exception (${json['fast_exception_desc']}) '
+          'under fast_level ${json['fast_level']}',
+      kind: FindingKind.unmappedFastingRule,
+    ));
+    return FastAllowance.strict;
   }
-
-  static DateTime _earlier(DateTime a, DateTime b) => a.isBefore(b) ? a : b;
 
   /// Day 0 of the next month is the last day of this one.
   static int daysInMonth(int year, int month) =>
       DateTime(year, month + 1, 0).day;
 }
+
+/// Which of `CalendarDay`'s four reading slots a reading belongs in.
+enum _Slot { epistle, gospel, matinsGospel, oldTestament }

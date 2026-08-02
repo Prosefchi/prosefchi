@@ -15,10 +15,10 @@ enum FindingKind {
   /// the fasting rule goes. Nothing is lost: it is simply not shown.
   unrecognised,
 
-  /// A fasting rule whose wording is not in the source's table.
+  /// A fasting rule the source states and we could not map.
   ///
-  /// The day then publishes no rule at all, which reads as a day that does not
-  /// fast. This is the one to act on.
+  /// The day then publishes something other than what upstream says: nothing
+  /// at all, which reads as not fasting, or a safe fallback. The one to act on.
   unmappedFastingRule,
 }
 
@@ -42,6 +42,12 @@ abstract interface class CalendarSource {
 
   /// Which reckoning these days are for, which names the file.
   CalendarStyle get style;
+
+  /// What to call this source in the build log and the cache.
+  ///
+  /// One definition, because it was briefly three: the log derived it by
+  /// taking the file name apart again, and each source spelled its own.
+  String get label;
 
   /// Where the data came from, kept in [Calendar.source] for attribution.
   String get attribution;

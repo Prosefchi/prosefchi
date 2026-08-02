@@ -29,6 +29,15 @@ import 'calendar/source.dart';
 /// by users.
 const runwayWarningDays = 60;
 
+/// How far past today a build reaches when `--to` says nothing.
+///
+/// A bound is needed because not every source has an end of its own: orthocal
+/// answers for any year from 1583 to 4099, so an unbounded `to` would ask it
+/// for four thousand years a month at a time. Owning it here rather than in
+/// the source is what keeps `--to` meaning one thing for all of them, and what
+/// lets the runway warning tell upstream stopping from us stopping.
+const buildHorizonDays = 400;
+
 /// The sources a build reads, in the order they are read. One file each.
 ///
 /// The Julian calendar is English only because orthocal publishes English
@@ -46,15 +55,15 @@ Future<void> main(List<String> args) async {
 
   final today = _today();
   final from = options['from'] ?? Calendar.dateKey(addDays(today, -90));
-  final to = options['to'] ?? '9999-12-31';
+  final to =
+      options['to'] ?? Calendar.dateKey(addDays(today, buildHorizonDays));
   final useCache = options.containsKey('cache');
+
+  _assertOneFileEach();
 
   for (final source in sources()) {
     final language = source.language;
-    final fileName = Calendar.fileName(language, style: source.style);
-    // What the build log calls this file, so a language with two of them can
-    // be told apart: "en", "el", "en.julian".
-    final label = fileName.replaceAll(RegExp(r'^calendar\.|\.json$'), '');
+    final label = source.label;
     final parsed = await source.load(from: from, to: to, useCache: useCache);
 
     final keys =
@@ -79,7 +88,9 @@ Future<void> main(List<String> args) async {
       days: {for (final key in keys) key: parsed.days[key]!},
     );
 
-    final file = File('${outDir.path}/$fileName');
+    final file = File(
+      '${outDir.path}/${Calendar.fileName(language, style: source.style)}',
+    );
     await file.writeAsString(jsonEncode(calendar.toJson()));
 
     // Reported apart, or a rewording that unmaps a rule across Great Lent is
@@ -88,7 +99,7 @@ Future<void> main(List<String> args) async {
       label,
       parsed.findings,
       FindingKind.unmappedFastingRule,
-      'fasting rule(s) it could not map, so those days publish no rule',
+      "fasting rule(s) it could not map, so those days do not carry upstream's",
       limit: null,
     );
     _report(
@@ -112,13 +123,28 @@ Future<void> main(List<String> args) async {
       '${parsed.sourceUpdatedAt?.toUtc().toIso8601String() ?? "unknown"}',
     );
 
+    // Only where the source ran out first. Ending exactly at the window is
+    // this build's own bound, and blaming upstream for it would send whoever
+    // reads the log to the wrong place.
     final runway = calendar.runwayFrom(today);
-    if (runway <= runwayWarningDays) {
+    if (keys.last != to && runway <= runwayWarningDays) {
       stdout.writeln(
         '  WARNING: $label ends in $runway days (${keys.last}). Upstream '
         'needs to extend it, or the app falls back to computed data only.',
       );
     }
+  }
+}
+
+/// Fails loudly if two sources would write the same file.
+///
+/// One source, one file is an invariant nothing else enforces, and breaking it
+/// is silent: the later source simply overwrites the earlier one's output.
+void _assertOneFileEach() {
+  final names = <String>{};
+  for (final source in sources()) {
+    final name = Calendar.fileName(source.language, style: source.style);
+    if (!names.add(name)) throw StateError('two sources both write $name');
   }
 }
 

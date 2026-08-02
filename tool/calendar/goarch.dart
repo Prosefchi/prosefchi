@@ -174,6 +174,9 @@ class GoarchSource implements CalendarSource {
   CalendarStyle get style => CalendarStyle.gregorian;
 
   @override
+  String get label => language;
+
+  @override
   String get attribution => feed.url;
 
   /// The whole feed, every time.
@@ -189,7 +192,7 @@ class GoarchSource implements CalendarSource {
     await fetch(
       feed.url,
       key: '$language.ics',
-      label: language,
+      label: label,
       useCache: useCache,
     ),
     feed,
