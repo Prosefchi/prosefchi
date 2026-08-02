@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../l10n/occasion_labels.dart';
+import '../models/calendar.dart' show CalendarStyle;
 import '../models/prayer.dart';
 import '../models/reminder.dart';
 import '../services/calendar_repository.dart';
@@ -9,6 +10,7 @@ import '../services/fasting_schedule.dart';
 import '../services/notification_service.dart';
 import '../services/reminder_refresh.dart';
 import '../services/reminder_store.dart';
+import '../services/settings_controller.dart';
 import 'occasion_ui.dart';
 
 /// Switches each prayer reminder on or off and sets its time.
@@ -85,6 +87,9 @@ class _ReminderListState extends State<ReminderList> {
   Future<void> _updateFasting(FastingReminder reminder) async {
     final l10n = AppLocalizations.of(context);
     final language = languageFor(Localizations.localeOf(context));
+    final style =
+        SettingsScope.maybeOf(context)?.calendarStyle ??
+        CalendarStyle.gregorian;
 
     if (reminder.enabled && !_fasting.enabled && !await _ensurePermission()) {
       return;
@@ -99,6 +104,7 @@ class _ReminderListState extends State<ReminderList> {
       calendars: _calendars,
       scheduler: _scheduler,
       language: language,
+      style: style,
       l10n: l10n,
     );
   }

@@ -38,6 +38,7 @@ void main() {
         DateTime(2026, 7, 26),
         calendar: calendar,
         within: 3,
+        style: CalendarStyle.gregorian,
       );
 
       expect(days, hasLength(1));
@@ -52,6 +53,7 @@ void main() {
         DateTime(2026, 7, 29),
         calendar: calendar,
         within: 1,
+        style: CalendarStyle.gregorian,
       );
 
       expect(days.single.allowance, FastAllowance.wineAndOil);
@@ -63,6 +65,7 @@ void main() {
         DateTime(2026, 11, 20),
         calendar: calendarWith({'2026-07-26': null}),
         within: 3,
+        style: CalendarStyle.gregorian,
       );
 
       expect(days, hasLength(3), reason: 'every day of the Nativity Fast');
@@ -76,7 +79,11 @@ void main() {
 
     test('works with no calendar at all', () {
       // A first launch, before anything has been fetched.
-      final days = fastingDaysFrom(DateTime(2026, 10, 12), within: 7);
+      final days = fastingDaysFrom(
+        DateTime(2026, 10, 12),
+        within: 7,
+        style: CalendarStyle.gregorian,
+      );
 
       expect(days.map((d) => d.date.weekday), [
         DateTime.wednesday,
@@ -92,6 +99,7 @@ void main() {
         DateTime(2026, 2, 25),
         within: 60,
         limit: 30,
+        style: CalendarStyle.gregorian,
       );
 
       expect(days, hasLength(30));
@@ -99,13 +107,21 @@ void main() {
 
     test('is empty when nothing in the window fasts', () {
       // Bright Week lifts the fast entirely, Wednesday and Friday included.
-      final days = fastingDaysFrom(DateTime(2026, 4, 12), within: 7);
+      final days = fastingDaysFrom(
+        DateTime(2026, 4, 12),
+        within: 7,
+        style: CalendarStyle.gregorian,
+      );
 
       expect(days, isEmpty);
     });
 
     test('starts from the given day, including it', () {
-      final days = fastingDaysFrom(DateTime(2026, 10, 14), within: 1);
+      final days = fastingDaysFrom(
+        DateTime(2026, 10, 14),
+        within: 1,
+        style: CalendarStyle.gregorian,
+      );
 
       expect(days.single.date, DateTime(2026, 10, 14));
     });

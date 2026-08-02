@@ -9,6 +9,7 @@
 // the eothinon and the fasting are computed from the date alone in
 // lib/liturgics/, and a published value is preferred only where there is one.
 
+import '../liturgics/julian.dart';
 import '../liturgics/paschalion.dart';
 
 /// Languages the calendar is published in, as ISO 639-1 codes.
@@ -24,6 +25,24 @@ enum CalendarStyle {
   julian;
 
   static CalendarStyle? byName(String? name) => _byName(values, name);
+
+  /// The date this calendar calls the civil day [date].
+  ///
+  /// Gregorian 7 January 2026 is Julian 25 December 2025, which is why the
+  /// Nativity is kept on the 7th on the old calendar.
+  DateTime dateOf(DateTime date) => this == julian ? julianDateOf(date) : date;
+
+  /// The civil day this calendar's own [date] falls on: the inverse of
+  /// [dateOf], for a boundary stated in this calendar's terms.
+  DateTime civilDateOf(DateTime date) =>
+      this == julian ? gregorianDateOf(date) : date;
+
+  /// Whether a calendar is published for [language] in this style.
+  ///
+  /// Only English has a Julian file. Stated rather than discovered by 404: a
+  /// reader there falls back to the computed layer, which is a designed state
+  /// and should not cost a doomed request every launch.
+  bool isPublishedFor(String language) => this == gregorian || language == 'en';
 }
 
 /// A marker GOARCH prefixes to a day's title.

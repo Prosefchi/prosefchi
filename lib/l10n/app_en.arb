@@ -334,5 +334,38 @@
   "onboardingReaderBody": "Choose the language you pray in, and how large the prayers should be. Both can be changed later in settings.",
   "@onboardingReaderBody": {
     "description": "Body of the welcome page that configures language and text size."
+  },
+  "calendarStyle": "Calendar",
+  "@calendarStyle": {
+    "description": "Settings heading for choosing the old or new calendar."
+  },
+  "calendarStyleNew": "New calendar",
+  "@calendarStyleNew": {
+    "description": "The revised Julian calendar, which the Archdiocese follows."
+  },
+  "calendarStyleNewNote": "Fixed feasts as the Archdiocese keeps them",
+  "@calendarStyleNewNote": {
+    "description": "What choosing the new calendar changes."
+  },
+  "calendarStyleOld": "Old calendar (Julian)",
+  "@calendarStyleOld": {
+    "description": "The Julian calendar, whose fixed feasts fall 13 days later."
+  },
+  "calendarStyleOldNote": "Fixed feasts 13 days later. Pascha and Great Lent are the same on both.",
+  "@calendarStyleOldNote": {
+    "description": "What choosing the old calendar changes. States what it does not move, because assuming Pascha moves with it is the obvious and wrong guess."
+  },
+  "julianDate": "{date} (old calendar)",
+  "@julianDate": {
+    "description": "The Julian date, shown under the civil date when the old calendar is chosen.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarNotPublished": "Saints and readings are not published for this calendar in this language.",
+  "@calendarNotPublished": {
+    "description": "Shown when no calendar exists for the chosen language and calendar style, which is not a failure and cannot be retried. The fast, the tone and the distance from Pascha are computed and still shown above."
   }
 }

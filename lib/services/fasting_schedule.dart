@@ -33,6 +33,7 @@ List<FastingDay> fastingDaysFrom(
   Calendar? calendar,
   int within = 60,
   int limit = FastingReminder.idCapacity,
+  required CalendarStyle style,
 }) {
   final days = <FastingDay>[];
 
@@ -44,7 +45,7 @@ List<FastingDay> fastingDaysFrom(
       if (published.fasts) {
         days.add((date: date, allowance: published.fastAllowance));
       }
-    } else if (isFastDay(date)) {
+    } else if (isFastDay(date, style: style)) {
       days.add((date: date, allowance: null));
     }
   }
@@ -66,9 +67,14 @@ Future<void> refreshFastingReminders({
   required String language,
   required AppLocalizations l10n,
   DateTime? from,
+  required CalendarStyle style,
 }) async {
-  final calendar = await calendars.load(language);
-  final days = fastingDaysFrom(from ?? DateTime.now(), calendar: calendar);
+  final calendar = await calendars.load(language, style: style);
+  final days = fastingDaysFrom(
+    from ?? DateTime.now(),
+    calendar: calendar,
+    style: style,
+  );
 
   await scheduler.applyFasting(
     reminder,

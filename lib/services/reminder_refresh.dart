@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../l10n/app_localizations.dart';
 import '../l10n/occasion_labels.dart';
+import '../models/calendar.dart' show CalendarStyle;
 import '../models/reminder.dart';
 import 'calendar_repository.dart';
 import 'fasting_schedule.dart';
@@ -61,6 +62,7 @@ Future<void> refreshReminders({
   required ReminderScheduler scheduler,
   required String language,
   required AppLocalizations l10n,
+  required CalendarStyle style,
 }) async {
   // Independent reads over the same preferences; no reason to serialize.
   final (reminders, fasting) = await (
@@ -85,6 +87,7 @@ Future<void> refreshReminders({
     scheduler: scheduler,
     language: language,
     l10n: l10n,
+    style: style,
   );
 }
 
@@ -165,6 +168,7 @@ class ReminderRefresher {
         scheduler: _scheduler,
         language: language,
         l10n: await AppLocalizations.delegate.load(Locale(language)),
+        style: settings.calendarStyle,
       );
       _refreshedOn = today;
     } on Object catch (error) {

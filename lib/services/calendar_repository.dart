@@ -58,40 +58,56 @@ class CalendarRepository {
   /// turn of the event loop.
   final Map<String, Future<Calendar?>> _cache = {};
 
-  /// The stored calendar for [language], or null if none has been kept yet.
+  /// The stored calendar for [language] and [style], or null if none is kept.
   ///
   /// Never touches the network.
-  Future<Calendar?> load(String language) =>
-      _cache[language] ??= _readStored(language);
+  ///
+  /// Null is also the ordinary answer for a combination nothing publishes:
+  /// every language has a Gregorian calendar but only English has a Julian
+  /// one. Callers already handle it by falling back to the computed layer,
+  /// which is what a reader in that position should get.
+  Future<Calendar?> load(String language, {required CalendarStyle style}) =>
+      _cache[_jsonName(language, style)] ??= _readStored(language, style);
 
   /// The entry for [date], or null if nothing is stored or the calendar does
   /// not reach that far.
-  Future<CalendarDay?> dayFor(DateTime date, String language) async =>
-      (await load(language))?.forDate(date);
+  Future<CalendarDay?> dayFor(
+    DateTime date,
+    String language, {
+    required CalendarStyle style,
+  }) async => (await load(language, style: style))?.forDate(date);
 
   /// Fetches [language] from the network, storing it if it changed.
   ///
   /// Returns true only when new data was stored. A conditional request means
   /// the usual outcome is a bodiless 304, so calling this on every launch is
   /// cheap.
-  Future<bool> refresh(String language) async {
+  Future<bool> refresh(String language, {required CalendarStyle style}) async {
+    // Nothing publishes every combination, and asking for one that does not
+    // exist is a round trip that can only 404 — on every launch, before the
+    // day screen gives up waiting on it. The reader falls back to the computed
+    // layer, which is what they should get.
+    if (!style.isPublishedFor(language)) return false;
+
     try {
       // Both are independent, and neither reads the calendar body: a 304 with
       // no stored copy would leave us with nothing, so the conditional request
       // is only sent when there is something to fall back on.
       final (etag, stored) = await (
-        _store.read(_etagName(language)),
-        _store.exists(_jsonName(language)),
+        _store.read(_etagName(language, style)),
+        _store.exists(_jsonName(language, style)),
       ).wait;
 
       final response = await _client.get(
-        _baseUrl.resolve(_jsonName(language)),
+        _baseUrl.resolve(_jsonName(language, style)),
         headers: {'If-None-Match': ?(stored ? etag : null)},
       );
 
       if (response.statusCode == HttpStatus.notModified) return false;
       if (response.statusCode != HttpStatus.ok) {
-        debugPrint('calendar: $language refresh got ${response.statusCode}');
+        debugPrint(
+          'calendar: ${_jsonName(language, style)} got ${response.statusCode}',
+        );
         return false;
       }
 
@@ -106,39 +122,43 @@ class CalendarRepository {
         jsonDecode(body) as Map<String, dynamic>,
       );
 
-      await _store.write(_jsonName(language), body);
+      await _store.write(_jsonName(language, style), body);
       final newEtag = response.headers['etag'];
       if (newEtag != null) {
-        await _store.write(_etagName(language), newEtag);
+        await _store.write(_etagName(language, style), newEtag);
       } else {
-        await _store.delete(_etagName(language));
+        await _store.delete(_etagName(language, style));
       }
 
-      _cache[language] = Future.value(calendar);
+      _cache[_jsonName(language, style)] = Future.value(calendar);
       return true;
     } on Object catch (error) {
       // Offline, DNS failure, TLS problem, malformed payload: all the same
       // outcome. Keep whatever is already stored.
-      debugPrint('calendar: $language refresh failed ($error)');
+      debugPrint('calendar: ${_jsonName(language, style)} failed ($error)');
       return false;
     }
   }
 
-  Future<Calendar?> _readStored(String language) async {
+  Future<Calendar?> _readStored(String language, CalendarStyle style) async {
     try {
-      final raw = await _store.read(_jsonName(language));
+      final raw = await _store.read(_jsonName(language, style));
       if (raw == null) return null;
       return Calendar.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } on Object catch (error) {
-      debugPrint('calendar: could not read stored $language ($error)');
+      debugPrint(
+        'calendar: cannot read ${_jsonName(language, style)} ($error)',
+      );
       return null;
     }
   }
 
-  static String _jsonName(String language) =>
-      Calendar.fileName(language, style: CalendarStyle.gregorian);
+  static String _jsonName(String language, CalendarStyle style) =>
+      Calendar.fileName(language, style: style);
 
-  static String _etagName(String language) => 'calendar.$language.etag';
+  /// Derived from the file name so the two cannot drift.
+  static String _etagName(String language, CalendarStyle style) =>
+      '${_jsonName(language, style)}.etag';
 
   /// Drops in-memory calendars so the next [load] re-reads from the store.
   void clearCache() => _cache.clear();
