@@ -14,6 +14,18 @@ import '../liturgics/paschalion.dart';
 /// Languages the calendar is published in, as ISO 639-1 codes.
 const supportedLanguages = ['en', 'el'];
 
+/// Which reckoning of the calendar a published file was built for.
+///
+/// Both keep Pascha on the same day, the Revised Julian calendar having kept
+/// the Julian paschalion, so only the fixed feasts and their fasts differ,
+/// falling 13 days later until 2100.
+enum CalendarStyle {
+  gregorian,
+  julian;
+
+  static CalendarStyle? byName(String? name) => _byName(values, name);
+}
+
 /// A marker GOARCH prefixes to a day's title.
 ///
 /// These encode the fasting allowance and the rank of the feast. They appear
@@ -83,7 +95,7 @@ enum FastAllowance {
 
 /// The value of [values] named [name], or null if absent or unknown.
 ///
-/// Unknown is ordinary here: JSON written by another version of the tool.
+/// Unknown is ordinary here: JSON or a setting written by another version.
 T? _byName<T extends Enum>(List<T> values, String? name) =>
     name == null ? null : values.asNameMap()[name];
 
@@ -294,8 +306,9 @@ class Calendar {
     },
   };
 
-  /// What a published calendar is named, for one language.
-  static String fileName(String language) => 'calendar.$language.json';
+  /// What a published calendar is named. Also the name it is stored under.
+  static String fileName(String language, {required CalendarStyle style}) =>
+      'calendar.$language.${style.name}.json';
 
   /// The canonical `YYYY-MM-DD` key for [date], ignoring any time component.
   static String dateKey(DateTime date) =>

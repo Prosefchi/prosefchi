@@ -113,9 +113,8 @@ DateTime? _dateFromLocation() {
 
 Future<void> _fetchCalendar() async {
   try {
-    final response = await web.window
-        .fetch('$_root${Calendar.fileName(_language)}'.toJS)
-        .toDart;
+    final name = Calendar.fileName(_language, style: CalendarStyle.gregorian);
+    final response = await web.window.fetch('$_root$name'.toJS).toDart;
     if (!response.ok) return;
 
     final body = await response.text().toDart;

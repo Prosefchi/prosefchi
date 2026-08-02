@@ -1,4 +1,4 @@
-// Builds calendar.<lang>.json from the published sources.
+// Builds calendar.<lang>.<style>.json from the published sources.
 //
 // This file is the entry point and the orchestration: which sources to run,
 // what window to keep, where to write, and what to complain about. Reading any
@@ -10,7 +10,7 @@
 //
 //   --out DIR      output directory (default: build/calendar)
 //   --from DATE    earliest day to keep, YYYY-MM-DD (default: 90 days ago)
-//   --to DATE      latest day to keep, YYYY-MM-DD (default: no limit)
+//   --to DATE      latest day to keep, YYYY-MM-DD (default: buildHorizonDays)
 //   --cache        reuse previously downloaded responses instead of refetching
 
 import 'dart:convert';
@@ -21,6 +21,7 @@ import 'package:prosefchi/models/calendar.dart';
 
 import 'args.dart';
 import 'calendar/goarch.dart';
+import 'calendar/orthocal.dart';
 import 'calendar/source.dart';
 
 /// Warn when a source runs this close to its end. GOARCH populates the
@@ -28,11 +29,18 @@ import 'calendar/source.dart';
 /// by users.
 const runwayWarningDays = 60;
 
-/// The sources a build reads, in the order they are read.
+/// The last day a build writes, counted from today, unless `--to` says which.
 ///
-/// One file each, named after the source's language.
+/// Orthocal has no end of its own and would answer to the year 4099, so the
+/// bound is stated here rather than left to a source.
+const buildHorizonDays = 400;
+
+/// The sources a build reads, in the order they are read. One file each.
+///
+/// The Julian calendar is English only, orthocal publishing English only.
 List<CalendarSource> sources() => [
   for (final entry in feeds.entries) GoarchSource(entry.key, entry.value),
+  const OrthocalSource(),
 ];
 
 Future<void> main(List<String> args) async {
@@ -42,11 +50,15 @@ Future<void> main(List<String> args) async {
 
   final today = _today();
   final from = options['from'] ?? Calendar.dateKey(addDays(today, -90));
-  final to = options['to'] ?? '9999-12-31';
+  final to =
+      options['to'] ?? Calendar.dateKey(addDays(today, buildHorizonDays));
   final useCache = options.containsKey('cache');
+
+  _assertOneFileEach();
 
   for (final source in sources()) {
     final language = source.language;
+    final label = source.label;
     final parsed = await source.load(from: from, to: to, useCache: useCache);
 
     final keys =
@@ -56,7 +68,7 @@ Future<void> main(List<String> args) async {
           ..sort();
 
     if (keys.isEmpty) {
-      stderr.writeln('$language: no days in range $from..$to');
+      stderr.writeln('$label: no days in range $from..$to');
       exitCode = 1;
       continue;
     }
@@ -71,20 +83,22 @@ Future<void> main(List<String> args) async {
       days: {for (final key in keys) key: parsed.days[key]!},
     );
 
-    final file = File('${outDir.path}/${Calendar.fileName(language)}');
+    final file = File(
+      '${outDir.path}/${Calendar.fileName(language, style: source.style)}',
+    );
     await file.writeAsString(jsonEncode(calendar.toJson()));
 
     // Reported apart, or a rewording that unmaps a rule across Great Lent is
     // a bumped count with five unrelated feast names printed under it.
     _report(
-      language,
+      label,
       parsed.findings,
       FindingKind.unmappedFastingRule,
-      'fasting rule(s) it could not map, so those days publish no rule',
+      "fasting rule(s) it could not map, so those days do not carry upstream's",
       limit: null,
     );
     _report(
-      language,
+      label,
       parsed.findings,
       FindingKind.unrecognised,
       'unrecognised line(s)',
@@ -95,7 +109,7 @@ Future<void> main(List<String> args) async {
         .where((k) => parsed.days[k]!.fastAllowance != null)
         .length;
     stdout.writeln(
-      '$language: ${keys.length} days  ${keys.first}..${keys.last}  '
+      '$label: ${keys.length} days  ${keys.first}..${keys.last}  '
       '$withReadings with readings  $withFasting with a fasting rule  '
       '${((await file.length()) / 1024).toStringAsFixed(0)} KB  -> ${file.path}',
     );
@@ -104,13 +118,26 @@ Future<void> main(List<String> args) async {
       '${parsed.sourceUpdatedAt?.toUtc().toIso8601String() ?? "unknown"}',
     );
 
+    // Only where the source ran out first. Ending exactly at the window is
+    // this build's own bound, and blaming upstream for it would send whoever
+    // reads the log to the wrong place.
     final runway = calendar.runwayFrom(today);
-    if (runway <= runwayWarningDays) {
+    if (keys.last != to && runway <= runwayWarningDays) {
       stdout.writeln(
-        '  WARNING: $language ends in $runway days (${keys.last}). Upstream '
+        '  WARNING: $label ends in $runway days (${keys.last}). Upstream '
         'needs to extend it, or the app falls back to computed data only.',
       );
     }
+  }
+}
+
+/// Fails loudly if two sources would write the same file, which nothing else
+/// enforces and which is silent: the later one overwrites the earlier.
+void _assertOneFileEach() {
+  final names = <String>{};
+  for (final source in sources()) {
+    final name = Calendar.fileName(source.language, style: source.style);
+    if (!names.add(name)) throw StateError('two sources both write $name');
   }
 }
 
@@ -119,7 +146,7 @@ Future<void> main(List<String> args) async {
 /// [limit] null lists them all, which the unmappable rules get: truncating
 /// them is how one hides behind the noisier kind.
 void _report(
-  String language,
+  String label,
   List<Finding> findings,
   FindingKind kind,
   String what, {
@@ -128,7 +155,7 @@ void _report(
   final matching = findings.where((f) => f.kind == kind).toList();
   if (matching.isEmpty) return;
 
-  stdout.writeln('  WARNING: $language has ${matching.length} $what:');
+  stdout.writeln('  WARNING: $label has ${matching.length} $what:');
   for (final finding in limit == null ? matching : matching.take(limit)) {
     stdout.writeln('    ${finding.date}  ${finding.line}');
   }
