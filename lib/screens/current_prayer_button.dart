@@ -10,14 +10,9 @@ import 'prayers_screen.dart';
 
 /// Opens the rule the hour belongs to, as the day screen's one obvious action.
 ///
-/// [PrayerOccasion.forTime] decides which rule that is, and returns nothing
-/// outside the hours any rule belongs to. So does this: rather than reach for
-/// whichever rule is nearest, it takes itself off the page. Someone opening the
-/// app at four in the afternoon is not being offered the morning prayers.
-///
-/// A rule whose text is still awaited is absent for the same reason. The
-/// prayers list disables one of those; a hero button leading to an empty page
-/// would be a worse promise than none.
+/// Takes itself off the page outside those hours rather than reaching for the
+/// nearest rule, and likewise for a rule whose text is still awaited: a hero
+/// button onto an empty page promises more than a greyed-out row does.
 class CurrentPrayerButton extends StatefulWidget {
   const CurrentPrayerButton({
     super.key,
@@ -26,10 +21,9 @@ class CurrentPrayerButton extends StatefulWidget {
   });
 
   /// Read again on every resume rather than captured, so a test can fix the
-  /// hour it checks — and move it, which is the whole of what resuming does.
+  /// hour it checks and then move it.
   final DateTime Function() clock;
 
-  /// Injectable so tests need no real asset bundle.
   final PrayerRepository? repository;
 
   @override
@@ -70,18 +64,12 @@ class _CurrentPrayerButtonState extends State<CurrentPrayerButton> {
     _load();
   }
 
-  /// Reads the clock again, because the hour moves while the app is away.
+  /// The day screen is kept alive in an [IndexedStack], so its build runs about
+  /// once per launch: without this, a phone opened at breakfast and again after
+  /// lunch would still be offering the morning rule.
   ///
-  /// The day screen is kept alive in an [IndexedStack] for the life of the
-  /// process, so its build runs about once per launch. Without this, a phone
-  /// opened at breakfast and opened again after lunch would still be offering
-  /// the morning rule — and a phone is put down far more often than it is
-  /// restarted.
-  ///
-  /// Only resuming, not a timer: an hour that turns over while the app is being
-  /// looked at is the rarer case by far, and a rule left on screen a few
-  /// minutes past its window is a smaller cost than a widget that never sits
-  /// still.
+  /// Only on resume, no timer. An hour turning over while someone is looking at
+  /// the page is much the rarer case.
   void _reconsider() {
     final occasion = PrayerOccasion.forTime(widget.clock());
     if (occasion == _occasion) return;
@@ -134,8 +122,7 @@ class _CurrentPrayerButtonState extends State<CurrentPrayerButton> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Which rule this is comes second and larger. The line above
-                  // it supplies the verb: on its own, "Morning" beside a date
+                  // Supplies the verb: on its own, "Morning" beside a date
                   // reads as a label rather than as somewhere to go.
                   Text(
                     l10n.prayNow,

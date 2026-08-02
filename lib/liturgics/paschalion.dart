@@ -1,17 +1,14 @@
 // The Paschalion: Orthodox Pascha and the movable cycle that hangs off it.
 //
-// This is pure computation with no data dependency, which makes it the floor
-// the app can always stand on. The GOARCH feed has a hard end date and stops;
-// these functions keep working for any year.
+// Pure computation with no data dependency, which is the floor the app stands
+// on past the feed's end date.
 
 import 'julian.dart';
 
 /// The date of Orthodox Pascha in [year], as a Gregorian calendar date.
 ///
-/// Orthodox Pascha uses the Julian computus, so this computes the Julian
-/// calendar date and then converts. That conversion is why Orthodox and
-/// Western Easter usually differ: as of 1900–2099 the Julian calendar runs 13
-/// days behind, and the drift grows by a day roughly every century.
+/// Orthodox Pascha uses the Julian computus, so this computes the Julian date
+/// and converts. That conversion is why Orthodox and Western Easter differ.
 DateTime orthodoxPascha(int year) {
   // Meeus's Julian algorithm. Yields a date in the Julian calendar.
   final a = year % 4;
@@ -91,19 +88,15 @@ Map<MovableFeast, DateTime> movableFeasts(int year) => {
   for (final feast in MovableFeast.values) feast: feast.inYear(year),
 };
 
-/// Adds [days] to [date] without the daylight-saving hazard of `Duration`.
-///
-/// `DateTime.add(Duration(days: 1))` adds 24 hours, which lands on the wrong
-/// calendar day across a DST boundary. Constructing a new `DateTime` with an
-/// out-of-range day normalizes correctly instead.
+/// Adds [days] without the daylight-saving hazard of `Duration`, which adds 24
+/// hours and so lands on the wrong calendar day across a DST boundary.
 DateTime addDays(DateTime date, int days) =>
     DateTime(date.year, date.month, date.day + days);
 
 /// Days between two dates, ignoring any time component.
 ///
-/// Compares in UTC deliberately. Subtracting two local `DateTime`s across a
-/// daylight-saving change yields 23 or 25 hours for one of the days, and
-/// `inDays` truncates that to one day fewer than the calendar shows.
+/// In UTC deliberately: subtracting two local `DateTime`s across a DST change
+/// gives 23 or 25 hours, which `inDays` truncates to a day short.
 int daysBetween(DateTime from, DateTime to) => DateTime.utc(
   to.year,
   to.month,

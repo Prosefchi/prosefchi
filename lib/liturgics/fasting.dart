@@ -1,29 +1,24 @@
 // The fasting seasons, computed from the Paschalion.
 //
-// The feed states the rule outright on most days it covers, and
-// `CalendarDay.fasting` should be preferred wherever it is present: it is what
-// the Archdiocese actually publishes, and it accounts for exceptions no set of
-// rules here would capture. This exists for the days beyond the feed's end,
-// where otherwise the app could say nothing at all.
+// Prefer `CalendarDay.fastAllowance` wherever the feed states one: it is what
+// the Archdiocese publishes and it carries exceptions no rule here captures.
+// This is for the days beyond the feed's end.
 
 import '../models/calendar.dart' show CalendarStyle;
 import 'paschalion.dart';
 
 /// A season of fasting in the Orthodox year.
 enum FastSeason {
-  /// The week before Great Lent, from the Monday after Meatfare Sunday.
-  ///
-  /// Meat is given up but dairy, eggs and fish are kept, and unusually that
-  /// holds on the Wednesday and Friday too, which is why it has to be modelled
-  /// rather than left to the weekday rule.
+  /// The week before Great Lent, from the Monday after Meatfare Sunday. Dairy,
+  /// eggs and fish are kept, unusually on the Wednesday and Friday too, which
+  /// is why the weekday rule cannot cover it.
   cheesefare,
 
   /// From Clean Monday to Holy Saturday.
   greatLent,
 
   /// From the Monday after All Saints to the eve of Saints Peter and Paul, so
-  /// its length varies with the date of Pascha and it disappears entirely when
-  /// Pascha falls late.
+  /// its length varies with Pascha and a late one erases it.
   apostles,
 
   /// The first fortnight of August, to the Dormition.
@@ -102,10 +97,8 @@ FastSeason? _fastSeason(DateTime date, DateTime fixed, CalendarStyle style) {
   return null;
 }
 
-/// Days that fast whatever the weekday and whatever season they fall in.
-///
-/// Fixed to the calendar rather than to Pascha: the Beheading of the Forerunner,
-/// the Exaltation of the Cross, and the eves of Theophany and the Nativity.
+/// Fast whatever the weekday or season: the Beheading of the Forerunner, the
+/// Exaltation of the Cross, and the eves of Theophany and the Nativity.
 const _fixedFastDays = [(8, 29), (9, 14), (1, 5), (12, 24)];
 
 /// The fast-free week [date] falls in, or null if it falls in none.
@@ -149,7 +142,8 @@ FastFreeWeek? _fastFreeWeek(DateTime date, DateTime fixed) {
   return null;
 }
 
-/// Whether [date] is a fast day at all.
+/// Whether [date] is a fast day at all: inside a season, or a Wednesday or
+/// Friday, unless a fast-free week lifts even those.
 ///
 /// True inside a fasting season, and on the Wednesdays and Fridays of the rest
 /// of the year, which are fast days in their own right. False through the
@@ -157,7 +151,7 @@ FastFreeWeek? _fastFreeWeek(DateTime date, DateTime fixed) {
 ///
 /// This is the coarse question. What is permitted on a fast day varies with
 /// the season, the day of the week and the rank of the feast, and is exactly
-/// what `CalendarDay.fasting` answers where it is available.
+/// what `CalendarDay.fastAllowance` answers where it is available.
 bool isFastDay(DateTime date, {CalendarStyle style = CalendarStyle.gregorian}) {
   // Converted once and shared, not three times: this runs sixty times per
   // reminder refresh and a local DateTime resolves the timezone per call.

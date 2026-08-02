@@ -11,15 +11,12 @@ import 'link.dart';
 final repositoryUrl = Uri.parse('https://github.com/Prosefchi/prosefchi');
 
 /// The version, the source, and the licences of everything the app depends on.
-///
-/// The version is read from the bundle rather than written here, where it would
-/// drift from `pubspec.yaml` the first time someone bumped one and not the
-/// other.
+/// The version is read from the bundle, so it cannot drift from `pubspec.yaml`.
 class AboutSection extends StatefulWidget {
   const AboutSection({super.key, this.packageInfo, this.launch});
 
-  /// Injectable: `package_info_plus` and `url_launcher` both go through
-  /// platform channels, which are unavailable under `flutter test`.
+  /// Injectable: `package_info_plus` and `url_launcher` both reach platform
+  /// channels, which are unavailable under `flutter test`.
   final Future<PackageInfo> Function()? packageInfo;
   final Future<bool> Function(Uri url, {LaunchMode mode})? launch;
 
@@ -46,9 +43,8 @@ class _AboutSectionState extends State<AboutSection> {
     }
   }
 
-  /// Deliberately not the in-app browser the prayer texts use: the repository
-  /// is somewhere to go and act — sign in, clone, open an issue — rather than
-  /// something to read and come back from.
+  /// Not the in-app browser the prayer texts use: the repository is somewhere
+  /// to go and act, not to read and come back from.
   Future<void> _openRepository() => openLink(
     context,
     repositoryUrl,
@@ -94,8 +90,8 @@ class _AboutSectionState extends State<AboutSection> {
           leading: const Icon(Icons.workspace_premium_outlined),
           title: Text(l10n.openSourceLicences),
           trailing: const Icon(Icons.chevron_right),
-          // Flutter's own page, which enumerates every dependency's licence
-          // from the build rather than from a list we would have to maintain.
+          // Flutter's own page, enumerated from the build rather than a list
+          // we would have to maintain.
           onTap: () => showLicensePage(
             context: context,
             applicationName: l10n.appTitle,

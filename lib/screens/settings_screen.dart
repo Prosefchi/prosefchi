@@ -22,17 +22,14 @@ class SettingsScreen extends StatelessWidget {
     this.about,
   });
 
-  /// Injectable and passed through to [RemindersScreen], so a test can drive
-  /// the whole settings flow without platform channels.
   final ReminderStore? reminderStore;
   final ReminderScheduler? scheduler;
 
-  /// Read when the language changes, so the rescheduled fasting reminders carry
-  /// the Archdiocese's wording in the language now selected.
+  /// Read on a language change, so the rescheduled fasting reminders carry the
+  /// Archdiocese's wording in the language now selected.
   final CalendarRepository? calendars;
 
-  /// Substituted in tests, where the about section's platform channels are
-  /// unavailable.
+  /// Substituted in tests, where the about section reaches platform channels.
   final Widget? about;
 
   @override
@@ -50,9 +47,8 @@ class SettingsScreen extends StatelessWidget {
             onChanged: (value) => _setLanguage(context, value),
             child: Column(
               children: [
-                // Null is a real option, not an absence: following the device
-                // is different from having picked English, because the device
-                // language can change afterwards.
+                // Null is a real option: following the device differs from
+                // having picked English, since the device can change.
                 RadioListTile<String?>(
                   value: null,
                   title: Text(l10n.languageSystem),
@@ -77,18 +73,10 @@ class SettingsScreen extends StatelessWidget {
                 for (final size in TextSize.values)
                   RadioListTile<TextSize>(
                     value: size,
-                    // Each option drawn at the size it selects, so the choice
-                    // shows what it does rather than describing it. The one
-                    // that reads comfortably is the one to pick.
-                    //
-                    // Composed onto the platform's own size through the same
-                    // method the prayer screen scales by, rather than set to a
-                    // bare multiple of it. An explicit scaler replaces the
-                    // inherited one instead of building on it, so a reader
-                    // with a large system size would have seen "Small" drawn
-                    // smaller than the words around it — the preview reporting
-                    // something other than what choosing it does, to the
-                    // reader it matters to most.
+                    // Drawn at the size it selects, and composed through
+                    // `over`: an explicit scaler replaces the inherited one
+                    // rather than building on it, so with a large system size
+                    // "Small" rendered smaller than the words beside it.
                     title: Text(
                       _textSizeName(l10n, size),
                       textScaler: size.over(MediaQuery.textScalerOf(context)),
@@ -151,7 +139,9 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  /// Changes the language and brings the reminders with it.
+  /// Changes the language and brings the reminders with it: notification text
+  /// is baked in when scheduled, so a pending one keeps the old language until
+  /// something rebuilds it, and the daily refresh is throttled and will not.
   ///
   /// Notification text is baked in when a reminder is scheduled, so switching
   /// language would otherwise leave every pending reminder in the old one until

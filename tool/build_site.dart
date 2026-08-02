@@ -6,26 +6,13 @@
 //   dart run tool/build_site.dart --out DIR       build somewhere else
 //   dart run tool/build_site.dart --calendar      fetch the published calendar
 //
-// The site is deliberately split down one line: **what is static is rendered
-// here, and only what cannot be is left to the browser.**
+// What is static is rendered here, and only what cannot be is left to the
+// browser: the prayers now, through the app's own `MarkupDocument`, and the day
+// view in site/day.dart, since "today" is a timezone fact. CLAUDE.md has why
+// that line falls there and why this is not Hugo.
 //
-//   - The prayers are rendered to HTML now, by `MarkupDocument` — the app's own
-//     parser. That is the whole reason this is a Dart script and not Hugo or
-//     Jekyll. `res/prayers/*.md` is not Markdown: `>` is a rubric rather than a
-//     blockquote, `---` is always a thematic break and never a setext heading,
-//     and `**bold**` is meant to ship its asterisks, because pasted liturgical
-//     text arrives carrying stray emphasis markers. A CommonMark renderer gets
-//     all three wrong, so the site would quietly disagree with the app about
-//     what a prayer says. Rendering through markup.dart makes that impossible
-//     rather than merely unlikely.
-//
-//   - The day view is left to the browser, because "today" is a fact about the
-//     reader's timezone, the date is unbounded, and the calendar is rebuilt
-//     daily. See site/day.dart.
-//
-// The output is a web app as well as a website. The preview turns the service
-// worker off, so to look at the installed thing, build without --serve and
-// serve the output with any static server.
+// The preview turns the service worker off, so to look at the installed thing,
+// build without --serve and serve the output with any static server.
 //
 // CI builds this and the calendar in separate jobs, merged into one Pages deploy.
 
@@ -45,8 +32,8 @@ import 'args.dart';
 
 Future<void> main(List<String> args) async {
   final options = parseArgs(args);
-  // Defaults under build/ so a local run lands somewhere already ignored, the
-  // same as tool/build_calendar.dart. CI passes --out public and uploads it.
+  // Under build/ so a local run lands somewhere already ignored. CI passes
+  // --out public and uploads it.
   final outDir = Directory(options['out'] ?? 'build/site');
   // Where the site is served from, for canonical and alternate links.
   final baseUrl = options['base-url'] ?? siteUrl.toString();
@@ -55,9 +42,8 @@ Future<void> main(List<String> args) async {
   await outDir.create(recursive: true);
   await _build(outDir, baseUrl);
 
-  // A local preview has no calendar beside it unless one is fetched, and the
-  // day view without a calendar is exactly the empty state, which is a
-  // misleading thing to be looking at while working on the full one.
+  // Without one the day view shows its empty state, which is a misleading
+  // thing to be looking at while working on the full one.
   if (serve || options.containsKey('calendar')) {
     await _fetchPublishedCalendars(outDir);
   }
@@ -68,19 +54,14 @@ Future<void> main(List<String> args) async {
   }
 }
 
-/// One full build. Everything, every time.
-///
-/// Nothing here is incremental. The whole site is sixteen pages and one
-/// compile, and a rebuild that tried to work out what a given edit affected
-/// would be the part that goes wrong — a stale page served after a change is
-/// exactly the failure a preview exists to prevent.
+/// One full build, everything every time. Sixteen pages and one compile, and a
+/// stale page served after a change is the failure a preview exists to prevent.
 Future<void> _build(Directory outDir, String baseUrl) async {
   final shell = await File('site/shell.html').readAsString();
   final strings = await siteStrings();
   final version = await _version();
 
-  // The compile is a subprocess and much the longest part of a build; nothing
-  // that follows reads its output, so it runs alongside rather than in front.
+  // Much the longest part of a build, and nothing below reads its output.
   final compile = _compileDayView(outDir);
 
   await _copyAssets(outDir, strings);
@@ -109,12 +90,8 @@ Future<void> _build(Directory outDir, String baseUrl) async {
 
 // ------------------------------------------------------------------ strings
 
-/// The string table per language: the app's ARB with the site's own labels
-/// merged over it.
-///
-/// The ARB is the app's and stays the single source for everything the two
-/// share, so a translation corrected in the app reaches the site on the next
-/// deploy with nothing to keep in step.
+/// The app's ARB with the site's own labels merged over it, so a translation
+/// corrected in the app reaches the site with nothing to keep in step.
 ///
 /// Public so test/tool/ builds a manifest from the real strings rather than a
 /// table beside the test, which would agree with itself.
@@ -215,9 +192,8 @@ Future<int> _writeLanguage({
 
   for (final entry in documents.entries) {
     final document = entry.value;
-    // A rule with no text yet is still listed, so its absence is visible, but
-    // it gets no page of its own: a heading over nothing promises more than
-    // the greyed-out row on the index does.
+    // Listed on the index but given no page: a heading over nothing promises
+    // more than a greyed-out row does.
     if (!document.hasContent) continue;
 
     await page(
@@ -233,12 +209,9 @@ Future<int> _writeLanguage({
     );
   }
 
-  // The about page, with the download advert at the top of it.
-  //
-  // The advert is the one authored document that carries HTML, so it is the one
-  // that can name an image, and `{{root}}` in it means what it means in the
-  // shell: the way back up to the site root, which is one directory from the
-  // English about page and two from the Greek.
+  // The download advert is the one authored document carrying HTML, so the one
+  // that can name an image. `{{root}}` in it is the shell's, resolved before
+  // parsing: one directory up in English, two in Greek.
   final about = '${prefix}about/';
   await page(
     about,
@@ -318,9 +291,8 @@ String webManifest({
 /// the commands they are cut with.
 ///
 /// Both maskable sizes are needed: offered only a 512, Chrome fell back to an
-/// `any` icon and masked the flag, cutting its corner firesteels. `page` marks
-/// the ones the pages reference; the rest a browser fetches at install, so
-/// precaching them would cost every first visit 39 KB for nothing.
+/// `any` icon and masked the flag, cutting its firesteels. `page` marks the
+/// ones the pages reference; the rest a browser fetches at install.
 const _icons = [
   (file: 'icon-192.png', size: 192, purpose: 'any', page: true),
   (file: 'icon-512.png', size: 512, purpose: 'any', page: false),
@@ -340,10 +312,7 @@ final _manifestOnlyIcons = {
 /// and the precache name's other half is a digest it cannot know.
 const _cachePrefix = 'prosefchi-';
 
-/// The authored privacy policy for [language].
-///
-/// English keeps the bare `PRIVACY.md`, which is where GitHub and Google Play
-/// look.
+/// English keeps the bare `PRIVACY.md`, where GitHub and Google Play look.
 String privacySource(String language) => language == supportedLanguages.first
     ? 'PRIVACY.md'
     : 'PRIVACY.$language.md';
@@ -351,10 +320,9 @@ String privacySource(String language) => language == supportedLanguages.first
 /// Fills the shell and writes it at [path], which is a directory path ending in
 /// `/` (or empty for the site root).
 ///
-/// Directories with an `index.html` rather than `name.html`, so every URL on
-/// the site is a clean path that GitHub Pages serves with a 200. The
-/// alternative — a 404.html catch-all doing client-side routing — serves real
-/// pages under an HTTP error status, which search engines take at their word.
+/// Directories with an `index.html`, so every URL is a clean path served with
+/// a 200. The 404.html catch-all trick serves real pages under an HTTP error
+/// status, which search engines take at their word.
 Future<void> _writePage({
   required Directory outDir,
   required String shell,
@@ -402,9 +370,7 @@ Future<void> _writePage({
     'dayCurrent': _Slot.markup(current(section == 'day')),
     'prayersCurrent': _Slot.markup(current(section == 'prayers')),
     'aboutCurrent': _Slot.markup(current(section == 'about')),
-    // One entry per language rather than a pair of named ones, so the shell
-    // stops knowing how many languages there are and adding a third needs no
-    // edit here or in it.
+    // One entry per language, so the shell need not know how many there are.
     'alternates': _Slot.markup(_alternates(baseUrl, shared)),
     'languageLinks': _Slot.markup(
       _languageLinks(root, shared, language, strings),
@@ -422,11 +388,8 @@ Future<void> _writePage({
   await file.writeAsString(html);
 }
 
-/// The relative path from a page at [path] back to the site root.
-///
-/// Absolute paths would be wrong: GitHub Pages serves a project site under
-/// /prosefchi/, not /. A relative root also lets the built site be opened
-/// straight off disk.
+/// The relative path from a page at [path] back to the site root. Absolute
+/// would be wrong: Pages serves a project site under /prosefchi/, not /.
 String _rootFor(String path) {
   final depth = path.split('/').where((part) => part.isNotEmpty).length;
   return depth == 0 ? '' : '../' * depth;
@@ -434,12 +397,9 @@ String _rootFor(String path) {
 
 final _placeholder = RegExp(r'\{\{(\w+)\}\}');
 
-/// One value bound for the shell, and whether it is markup or text.
-///
-/// Whether something needs escaping is a property of the value, so it is
-/// carried with the value. A separate list of which names are markup is a
-/// second thing to keep in step, and forgetting to add a name to it shows up
-/// as visible `&lt;span&gt;` on a deployed page.
+/// One value bound for the shell. Escaping is carried with the value rather
+/// than in a list of which names are markup, which would be a second thing to
+/// keep in step and fails as visible `&lt;span&gt;` on a deployed page.
 class _Slot {
   const _Slot.text(this.value) : raw = false;
   const _Slot.markup(this.value) : raw = true;
@@ -472,19 +432,11 @@ String _languageLinks(
         '</a>',
 ].join('\n        ');
 
-/// Escapes text for HTML.
-///
-/// `dart:convert`'s escaper rather than a hand-rolled one, so the ordering is
-/// right by construction — `&` before the replacements that introduce more of
-/// them.
-///
 /// The mode is stated rather than taking the `unknown` default, which also
-/// escapes `/` and `'`. Both are valid and both are wrong here: every path on
-/// the site would become `&#47;`-noise, and liturgical English is full of
-/// apostrophes — "for your name's sake" would render its source as `&#39;`
-/// through every prayer. Neither character is dangerous in element text, and
-/// every attribute this file emits is double-quoted, which `escapeQuot`
-/// covers.
+/// escapes `/` and `'`: every path would become `&#47;`-noise, and "for your
+/// name's sake" would render its source as `&#39;` through every prayer.
+/// Neither is dangerous in element text, and every attribute here is
+/// double-quoted.
 const _escape = HtmlEscape(
   HtmlEscapeMode(name: 'prosefchi', escapeLtGt: true, escapeQuot: true),
 );
@@ -509,9 +461,7 @@ String _prayerIndexBody(
     ..writeln('<div class="prayer-list">');
 
   for (final occasion in PrayerOccasion.values) {
-    // A heading wherever the group changes. `startsGroup` is the app's own,
-    // so the three lists cannot disagree about where the breaks fall; it
-    // leans on each group staying contiguous in the enum, which a test pins.
+    // `startsGroup` is the app's own, so the three lists cannot disagree.
     if (occasion.startsGroup) {
       out.writeln('  <h2>${_esc(strings[_groupKey(occasion.group)]!)}</h2>');
     }
@@ -520,8 +470,7 @@ String _prayerIndexBody(
     if (documents[occasion]!.hasContent) {
       out.writeln('  <a href="${occasion.slug}/">$name</a>');
     } else {
-      // Listed but not linked, so a rule whose text is still awaited is
-      // visibly absent rather than silently missing.
+      // Listed but not linked, so an awaited rule is visibly absent.
       out.writeln(
         '  <a aria-disabled="true">$name'
         '<span class="unavailable">'
@@ -535,10 +484,6 @@ String _prayerIndexBody(
 }
 
 /// A parsed document as HTML, titled and wrapped.
-///
-/// Nothing is appended to send the reader back: the header carries the way to
-/// the rest of the site on every page, and a second link at the bottom of a
-/// text as long as a prayer rule is furniture rather than navigation.
 String _documentHtml(
   MarkupDocument document, {
   required String tag,
@@ -555,13 +500,9 @@ String _documentHtml(
   return out.toString();
 }
 
-/// The about page: what the app is and where to get it, then the same three
-/// facts the app's own about section carries — the source, the version and the
-/// licence.
-///
-/// The download advert on top is authored markdown rather than markup in here,
-/// so the pitch can be rewritten without touching the build, and it goes
-/// through the same parser as a prayer so it renders the same way.
+/// The download advert, then the same rows the app's own about section carries.
+/// The advert is authored rather than built here, and goes through the same
+/// parser as a prayer.
 String _aboutBody(
   Map<String, String> strings,
   MarkupDocument download,
@@ -590,15 +531,7 @@ String _aboutBody(
         href: privacyHref,
       ),
     )
-    ..writeln(
-      _row(
-        title: strings['appVersion']!,
-        // Read from pubspec.yaml at build time, exactly as the app reads it back
-        // out of the bundle: one source, so the two cannot disagree about which
-        // version this is.
-        subtitle: version,
-      ),
-    )
+    ..writeln(_row(title: strings['appVersion']!, subtitle: version))
     ..writeln(
       _row(
         title: strings['openSourceLicences']!,
@@ -612,8 +545,6 @@ String _aboutBody(
   return out.toString();
 }
 
-/// One about row: a title over a subtitle, linked or not.
-///
 /// An absolute [href] leaves the site and opens in a new tab; a relative one
 /// stays. The stylesheet hangs the ↗ off that `target`.
 String _row({required String title, required String subtitle, String? href}) {
@@ -629,11 +560,9 @@ String _row({required String title, required String subtitle, String? href}) {
   return '  <a class="row" href="${_esc(href)}"$target>$content</a>';
 }
 
-/// The app version, from the one place that states it.
-///
-/// `pubspec.yaml`'s `version:` and nothing else — the same string
-/// .github/workflows/release.yml refuses to build a disagreeing tag against.
-/// Any build number after `+` is dropped: it means nothing on a website.
+/// `pubspec.yaml`'s `version:` and nothing else, which is the string
+/// release.yml refuses to build a disagreeing tag against. Any `+build` is
+/// dropped: it means nothing on a website.
 Future<String> _version() async {
   for (final line in await File('pubspec.yaml').readAsLines()) {
     final match = _versionLine.firstMatch(line);
@@ -645,10 +574,7 @@ Future<String> _version() async {
 /// Anchored at the start of the line, so it cannot match a nested key.
 final _versionLine = RegExp(r'^version:\s*(\S+)');
 
-/// Renders parsed blocks to HTML.
-///
-/// The one place the site turns authored prayer text into markup, and it works
-/// from `MarkupDocument`'s output rather than from the source, so the site and
+/// Works from `MarkupDocument`'s output rather than the source, so the site and
 /// the app agree by construction about what a `>` line is.
 String _renderBlocks(List<MarkupBlock> blocks) {
   final out = StringBuffer();
@@ -658,16 +584,13 @@ String _renderBlocks(List<MarkupBlock> blocks) {
         out.writeln('  <h2>${_esc(text)}</h2>');
       case MarkupDivider():
         out.writeln('  <hr />');
-      // A rubric is an instruction to the reader, not words to be said aloud.
-      // It is not a blockquote and must not be rendered as one — reading one
-      // out as though it were the prayer is the confusion this prevents.
+      // A rubric, not a blockquote: an instruction, not words to be said.
       case MarkupNote(:final spans):
         out.writeln('  <p class="rubric">${_renderSpans(spans)}</p>');
       case MarkupText(:final spans):
         out.writeln('  <p>${_renderSpans(spans)}</p>');
-      // Classed like a rubric, and styled off that class rather than off the
-      // document around it: every kind of document can hold a list, and a
-      // browser's own list styling is nothing like the rest of the page.
+      // Styled off the class rather than the document around it: any kind of
+      // document can hold a list.
       case MarkupList(:final ordered, :final items):
         final tag = ordered ? 'ol' : 'ul';
         out.writeln('  <$tag class="items">');
@@ -675,9 +598,8 @@ String _renderBlocks(List<MarkupBlock> blocks) {
           out.writeln('    <li>${_renderSpans(item.spans)}</li>');
         }
         out.writeln('  </$tag>');
-      // Verbatim, and outside a <p>: a run of HTML is block-level markup the
-      // author wrote for this renderer, and wrapping a <div> in a paragraph
-      // would close the paragraph early and leave a stray tag behind.
+      // Outside a <p>: wrapping a <div> in one closes the paragraph early and
+      // leaves a stray tag behind.
       case MarkupHtmlBlock(:final html):
         out.writeln(html);
     }
@@ -690,16 +612,13 @@ String _renderSpans(List<MarkupSpan> spans) {
   for (final span in spans) {
     switch (span) {
       case MarkupLink(:final text, :final url):
-        // A source link leaves the site, so it says so the way the app does by
-        // opening a browser view over itself: a new tab, rather than replacing
-        // the prayer someone is in the middle of.
+        // A new tab, rather than replacing the prayer someone is in.
         out.write(
           '<a href="${_esc(url)}" target="_blank" rel="noopener">'
           '${_esc(text)}</a>',
         );
-      // Passed through unescaped — the whole point of a tag reaching here. It
-      // is authored content in this repository, not anything a reader supplies,
-      // so there is no untrusted input to escape.
+      // Unescaped, which is the whole point of a tag reaching here. Authored
+      // in this repository, never anything a reader supplies.
       case MarkupHtml(:final html):
         out.write(html);
       case MarkupPlain(:final text):
@@ -709,12 +628,8 @@ String _renderSpans(List<MarkupSpan> spans) {
   return out.toString();
 }
 
-/// The ARB key naming [occasion], derived rather than mapped.
-///
-/// `before_communion` becomes `prayerBeforeCommunion`. A hand-written map would
-/// be a third copy of the same switch that `lib/l10n/occasion_labels.dart`
-/// already holds for the app, and one that could silently fall out of step with
-/// the enum; this cannot.
+/// Derived rather than mapped — `before_communion` becomes
+/// `prayerBeforeCommunion` — so it cannot fall out of step with the enum.
 String _occasionKey(PrayerOccasion occasion) =>
     'prayer${_camel(occasion.slug)}';
 
@@ -744,7 +659,6 @@ Future<void> _compileDayView(Directory outDir) async {
     throw StateError('site: compiling site/day.dart failed');
   }
 
-  // Build artefacts of the compile, neither served nor useful in the deploy.
   // `.deps` in particular lists absolute paths from the build machine.
   for (final name in ['day.js.map', 'day.js.deps']) {
     final artefact = File('${outDir.path}/$name');
@@ -783,12 +697,8 @@ Future<void> _copyAssets(
   await _copyTree(Directory('site/img'), Directory('${outDir.path}/img'));
 }
 
-/// Copies [from] into [to], directories and all.
-///
-/// Whatever is in `site/img/` is published, rather than a list here naming each
-/// file: an image added to the advert should need editing only the document
-/// that shows it. The screenshots are also what the README displays, which is
-/// why they live under `site/` rather than in a directory of their own.
+/// Copies [from] into [to], directories and all, so an image added to the
+/// advert needs editing only the document that shows it.
 Future<void> _copyTree(Directory from, Directory to) async {
   if (!from.existsSync()) return;
 
@@ -825,11 +735,10 @@ Future<void> _writeServiceWorker(Directory outDir) async {
 
 /// Everything to precache, relative to the site root, and a digest of the lot.
 ///
-/// The digest names the cache, and so is what makes a deploy reach a browser
-/// already holding one — a constant name leaves `sw.js` byte-identical, and a
-/// byte-identical worker is never reinstalled. A build stamp would refetch the
-/// site on every nightly Pages run, which mostly rebuilds identical files.
-/// FNV-1a rather than a real hash: the only question is whether it changed.
+/// The digest names the cache: a constant name leaves `sw.js` byte-identical
+/// and a byte-identical worker is never reinstalled, while a build stamp would
+/// refetch the whole site on every nightly Pages run. FNV-1a rather than a real
+/// hash, since the only question is whether anything changed.
 Future<(List<String>, String)> _precache(Directory outDir) async {
   final root = outDir.absolute.path;
   final calendars = {
@@ -844,9 +753,8 @@ Future<(List<String>, String)> _precache(Directory outDir) async {
     final path = entity.absolute.path.substring(root.length + 1);
     final name = path.split('/').last;
 
-    // The screenshots are an advert, and twice the weight of the rest of the
-    // site together. The calendar is the other CI job's output, so it is not in
-    // this build to be listed, and is fetched fresh anyway.
+    // The screenshots are twice the weight of the rest of the site together,
+    // and the calendar is the other CI job's output, fetched fresh anyway.
     if (path == 'sw.js') continue;
     if (path.startsWith('img/')) continue;
     if (calendars.contains(path)) continue;
@@ -870,8 +778,6 @@ Future<(List<String>, String)> _precache(Directory outDir) async {
     }
   }
 
-  // Together, mixed in the sorted order: this runs after the compile, so its
-  // cost is all tail.
   final contents = await Future.wait([
     for (final (_, file) in entries) file.readAsBytes(),
   ]);
@@ -888,11 +794,8 @@ Future<(List<String>, String)> _precache(Directory outDir) async {
   );
 }
 
-/// Substitutes `{{name}}` in a template.
-///
-/// Every placeholder must have a value, and an unknown one fails the build:
-/// left to a per-key replaceAll, one added to the shell and forgotten would
-/// ship the literal `{{whatever}}` to production.
+/// An unknown placeholder fails the build: left to a per-key replaceAll, one
+/// added to the shell and forgotten ships a literal `{{whatever}}`.
 String _fill(String template, Map<String, String> values) =>
     template.replaceAllMapped(_placeholder, (match) {
       final value = values[match[1]!];
@@ -922,8 +825,7 @@ Future<void> _fetchPublishedCalendars(Directory outDir) async {
       stdout.writeln('site: fetched $name');
     }
   } on Object catch (error) {
-    // A preview without a calendar still renders; the day view shows its empty
-    // state, which is a real state worth being able to look at.
+    // A preview without a calendar still renders, in the empty state.
     stdout.writeln('site: could not fetch calendars ($error)');
   } finally {
     client.close();
@@ -932,15 +834,11 @@ Future<void> _fetchPublishedCalendars(Directory outDir) async {
 
 // ------------------------------------------------------------------- watch
 
-/// Bumped by every successful rebuild. The preview page polls it and reloads
-/// when it moves, which is what makes an edit show up without a manual
-/// refresh.
+/// Bumped by every successful rebuild; the preview page polls it and reloads.
 var _buildSerial = 0;
 
-/// Everything a page on the site is built from.
-///
-/// `lib/` is in here because site/day.dart compiles the liturgics in, so a fix
-/// to the Paschalion has to reach the preview too.
+/// `lib/` is here because site/day.dart compiles the liturgics in, so a fix to
+/// the Paschalion has to reach the preview too.
 final _watched = [
   'site',
   'res/prayers',
@@ -956,9 +854,8 @@ void _watch(Directory outDir, String baseUrl) {
   var again = false;
 
   Future<void> rebuild() async {
-    // A save landing mid-build is noted and served after it, rather than
-    // dropped — dropping one leaves the preview stale until the next save,
-    // which is the one thing a watcher must not do.
+    // A save landing mid-build is served after it rather than dropped, which
+    // would leave the preview stale until the next save.
     if (building) {
       again = true;
       return;
@@ -971,9 +868,8 @@ void _watch(Directory outDir, String baseUrl) {
         await _build(outDir, baseUrl);
         _buildSerial++;
       } on Object catch (error) {
-        // A syntax error while editing is ordinary. Report it and keep
-        // watching; the previous build stays served, so the page in the
-        // browser is the last one that worked rather than a broken one.
+        // A syntax error while editing is ordinary: keep watching, and leave
+        // the last build that worked served.
         stderr.writeln('site: rebuild failed ($error)');
       }
     } while (again);
@@ -981,9 +877,8 @@ void _watch(Directory outDir, String baseUrl) {
   }
 
   void schedule(String path) {
-    // Editors write a file several times to save it once — a temporary, a
-    // rename, a mode change — and the compile is the better part of a second,
-    // so a rebuild per event would queue up behind itself.
+    // Editors write a file several times to save it once, and the compile is
+    // the better part of a second, so a rebuild per event queues up.
     debounce?.cancel();
     debounce = Timer(const Duration(milliseconds: 150), rebuild);
   }
@@ -995,8 +890,7 @@ void _watch(Directory outDir, String baseUrl) {
     if (!entity.existsSync()) continue;
 
     entity.watch(recursive: entity is Directory).listen((event) {
-      // The output directory is inside neither of these, but a generated
-      // localization under lib/l10n/ is written by the Flutter build and would
+      // The generated localizations are written by the Flutter build and would
       // otherwise rebuild the site for no reason.
       if (event.path.contains('app_localizations')) return;
       schedule(event.path);
@@ -1006,10 +900,8 @@ void _watch(Directory outDir, String baseUrl) {
   stdout.writeln('site: watching ${_watched.join(', ')}');
 }
 
-/// Injected into every HTML page the preview server sends.
-///
-/// Only by the preview server, never written into the built output: the
-/// deployed site must not poll anything.
+/// Injected on the way out by the preview server, never written into the built
+/// output: the deployed site must not poll anything.
 const _reloadScript = '''
 <script>
   // Polls the preview server's build serial and reloads when it moves.
@@ -1048,8 +940,6 @@ const _registerScript = '''
 /// can hold both documents to carrying it.
 const installSectionClass = 'webapp';
 
-/// Drives the about page's install badge.
-///
 /// Only Chromium has an install API, so the badge prompts where the event was
 /// handed over and reveals that browser's own route where it was not. Those
 /// lines are authored in `site/download_*.md`, being prose to translate.
@@ -1104,13 +994,10 @@ const _installScript =
       })();
     </script>''';
 
-/// What the preview serves in its place.
-///
-/// A worker answering from its cache serves the page before the edit. It does
-/// not merely skip registering: one installed by an earlier session, or by
-/// another project that once had this port, outlives both. Only this site's
-/// caches are deleted, since anything else on localhost belongs to something
-/// else.
+/// What the preview serves in its place, since a worker answering from its
+/// cache serves the page from before the edit. It unregisters rather than
+/// merely skipping: one installed by an earlier session outlives it. Only this
+/// site's caches go, since anything else on localhost belongs to something else.
 const _unregisterScript =
     '''
 <script>
@@ -1136,15 +1023,12 @@ const _contentTypes = {
   // Served as anything else the manifest is ignored, with no error to say why.
   '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.png': 'image/png',
-  // Without this the favicon is served as a byte stream and the browser
-  // declines to render it, which reads as "the icon is broken" rather than as
-  // a missing line here.
+  // Without this the favicon is a byte stream and the browser declines it,
+  // which reads as broken artwork rather than as a missing line here.
   '.svg': 'image/svg+xml',
 };
 
-/// A static file server for previewing the built site.
-///
-/// Only ever a preview. GitHub Pages serves the deployed site, so nothing here
+/// Only ever a preview: GitHub Pages serves the deployed site, so nothing here
 /// needs to match its behaviour beyond resolving a directory to its index.
 Future<void> _serve(Directory outDir, int port) async {
   final root = outDir.absolute.path;
@@ -1169,9 +1053,7 @@ Future<void> _serve(Directory outDir, int port) async {
     if (path.endsWith('/')) path = '${path}index.html';
 
     final file = File('$root$path');
-    // Refuse anything that escapes the output directory. A preview server on
-    // loopback is not a threat model, but serving the whole filesystem by
-    // accident is still worth one line to prevent.
+    // Refuse anything that escapes the output directory.
     if (!file.absolute.path.startsWith(root) || !file.existsSync()) {
       request.response
         ..statusCode = HttpStatus.notFound
@@ -1191,9 +1073,8 @@ Future<void> _serve(Directory outDir, int port) async {
     // A preview is looked at while editing, so nothing may be cached.
     request.response.headers.set(HttpHeaders.cacheControlHeader, 'no-store');
 
-    // The reload script is injected on the way out rather than built into the
-    // page, so the deployed site never carries it. The worker goes the other
-    // way for the same reason.
+    // Injected here rather than built into the page, so the deployed site
+    // never carries it. The worker goes the other way for the same reason.
     if (extension == '.html') {
       final html = await file.readAsString();
       request.response.write(

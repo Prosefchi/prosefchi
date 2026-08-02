@@ -1,21 +1,16 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-/// How the reading pill is drawn, in one place.
-///
-/// Lives beside the widget that consumes it rather than in the theme file, so
-/// the numbers and the code reading them cannot drift apart. `main.dart` hands
-/// this to `ThemeData.scrollbarTheme`; [ReadingScrollbar] falls back to it
-/// where no theme is in scope, so a widget test draws the pill the app ships
-/// rather than a third set of numbers.
+/// How the reading pill is drawn, in one place. `main.dart` hands this to
+/// `ThemeData.scrollbarTheme`, and [ReadingScrollbar] falls back to it where no
+/// theme is in scope, so a widget test draws the pill the app ships.
 ///
 /// [ScrollbarThemeData.minThumbLength] is the load-bearing one: the thumb is
 /// drawn in proportion to the content, so without a floor the longest rule at
 /// the largest text size tapers it to a few unusable pixels.
 ScrollbarThemeData readingScrollbarTheme(ColorScheme scheme) =>
     ScrollbarThemeData(
-      // Fattens under a finger, the way Cupertino's does, so the thing being
-      // dragged is the thing that answers.
+      // Fattens under a finger, the way Cupertino's does.
       thickness: WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.dragged) ? 12 : 8,
       ),
@@ -23,8 +18,8 @@ ScrollbarThemeData readingScrollbarTheme(ColorScheme scheme) =>
       minThumbLength: 56,
       mainAxisMargin: 8,
       crossAxisMargin: 4,
-      // Material's default thumb is a flat grey that comes out near-white on
-      // the dark theme, where it reads as a foreign object laid over the page.
+      // Material's default grey comes out near-white on the dark theme, where
+      // it reads as a foreign object laid over the page.
       thumbColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.dragged)) return scheme.primary;
         if (states.contains(WidgetState.hovered)) {
@@ -36,27 +31,14 @@ ScrollbarThemeData readingScrollbarTheme(ColorScheme scheme) =>
 
 /// A scrollbar whose track does nothing, so only the pill itself scrolls.
 ///
-/// Material's `Scrollbar` pages the list when its *track* is tapped, and the
-/// track is the whole column the thumb travels in — the full height of the
-/// page, not the pill. With the thumb near the bottom of a long rule most of
-/// that edge is track, so holding a phone is enough to jump the page by
-/// accident, which is exactly what someone reading a prayer does not want.
-/// The thumb keeps its ordinary 48dp touch target; the complaint was the
-/// full-height column, not the few dp either side of an 8dp pill.
+/// Material's `Scrollbar` pages the list on a *track* tap, and the track is the
+/// full height of the page: with the thumb near the bottom of a long rule,
+/// holding the phone is enough to jump the page. `CupertinoScrollbar` overrides
+/// the same handler, so this only makes Android behave as iOS already did.
 ///
-/// This is the technique the framework itself uses: `CupertinoScrollbar`
-/// overrides the same handler so that iOS does not page on a track tap. So
-/// what this really does is make Android behave as iOS already did — and, as
-/// a side effect, gives iOS the app's own pill, since `CupertinoScrollbar`
-/// reads no `ScrollbarTheme` at all. What iOS loses is its thickness
-/// animation and the haptic tick on release.
-///
-/// Subclassing costs the state-resolved styling that Material's `Scrollbar`
-/// does behind a private state class, so that is repeated below. Only
-/// [readingScrollbarTheme]'s properties are forwarded: `thumbVisibility`,
-/// `trackVisibility`, `trackColor` and `trackBorderColor` are deliberately
-/// not, since this bar paints no track. Setting those in the app theme would
-/// do nothing here.
+/// Subclassing costs the state-resolved styling Material does behind a private
+/// state class, so that is repeated below. Only [readingScrollbarTheme]'s
+/// properties are forwarded — the track ones would do nothing here.
 class ReadingScrollbar extends RawScrollbar {
   const ReadingScrollbar({
     super.key,
@@ -65,12 +47,8 @@ class ReadingScrollbar extends RawScrollbar {
     this.showProgress = false,
   }) : super(interactive: true);
 
-  /// Whether to show how far through the text the pill has been dragged.
-  ///
-  /// Off by default. It answers "where am I in this?", which is a question
-  /// about a long text and not about a list of settings, and it only appears
-  /// while the pill is held — a figure that sat on the page permanently would
-  /// be one more thing to read while trying to read something else.
+  /// Shown only while the pill is held: a figure sitting on the page
+  /// permanently is one more thing to read while trying to read something else.
   final bool showProgress;
 
   @override
@@ -81,23 +59,16 @@ class _ReadingScrollbarState extends RawScrollbarState<ReadingScrollbar> {
   bool _dragging = false;
   bool _hovering = false;
 
-  /// `RawScrollbarState` tracks hovering privately with no accessor, and does
-  /// not track dragging at all, so both are kept again here to resolve the
-  /// theme's per-state thickness and colour.
+  /// `RawScrollbarState` tracks hovering privately and dragging not at all, so
+  /// both are kept again here to resolve the theme's per-state properties.
   Set<WidgetState> get _states => <WidgetState>{
     if (_dragging) WidgetState.dragged,
     if (_hovering) WidgetState.hovered,
   };
 
-  /// The one reason this class exists: the base implementation pages the rule
-  /// towards the tap.
-  ///
-  /// Not calling super is the point, so the `mustCallSuper` is suppressed
-  /// rather than honoured. All the base does is refresh a cached controller
-  /// and dispatch the paging intent, and the thumb handlers refresh that cache
-  /// themselves, so nothing is lost. Refusing the gesture earlier is not
-  /// available: the recogniser decides what to accept from the painter's own
-  /// hit test rather than from anything overridable.
+  /// The one reason this class exists. Not calling super is the point: all the
+  /// base does is refresh a cached controller, which the thumb handlers do
+  /// themselves, and dispatch the paging intent.
   @override
   // ignore: must_call_super
   void handleTrackTapDown(TapDownDetails details) {}
@@ -122,9 +93,8 @@ class _ReadingScrollbarState extends RawScrollbarState<ReadingScrollbar> {
   Widget build(BuildContext context) {
     final bar = super.build(context);
     if (!widget.showProgress) return bar;
-    // The Stack stays whenever showProgress, with only its second child
-    // coming and going. Guarding on _dragging instead would swap the widget
-    // type at this slot on every drag and remount the whole rule beneath it.
+    // The Stack stays, only its second child comes and goes. Guarding on
+    // _dragging would swap the widget type here and remount the whole rule.
     return Stack(children: [bar, if (_dragging) _Progress(widget.controller!)]);
   }
 
@@ -160,39 +130,20 @@ class _ReadingScrollbarState extends RawScrollbarState<ReadingScrollbar> {
   }
 }
 
-/// How far through the text the reader is, pinned beside the middle of the bar.
+/// How far through the text the reader is, pinned beside the middle of the bar
+/// rather than following the pill, which the finger is on anyway.
 ///
-/// It does not follow the pill, and that is a choice rather than a limit. A
-/// figure that holds still is easier to read than one moving under the finger,
-/// and the finger is on the pill anyway.
-///
-/// Following it is available if that is ever wanted:
-/// `ScrollbarPainter.getThumbScrollOffset()` is public and is what
-/// `RawScrollbarState` itself uses to find the thumb, so the position can be
-/// had exactly rather than reconstructed. Reconstructing it is what failed
-/// before — that version was right in every widget test and wrong on every
-/// phone, because it left out the safe-area padding that
-/// [updateScrollbarPainter] hands the painter a few lines above, which put the
-/// bubble about 33dp out at each end of a rule.
-///
-/// Takes the controller rather than looking for a [Scrollable]: this is
-/// stacked beside the bar, so the scrollable is not above it in the tree.
-/// Rebuilds on the position, so the figure keeps up with the drag rather than
-/// with the parent's rebuilds.
+/// Takes the controller rather than looking for a [Scrollable]: this is stacked
+/// beside the bar, so the scrollable is not above it in the tree.
 class _Progress extends StatelessWidget {
   const _Progress(this.controller);
 
   final ScrollController controller;
 
-  /// Clear of the pill and its touch target, so the finger dragging does not
-  /// cover the number it is there to read.
-  ///
-  /// It is the outer edge of that target: 4 of crossAxisMargin, half of the
-  /// 12 the pill widens to while dragged, and half of the scrollbar's own 48dp
-  /// minimum. Hardcoded rather than derived, since two of those live in
-  /// [readingScrollbarTheme] and the third is private to the framework — but
-  /// widening the pill there without changing this puts the bubble under the
-  /// finger.
+  /// The outer edge of the pill's touch target: 4 of crossAxisMargin, half of
+  /// the 12 it widens to while dragged, half of the framework's 48dp minimum.
+  /// Widening the pill in [readingScrollbarTheme] without changing this puts
+  /// the bubble under the finger.
   static const _inset = 34.0;
 
   @override
@@ -222,23 +173,15 @@ class _Progress extends StatelessWidget {
   }
 }
 
-/// How far through a text the reader has scrolled, as a percentage.
-///
-/// Separated from the bar because the figure and where the figure goes change
-/// for different reasons, and because the parts of it that can be wrong — the
-/// rounding, and that it keeps its size whatever the reader's text size — are
-/// cheaper to check directly than through a drag.
+/// How far through a text the reader has scrolled, as a percentage. Separate
+/// from the bar so the rounding and the fixed size can be tested without a drag.
 class ScrollProgressBubble extends StatelessWidget {
   const ScrollProgressBubble({super.key, required this.fraction});
 
   /// 0 at the top of the text, 1 at the end.
   final double fraction;
 
-  /// Round for "30%", a little wider for "100%".
-  ///
-  /// A fixed circle would have to be sized for the widest figure and so look
-  /// oversized for every other one; a stadium is round at the common width and
-  /// simply grows the one case that needs it.
+  /// A minimum, not a size: the stadium is round at "30%" and grows for "100%".
   static const _size = 44.0;
 
   @override
@@ -251,9 +194,8 @@ class ScrollProgressBubble extends StatelessWidget {
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: _size, minHeight: _size),
-        // The factors are load-bearing. Without them this takes the largest
-        // size offered, and the caller offers the whole screen, so the bubble
-        // covered the rule instead of sitting beside it.
+        // The factors are load-bearing: without them this takes the largest
+        // size offered, which is the whole screen, and covers the rule.
         child: Center(
           widthFactor: 1,
           heightFactor: 1,
@@ -265,9 +207,7 @@ class ScrollProgressBubble extends StatelessWidget {
                 color: scheme.onPrimary,
                 fontWeight: FontWeight.w600,
               ),
-              // The shape is a fixed size, so the figure inside it must not
-              // grow with the reader's text size and spill out of it. This is
-              // chrome telling them where they are, not text to be read.
+              // Chrome, not text to be read: growing it spills the shape.
               textScaler: TextScaler.noScaling,
             ),
           ),

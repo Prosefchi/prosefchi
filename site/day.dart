@@ -1,25 +1,12 @@
-// The day view, compiled to JavaScript by tool/build_site.dart.
+// The day view, compiled to JavaScript by tool/build_site.dart. The one page
+// that cannot be generated ahead of time: "today" is a timezone fact, the date
+// is unbounded, and the calendar is rebuilt daily.
 //
-// This is the one page on the site that cannot be generated ahead of time.
-// Three reasons, and each on its own is enough:
-//
-//   - "Today" is a fact about the reader's timezone, not about the server.
-//   - The date is unbounded. The published feed covers a fixed window, but
-//     `lib/liturgics/` computes the tone, the eothinon and the fasting season
-//     for any date at all, and pre-rendering "any date" is not a finite job.
-//   - The calendar is rebuilt daily. A pre-rendered page would be stale the
-//     moment upstream moved.
-//
-// So it fetches the same published JSON the app fetches, and resolves it the
-// same way `today_screen.dart` does: **where the feed states something, prefer
-// it**, and fall back to the computed layer only where it does not. That rule
-// is why this is Dart rather than hand-written JavaScript — `toneFor`,
-// `eothinonFor` and `fastSeasonFor` here are the very functions the app runs,
-// not a second implementation of them, and their anchors were validated
-// against 86 and 84 published days respectively.
-//
-// The prayers are the opposite case and are pre-rendered; see
-// tool/build_site.dart.
+// It fetches the same published JSON the app fetches and resolves it the same
+// way `today_screen.dart` does — where the feed states something, prefer it.
+// **If one changes, change both.** Dart rather than JavaScript so `toneFor`,
+// `eothinonFor` and `fastSeasonFor` are the app's own functions rather than a
+// second implementation.
 
 import 'dart:convert';
 import 'dart:js_interop';
@@ -34,21 +21,15 @@ import 'package:web/web.dart' as web;
 import 'languages.dart';
 import 'strings.dart';
 
-/// The site root, relative to the page being served.
-///
-/// Written into `<body data-root>` by the shell template. Absolute paths would
-/// break under GitHub Pages, which serves a project site from a subdirectory.
+/// From `<body data-root>`. Absolute paths would break under GitHub Pages,
+/// which serves a project site from a subdirectory.
 late final String _root;
 
 late final String _language;
 late final Strings _strings;
 
-/// The fetched calendar, or null if the fetch failed.
-///
-/// Null here is distinct from "the calendar has no entry for this day": one is
-/// a network problem the reader can retry, the other is the feed's window
-/// ending, and telling someone to retry a lapsed feed would be a lie. The
-/// second is `forDate` returning null on a calendar that loaded.
+/// Null if the fetch failed, which is distinct from a calendar with no entry
+/// for the day: one is worth a retry, the other is the feed's window ending.
 Calendar? _calendar;
 
 /// The date on screen. Navigation mutates this and re-renders.
@@ -59,16 +40,14 @@ void main() async {
   _root = body.getAttribute('data-root') ?? '';
   _language = body.getAttribute('data-lang') ?? 'en';
 
-  // `?lang=` is an alias for the canonical path prefix, so a link written in
-  // that shape still lands somewhere sensible rather than silently showing the
-  // wrong language.
+  // `?lang=` is an alias for the canonical path prefix, since that shape is
+  // easy to write by hand.
   if (_redirectForLanguageQuery()) return;
 
   _date = _dateFromLocation() ?? DateTime.now();
 
   // Independent, and the first render needs both, so the page waits for the
-  // slower rather than the sum. This is the whole of time-to-first-paint on
-  // the one page of the site that cannot be pre-rendered.
+  // slower rather than the sum.
   final (strings, _) = await (
     loadStrings('${_root}strings.$_language.json'),
     _fetchCalendar(),
@@ -77,8 +56,7 @@ void main() async {
 
   _render();
 
-  // The back button should move between days, since navigating days is the
-  // main thing this page does.
+  // The back button moves between days, which is what this page does.
   web.window.onpopstate = (web.Event _) {
     _date = _dateFromLocation() ?? DateTime.now();
     _render();
@@ -122,8 +100,7 @@ Future<void> _fetchCalendar() async {
       jsonDecode(body.toDart) as Map<String, dynamic>,
     );
   } on Object {
-    // Offline, a bad deploy, a parse failure: all the same outcome to the
-    // reader — no calendar — and all recoverable by retrying.
+    // Offline, a bad deploy, a parse failure: one outcome, all retryable.
   }
 }
 
@@ -131,13 +108,11 @@ Future<void> _fetchCalendar() async {
 
 void _render() {
   final host = web.document.querySelector('#day-root')! as web.HTMLElement;
-  // Clears every child. The shell ships a loading placeholder in there, and
-  // navigating between days re-renders over the previous one.
+  // Clears the shell's loading placeholder, and the previous day on a re-render.
   host.textContent = '';
   host.className = '';
 
-  // Resolved once and handed down, so the three sections cannot disagree about
-  // which day they are drawing.
+  // Resolved once and handed down, so the sections cannot disagree.
   final day = _calendar?.forDate(_date);
 
   host
@@ -148,13 +123,10 @@ void _render() {
   if (day == null) {
     host.append(_missingDayNotice());
   } else {
-    // More than one entry means the title does not already say everything, so
-    // the list is worth showing. A single commemoration is the headline again.
+    // A single commemoration is the headline again.
     if (day.saints.length > 1) host.append(_commemorations(day.saints));
 
-    // Same order as the app: the Old Testament first, then the epistle, the
-    // gospel, and the Matins gospel last as a separate reading rather than a
-    // variant of the day's.
+    // Same order as the app, the Matins gospel last as a separate reading.
     for (final (label, reading) in [
       (_strings['oldTestamentReading'], day.oldTestament),
       (_strings['epistleReading'], day.epistle),
@@ -170,9 +142,8 @@ void _render() {
 
 web.HTMLElement _dateNav() {
   final nav = _el('div', className: 'datenav')
-    // addDays rather than Duration(days: 1): adding 24 hours across a
-    // daylight-saving change lands on the wrong calendar day, which has bitten
-    // this codebase three times.
+    // addDays, never Duration(days: 1), which lands on the wrong calendar day
+    // across a daylight-saving change.
     ..append(
       _button('←', () => _goTo(addDays(_date, -1)), label: 'previousDay'),
     )
@@ -201,8 +172,8 @@ web.HTMLElement _dateNav() {
 void _goTo(DateTime date) {
   _date = DateTime(date.year, date.month, date.day);
   final isToday = Calendar.dateKey(DateTime.now()) == Calendar.dateKey(_date);
-  // Today is the bare URL, so a link someone copies from the front page is not
-  // pinned to the day they copied it.
+  // Today is the bare URL, so a copied link is not pinned to the day it was
+  // copied on.
   final url = isToday ? './' : './?date=${Calendar.dateKey(_date)}';
   web.window.history.pushState(null, '', url);
   _render();
@@ -231,9 +202,8 @@ web.HTMLElement _header(CalendarDay? day) {
 
   final pills = _el('div', className: 'pills');
   for (final mark in day?.marks ?? const <DayMark>[]) {
-    // The rule in words wins and the fasting markers are dropped: they say the
-    // same thing less precisely, and showing both reads as the day being
-    // labelled twice. The rank is a different fact, so it stays.
+    // The rule in words wins and the fasting markers are dropped, or the day
+    // reads as labelled twice. The rank is a different fact, so it stays.
     if (mark != DayMark.majorFeast) continue;
     pills.append(_pill(mark.symbol, _strings[dayMarkKey(mark)]));
   }
@@ -266,8 +236,7 @@ web.HTMLElement _strip(CalendarDay? day) {
     ),
   );
 
-  // Null through Bright Week, where the Octoechos is set aside and each day has
-  // its own proper texts, so reporting a tone would be inventing one.
+  // Null through Bright Week, where the Octoechos is set aside.
   final tone = day?.tone ?? toneFor(_date);
   if (tone != null) {
     strip.append(_el('span', text: _strings[toneKey(tone)]));
@@ -300,8 +269,7 @@ web.HTMLElement _reading(String label, Reading reading) {
     ..append(_el('span', className: 'reading-ref', text: reading.reference));
   details.append(summary);
 
-  // Absent on the rare entries where upstream gives only a citation, which is
-  // why the citation is the summary and the text merely what is behind it.
+  // Absent on the rare entries where upstream gives only a citation.
   final text = reading.text;
   if (text != null) {
     details.append(_el('p', className: 'reading-text', text: text));
@@ -309,16 +277,11 @@ web.HTMLElement _reading(String label, Reading reading) {
   return details;
 }
 
-/// Shown when the calendar has no entry for the day.
-///
-/// The published feed ends on a fixed date and upstream has let it lapse for
-/// over a year before, so this is a state the site will genuinely sit in
-/// rather than a first-load nicety. The strip above it still says where the
-/// day sits in the year, which is the point of computing those.
+/// Shown when the calendar has no entry for the day. The feed ends on a fixed
+/// date and has lapsed for over a year before, so this is a state to sit in.
 web.HTMLElement _missingDayNotice() {
-  // No calendar at all is a network problem and worth retrying. A calendar
-  // that simply does not reach this date is the feed's window ending, and
-  // offering to retry that would be a lie.
+  // No calendar is a network problem worth retrying. One that does not reach
+  // this date is the feed's window ending, and offering a retry would be a lie.
   final fetchFailed = _calendar == null;
 
   final notice = _el('div', className: 'notice')
@@ -339,9 +302,7 @@ web.HTMLElement _missingDayNotice() {
   return notice;
 }
 
-/// The fasting rule worked out from the Paschalion, for days upstream does not
-/// cover. Names the season where there is one, since that says more than that
-/// the day merely fasts.
+/// The fasting rule from the Paschalion, for days upstream does not cover.
 String _computedFasting(DateTime date) {
   final season = fastSeasonFor(date);
   if (season != null) return _strings[fastSeasonKey(season)];
@@ -357,11 +318,8 @@ String _computedFasting(DateTime date) {
 String _formatDate(DateTime date) =>
     _dateFormat.format(_JSDate(date.year, date.month - 1, date.day));
 
-/// Built once, on first use.
-///
-/// Locale negotiation and option resolution are among the more expensive
-/// things in ECMA-402, the language cannot change for the life of the page,
-/// and this is used twice on every date navigation.
+/// Built once: locale negotiation is expensive, the language cannot change for
+/// the life of the page, and this runs twice per date navigation.
 final _dateFormat = _IntlDateTimeFormat(
   _language,
   {
@@ -402,8 +360,7 @@ web.HTMLButtonElement _button(
 }) {
   final button = _el('button', text: text) as web.HTMLButtonElement;
   if (label != null) button.setAttribute('aria-label', _strings[label]);
-  // The handler must not be async: a Future cannot cross into JS, so callers
-  // start their work and return void.
+  // Not async: a Future cannot cross into JS.
   button.onclick = ((web.Event _) => onClick()).toJS;
   return button;
 }
@@ -411,9 +368,8 @@ web.HTMLButtonElement _button(
 web.HTMLElement _el(String tag, {String? className, String? text}) {
   final element = web.document.createElement(tag) as web.HTMLElement;
   if (className != null) element.className = className;
-  // textContent throughout rather than innerHTML. The data is ours, but
-  // commemorations carry apostrophes and ampersands and there is no reason to
-  // hand them to an HTML parser.
+  // textContent, never innerHTML: commemorations carry apostrophes and
+  // ampersands, and there is no reason to hand them to an HTML parser.
   if (text != null) element.textContent = text;
   return element;
 }

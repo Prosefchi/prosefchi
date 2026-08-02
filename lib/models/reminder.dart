@@ -2,21 +2,16 @@ import 'prayer.dart';
 
 /// What a reminder was reminding the reader about, so a tap can open it.
 ///
-/// Travels as the notification's payload, which means it is written when the
-/// notification is scheduled and read when it is tapped — possibly days later,
-/// and possibly by a newer build of the app. So it is a short stable string
-/// rather than an index or anything else that could shift underneath it.
+/// Travels as the notification's payload, written when the notification is
+/// scheduled and read when it is tapped — days later, possibly by a newer
+/// build. Hence a short stable string rather than an index.
 sealed class ReminderTarget {
   const ReminderTarget();
 
-  /// What to schedule the notification with.
   String get payload;
 
-  /// The target [payload] names, or null if it is absent or unrecognised.
-  ///
-  /// Unrecognised is an ordinary outcome, not a bug: a notification scheduled
-  /// by an earlier build can still be sitting in the shade after an update.
-  /// Callers treat null as "just open the app".
+  /// Null where [payload] is absent or unrecognised, which is an ordinary
+  /// outcome after an update. Callers treat it as "just open the app".
   static ReminderTarget? parse(String? payload) {
     if (payload == null) return null;
     if (payload == FastingTarget.slug) return const FastingTarget();
@@ -60,11 +55,8 @@ final class FastingTarget extends ReminderTarget {
   int get hashCode => slug.hashCode;
 }
 
-/// A daily reminder for one prayer occasion.
-///
-/// Each occasion is separately switchable and separately timed, and each gets
-/// its own notification channel on Android, so it can also be silenced from
-/// system settings without touching the others.
+/// A daily reminder for one prayer occasion, separately switchable, separately
+/// timed, and on its own Android channel so it can be silenced alone.
 class Reminder {
   const Reminder({
     required this.occasion,
@@ -86,13 +78,8 @@ class Reminder {
     );
   }
 
-  /// The setting an occasion starts with.
-  ///
-  /// Every reminder starts off. An app that begins notifying someone who never
-  /// asked is presumptuous, and it would also mean requesting the notification
-  /// permission before the user has any reason to say yes. The onboarding asks
-  /// instead, and the times here are only what a reminder starts at once it is
-  /// switched on.
+  /// Every reminder starts off, which is what makes the permission prompt
+  /// arrive attached to switching one on. The times are only where it starts.
   factory Reminder.defaultFor(PrayerOccasion occasion) {
     final (hour, minute) = switch (occasion) {
       PrayerOccasion.morning => (7, 0),
@@ -114,14 +101,8 @@ class Reminder {
   final int hour;
   final int minute;
 
-  /// Stable per occasion, because cancelling and rescheduling has to address
-  /// the same notification. Stated on the occasion rather than taken from its
-  /// position, so the enum can be reordered or pruned without reaching into
-  /// reminders already scheduled on someone's phone.
   int get notificationId => occasion.notificationId;
 
-  /// The Android notification channel, one per occasion so each can be
-  /// silenced independently from system settings.
   String get channelId => 'prayer_${occasion.slug}';
 
   Reminder copyWith({bool? enabled, int? hour, int? minute}) => Reminder(
@@ -137,8 +118,7 @@ class Reminder {
     'minute': minute,
   };
 
-  /// `HH:mm`, for a caller that wants it without a BuildContext to localize
-  /// through.
+  /// `HH:mm`, for a caller with no BuildContext to localize through.
   String get formatted =>
       '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 
@@ -160,9 +140,8 @@ class Reminder {
 
 /// A daily reminder on the days that fast.
 ///
-/// Deliberately not a [PrayerOccasion]: it is not a prayer rule, it would show
-/// up in the prayers list if it were one, and unlike the others it fires on
-/// some days and not others.
+/// Not a [PrayerOccasion]: it would show up in the prayers list, and unlike
+/// the others it fires on some days and not others.
 class FastingReminder {
   const FastingReminder({
     required this.enabled,
@@ -191,18 +170,13 @@ class FastingReminder {
   /// [PrayerOccasion] and so occupy the low numbers.
   static const idBase = 1000;
 
-  /// How many days the block covers, and so how many ids it occupies.
+  /// How many days the block covers, and so how many ids are cancelled before
+  /// each refill. One number for both, or a refresh spends its platform calls
+  /// cancelling ids nothing ever scheduled.
   ///
-  /// Scheduling one notification per fasting day means a block of ids rather
-  /// than one, and the whole block is cancelled before each refill so none is
-  /// left behind. One number for both the scheduling and the cancelling: when
-  /// this was larger than the horizon actually scheduled, every refresh spent
-  /// two thirds of its platform calls cancelling ids nothing had ever used.
-  ///
-  /// 30 because **iOS keeps at most 64 pending notifications per app** and
-  /// drops the rest without saying so. Through Great Lent every day fasts, so
-  /// an unbounded block would ask for 51 at once and crowd out the eight prayer
-  /// reminders sharing that budget.
+  /// 30 because iOS keeps at most 64 pending notifications per app and drops
+  /// the rest silently. Through Great Lent every day fasts, so an unbounded
+  /// block would crowd out the prayer reminders sharing that budget.
   static const idCapacity = 30;
 
   String get channelId => 'fasting';
