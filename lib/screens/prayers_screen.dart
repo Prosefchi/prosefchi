@@ -17,7 +17,6 @@ import 'settings_screen.dart';
 class PrayersScreen extends StatefulWidget {
   const PrayersScreen({super.key, this.repository});
 
-  /// Injectable so tests need no real asset bundle.
   final PrayerRepository? repository;
 
   @override
@@ -43,9 +42,8 @@ class _PrayersScreenState extends State<PrayersScreen> {
 
   Future<void> _load(String language) async {
     setState(() => _loading = true);
-    // Eight independent asset reads. Serialized they cost eight round trips,
-    // and HomeShell's IndexedStack means this runs at launch rather than when
-    // the tab is first opened.
+    // Independent asset reads, and HomeShell's IndexedStack runs this at
+    // launch rather than when the tab is first opened.
     final sets = await Future.wait([
       for (final occasion in PrayerOccasion.values)
         _repository.load(occasion, language),
@@ -116,15 +114,11 @@ class _PrayerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Unavailable means there is nothing to pray, not that the rule is
-    // unfinished: the morning rule holds the Trisagion alongside a marked gap,
-    // and hiding it because of the gap would withhold text that is ready.
+    // Nothing to pray, not an unfinished rule: a rule can hold real text and a
+    // marked gap, and hiding it for the gap withholds text that is ready.
     final ready = set != null && set!.hasContent;
 
     return ListTile(
-      // ListTile greys the leading icon along with the text when disabled, so
-      // an unavailable rule reads as one thing rather than a bright icon
-      // beside faded words.
       leading: Icon(icon),
       title: Text(label),
       subtitle: ready ? null : Text(unavailable),
@@ -150,9 +144,8 @@ class PrayerScreen extends StatefulWidget {
 }
 
 class _PrayerScreenState extends State<PrayerScreen> {
-  /// Shared with the [ReadingScrollbar], which is the only reason this screen
-  /// holds state: a bar that can be dragged has to drive the scrollable it
-  /// measures, and a controller has to be disposed.
+  /// The only reason this screen holds state: a draggable bar has to drive the
+  /// scrollable it measures, and a controller has to be disposed.
   final _controller = ScrollController();
 
   @override
@@ -161,10 +154,6 @@ class _PrayerScreenState extends State<PrayerScreen> {
     super.dispose();
   }
 
-  /// One authored block as a widget.
-  ///
-  /// Out of the tree above so the arms are not indented past the width the
-  /// comments are wrapped to, and so the shape of the page stays readable.
   /// [theme] is passed rather than re-read: the longest rule calls this 286
   /// times.
   Widget _block(ThemeData theme, PrayerBlock block) => switch (block) {
@@ -177,8 +166,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
         ),
       ),
     ),
-    // Rubrics are instructions, not words to be said. Styling them
-    // apart is the whole reason for the distinction.
+    // Instructions, not words to be said.
     PrayerRubric(:final spans) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: MarkupParagraph(
@@ -216,49 +204,26 @@ class _PrayerScreenState extends State<PrayerScreen> {
     final theme = Theme.of(context);
     final set = widget.set;
 
-    // The chosen size applies to the passage and to nothing else — not the app
-    // bar above it, and no other screen. A rule is the one thing in this app
-    // anybody reads at length; everywhere else is scanned and acted on, and
-    // would only be made unwieldy by growing. Composed onto whatever the
-    // platform already asked for rather than replacing it, so a system text
-    // size is still honoured underneath.
-    //
-    // Read leniently: a prayer screen with no settings above it draws at the
-    // default rather than asserting, which keeps it usable from a test and
-    // from anywhere outside the app's own tree.
+    // The passage and nothing else: not the app bar, and no other screen. A
+    // rule is the one thing here anybody reads at length. Read leniently, so a
+    // rule shown with no settings above it draws at the default.
     final media = MediaQuery.of(context);
     final size = SettingsScope.maybeOf(context)?.textSize ?? TextSize.small;
 
     return Scaffold(
       appBar: AppBar(title: Text(set.title)),
-      // A rule runs to hundreds of blocks — the preparation for Communion is
-      // over eight hundred lines — so the bar says how much is left as much as
-      // it offers somewhere to drag. It is left to fade once the list is
-      // still: a rule short enough to fit has nothing to report, and a bar
-      // pinned over a page that does not move reads as part of the text.
-      // ReadingScrollbar rather than Scrollbar so that only the pill scrolls,
+      // ReadingScrollbar rather than Scrollbar, so only the pill scrolls and
       // not the whole column it runs in.
       body: MediaQuery(
         data: media.copyWith(textScaler: size.over(media.textScaler)),
         child: ReadingScrollbar(
           controller: _controller,
-          // A rule is long enough that knowing how far in you are is worth
-          // showing while the pill is held.
           showProgress: true,
           // Laid out in full rather than lazily, so the scrollbar has a real
-          // height to measure. A lazy viewport reports a total extent
-          // estimated from the children it has built so far: on the longest
-          // rule that estimate started 51% short and then ranged over a factor
-          // of six while scrolling, and the thumb is drawn straight from it,
-          // so the pill changed size under the finger.
-          //
-          // This is the dearer answer, not the cheaper one — measured at
-          // roughly three to five times the first frame and the scroll frame,
-          // and three times the elements. It is affordable only because the
-          // rules are a handful of authored files: the longest is
-          // before_communion_el at 286 blocks, about 45ms of layout. Cost is
-          // linear in block count, so a rule of six hundred or more would be
-          // worth revisiting.
+          // height to measure: a lazy viewport estimates the extent from what
+          // it has built, and the thumb drawn from that changed size under the
+          // finger. Costs three to five times the first frame, affordable only
+          // because the longest rule is 286 blocks. Revisit past six hundred.
           child: SingleChildScrollView(
             controller: _controller,
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 48),

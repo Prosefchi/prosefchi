@@ -47,24 +47,13 @@ enum CalendarStyle {
 
 /// A marker GOARCH prefixes to a day's title.
 ///
-/// These encode the fasting allowance and the rank of the feast. They appear
-/// only in the event summary and never in the commemorations list, so the
-/// saints arrive clean and only the title needs splitting.
-///
 /// These mark *allowances* only, so an unmarked day is ambiguous between a
 /// strict fast and no fast at all. [CalendarDay.fastAllowance] resolves that
 /// and should be preferred over these wherever it is present.
 enum DayMark {
-  /// A great feast.
   majorFeast('☦'),
-
-  /// Wine and oil permitted.
   wineAndOil('🍇'),
-
-  /// Fish permitted.
   fish('🐟'),
-
-  /// Dairy permitted, as through Cheesefare week.
   dairy('🧀');
 
   const DayMark(this.symbol);
@@ -74,11 +63,9 @@ enum DayMark {
 
   static DayMark? byName(String? name) => _byName(values, name);
 
-  /// Splits the markers off a raw title.
-  ///
-  /// The variation selector (U+FE0F) has to be removed along with the symbol,
-  /// or the cleaned title keeps a stray invisible character that shows up as
-  /// a leading space.
+  /// Splits the markers off a raw title. The variation selector (U+FE0F) has
+  /// to go with the symbol, or the title keeps an invisible character that
+  /// shows up as a leading space.
   static ({String title, List<DayMark> marks}) split(String raw) {
     final found = <DayMark>[];
     var text = raw;
@@ -241,9 +228,8 @@ class CalendarDay {
 
 /// A bounded window of days for a single language.
 ///
-/// The upstream feed has a hard end date and simply stops rather than rolling
-/// forward, so [end] is load-bearing: callers must handle dates beyond it by
-/// falling back to the computed liturgical layer.
+/// The feed has a hard end date and simply stops, so [end] is load-bearing:
+/// past it callers fall back to the computed liturgical layer.
 class Calendar {
   const Calendar({
     required this.language,
@@ -286,12 +272,9 @@ class Calendar {
   /// changed. For "is my data current" use [sourceUpdatedAt] instead.
   final DateTime generatedAt;
 
-  /// The latest `LAST-MODIFIED` across the upstream feed, or null if it carried
-  /// none.
-  ///
-  /// Upstream is topped up in bulk roughly once a year rather than edited
-  /// continuously, so this moves rarely and is the honest answer to when the
-  /// commemorations themselves last changed.
+  /// The latest `LAST-MODIFIED` across the feed, or null if it carried none.
+  /// Upstream is topped up in bulk roughly once a year, so this moves rarely
+  /// and is the honest answer to when the commemorations last changed.
   final DateTime? sourceUpdatedAt;
 
   final DateTime start;

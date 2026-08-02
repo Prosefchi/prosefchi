@@ -12,16 +12,12 @@ import 'today_screen.dart';
 
 /// Holds the two top-level destinations, and answers a tapped reminder.
 ///
-/// The screens are kept alive in an IndexedStack rather than rebuilt on each
-/// switch, so moving between them neither re-reads the calendar nor loses a
-/// reading position part way down a prayer.
-///
-/// Tap routing lives here because it is navigation — unlike keeping the schedule
-/// alive, which is `ReminderRefresher`'s job and deliberately not a screen's.
+/// Kept alive in an IndexedStack, so switching tabs neither re-reads the
+/// calendar nor loses a reading position part way down a prayer. Tap routing
+/// belongs here because it is navigation; re-arming the schedule does not.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, this.scheduler, this.prayers});
 
-  /// Injectable so a test can deliver a tap without a platform channel.
   final ReminderScheduler? scheduler;
   final PrayerRepository? prayers;
 
@@ -70,14 +66,12 @@ class _HomeShellState extends State<HomeShell> {
     if (!mounted) return;
 
     switch (target) {
-      // The day is where the fasting rule is shown, so the tab is the whole
-      // answer here.
+      // The day is where the fasting rule is shown, so the tab is the answer.
       case FastingTarget():
         setState(() => _index = _today);
 
       case PrayerTarget(:final occasion):
-        // The tab first, so the rule is read with its list behind it and Back
-        // lands somewhere sensible rather than on the day.
+        // The tab first, so Back lands on the list rather than on the day.
         setState(() => _index = _prayers);
 
         final set = await _repository.load(
@@ -85,8 +79,8 @@ class _HomeShellState extends State<HomeShell> {
           languageFor(Localizations.localeOf(context)),
         );
         if (!mounted) return;
-        // A rule whose text is still awaited would open an empty page. The list
-        // disables those, and leaving them on it is the same answer.
+        // A rule still awaiting text would open an empty page; the list
+        // disables those, and stopping on it is the same answer.
         if (set == null || !set.hasContent) return;
 
         await Navigator.of(

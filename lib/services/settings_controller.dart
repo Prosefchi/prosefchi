@@ -6,10 +6,8 @@ import '../models/calendar.dart' show CalendarStyle;
 import '../models/text_size.dart';
 import 'calendar_repository.dart' show languageFor, supportedLanguages;
 
-/// Persists the app-level settings.
-///
-/// Behind an interface for the same reason as the other stores: so screens can
-/// be tested without platform channels.
+/// Persists the app-level settings. An interface so screens can be tested
+/// without platform channels.
 abstract interface class SettingsStore {
   Future<String?> readLanguage();
   Future<void> writeLanguage(String? language);
@@ -71,9 +69,8 @@ class PreferencesSettingsStore implements SettingsStore {
 
 /// Holds the settings the whole app reads, and notifies when they change.
 ///
-/// Language is nullable on purpose: null means follow the device, which is
-/// what someone who never opens settings should get. It is a distinct state
-/// from having chosen English, because the device language can change later.
+/// Language is nullable on purpose: null follows the device, which is a
+/// distinct state from having chosen English, since the device can change.
 class SettingsController extends ChangeNotifier {
   SettingsController({SettingsStore? store})
     : _store = store ?? PreferencesSettingsStore();
@@ -93,13 +90,10 @@ class SettingsController extends ChangeNotifier {
   /// nothing else.
   CalendarStyle get calendarStyle => _calendarStyle;
 
-  /// How large the app draws its text.
   TextSize get textSize => _textSize;
 
-  /// Whether the welcome flow has been completed.
-  ///
-  /// Drives what the app opens on. Replaying it from settings does not clear
-  /// this, so a replay is a replay rather than a downgrade to a first launch.
+  /// Drives what the app opens on. Replaying the welcome flow from settings
+  /// does not clear this, so a replay is not a downgrade to a first launch.
   bool get onboardingSeen => _onboardingSeen;
 
   /// The chosen language, or null to follow the device.
@@ -109,11 +103,8 @@ class SettingsController extends ChangeNotifier {
   /// locale against the supported ones.
   Locale? get locale => _language == null ? null : Locale(_language!);
 
-  /// The language actually in force, resolving null against the device.
-  ///
-  /// Needed when something has to act on the language outside the widget tree,
-  /// such as rescheduling notifications whose text is baked in at schedule
-  /// time.
+  /// The language in force, for anything acting outside the widget tree —
+  /// rescheduling notifications, whose text is baked in when scheduled.
   String get effectiveLanguage => _language ?? deviceLanguage();
 
   Future<void> load() async {
@@ -175,12 +166,8 @@ class SettingsScope extends InheritedNotifier<SettingsController> {
     return scope!.notifier!;
   }
 
-  /// The controller if there is one, rather than asserting there must be.
-  ///
-  /// For a screen that reads a setting but does not depend on it — the prayer
-  /// screen scales its text by one and is otherwise complete without it. That
-  /// keeps it usable from a test, and from anywhere it is shown outside the
-  /// app's own tree, without every such caller having to build a scope.
+  /// For a screen that reads a setting but is complete without it, so it stays
+  /// usable from a test without every caller building a scope.
   static SettingsController? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<SettingsScope>()?.notifier;
 }

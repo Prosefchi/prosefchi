@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/prayer.dart';
 
-/// An icon for each occasion.
-///
-/// Kept beside the group heading rather than in the l10n extension, which is
-/// about wording: an icon does not change with the language.
+/// Here rather than in the l10n extension, which is about wording: an icon does
+/// not change with the language.
 IconData occasionIcon(PrayerOccasion occasion) => switch (occasion) {
   PrayerOccasion.morning => Icons.wb_twilight,
   PrayerOccasion.midday => Icons.light_mode_outlined,
@@ -14,11 +12,8 @@ IconData occasionIcon(PrayerOccasion occasion) => switch (occasion) {
   PrayerOccasion.afterCommunion => Icons.church,
 };
 
-/// A heading over a run of occasions belonging to one group.
-///
-/// Shared by the prayers list and the reminders list so the two present the
-/// same structure. [PrayerOccasion] is ordered so each group is contiguous,
-/// and callers emit one of these wherever the group changes.
+/// A heading over a run of occasions belonging to one group. Shared by the
+/// prayers list and the reminders list so the two cannot disagree.
 class GroupHeading extends StatelessWidget {
   const GroupHeading({super.key, required this.occasion, required this.label});
 

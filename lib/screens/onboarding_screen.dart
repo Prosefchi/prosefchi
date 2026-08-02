@@ -12,12 +12,8 @@ import 'markup_list.dart';
 import 'markup_paragraph.dart';
 import 'reminders_screen.dart';
 
-/// The welcome flow, shown once on first launch and replayable from settings.
-///
-/// Three pages, swiped horizontally: what the app is, how it should read, and
-/// which prayers to be reminded of. Reminders all ship off, so the
-/// notification permission is only requested when the user switches the first
-/// one on here, which is the point at which the prompt makes sense.
+/// The welcome flow, shown once on first launch and replayable from settings:
+/// what the app is, how it should read, which prayers to be reminded of.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({
     super.key,
@@ -50,8 +46,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // The welcome text is authored per language, so it reloads if the language
-    // changes underneath, which it can when this is replayed from settings.
+    // The language can change underneath when this is replayed from settings.
     final language = SettingsScope.of(context).effectiveLanguage;
     if (language == _language) return;
     _language = language;
@@ -101,10 +96,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPageChanged: (page) => setState(() => _page = page),
                 children: [
                   _WelcomePage(document: _welcome, loading: _loading),
-                  // Between the greeting and the reminders: the two settings
-                  // that decide how everything after this reads. Asked here
-                  // rather than left to be found, because a reader who needs
-                  // the large size needs it on the next page too.
+                  // Before the reminders, because a reader who needs the large
+                  // size needs it on the next page too.
                   const _ReaderPage(),
                   _RemindersPage(
                     store: widget.reminderStore,
@@ -117,11 +110,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
               // OverflowBar rather than a Row, which hands its children
-              // unbounded width: at the larger text sizes these two labels are
-              // wider than a narrow phone and ran off the edge. Greek breaks
-              // first and breaks at the middle size, not only the largest.
-              // This is the pair of actions OverflowBar exists for, and it
-              // stacks them rather than clipping when they will not fit.
+              // unbounded width: these two labels are wider than a narrow
+              // phone at the larger sizes, and Greek breaks at the middle one.
               child: OverflowBar(
                 alignment: MainAxisAlignment.spaceBetween,
                 overflowAlignment: OverflowBarAlignment.end,
@@ -248,8 +238,6 @@ class _RemindersPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        // Times are hidden here: the question at this point is only which
-        // prayers, and a picker per row would crowd it.
         ReminderList(store: store, scheduler: scheduler, showTimes: false),
       ],
     );
@@ -295,8 +283,7 @@ class _ReaderPage extends StatelessWidget {
           onChanged: settings.setLanguage,
           child: Column(
             children: [
-              // Null is following the device, which is a real choice and not
-              // an absence of one.
+              // Null is a real option: following the device.
               RadioListTile<String?>(
                 value: null,
                 title: Text(l10n.languageSystem),
@@ -324,9 +311,8 @@ class _ReaderPage extends StatelessWidget {
               for (final size in TextSize.values)
                 RadioListTile<TextSize>(
                   value: size,
-                  // Drawn at the size it selects, so the choice shows what it
-                  // does. Composed onto the platform's own size, since an
-                  // explicit scaler would replace it.
+                  // Drawn at the size it selects, composed through `over`
+                  // because an explicit scaler would replace the inherited one.
                   title: Text(switch (size) {
                     TextSize.small => l10n.textSizeSmall,
                     TextSize.medium => l10n.textSizeMedium,

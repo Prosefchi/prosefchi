@@ -15,22 +15,17 @@ import 'settings_screen.dart';
 
 /// The main screen: who is commemorated today, and the appointed readings.
 ///
-/// Draws from the stored calendar immediately and refreshes in the background,
-/// so opening the app never waits on the network. When there is no entry — a
-/// first launch, or a date past the end of the published feed — it falls back
-/// to what the Paschalion can compute without any data at all.
+/// Draws from the stored calendar and refreshes behind it, so opening the app
+/// never waits on the network. Past the end of the feed it falls back to what
+/// the Paschalion computes from nothing but a date.
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key, this.repository, this.prayers, this.date});
 
-  /// Injectable so tests need neither a network nor a real filesystem.
   final CalendarRepository? repository;
 
-  /// Injectable so a test of the current-prayer button needs no asset bundle.
   final PrayerRepository? prayers;
 
-  /// Injectable so tests are not tied to the day they run on.
-  ///
-  /// It carries a time as well as a date, and doubles as the clock the
+  /// Carries a time as well as a date, and doubles as the clock the
   /// current-prayer button reads, so fixing it fixes the hour too.
   final DateTime? date;
 
@@ -80,8 +75,7 @@ class _TodayScreenState extends State<TodayScreen> {
       return;
     }
 
-    // Something is already on screen, so refresh behind it. A failure here is
-    // silent by design: whatever was stored stays put.
+    // Something is already on screen, so a failure here is silent.
     setState(() => _loading = false);
     if (await _repository.refresh(language, style: _style) && mounted) {
       await _apply(language);
@@ -100,9 +94,7 @@ class _TodayScreenState extends State<TodayScreen> {
     if (_language case final language?) await _load(language);
   }
 
-  /// The fasting rule worked out from the Paschalion, for days upstream does
-  /// not cover. Names the season where there is one, since that says more than
-  /// simply that the day fasts.
+  /// The fasting rule from the Paschalion, for days upstream does not cover.
   ///
   /// Never null: every date resolves to something, so a day with no fast says
   /// so rather than leaving the slot empty. An empty slot is ambiguous between
@@ -165,21 +157,16 @@ class _TodayScreenState extends State<TodayScreen> {
                   l10n.fastAllowanceLabel(day?.fastAllowance) ??
                   _computedFasting(l10n, _date, _style),
             ),
-            // All computed, so this appears in every state. It also means the
-            // no-data screen keeps the same shape as the ordinary one rather
-            // than becoming a jarringly different page.
+            // All computed, so this appears in every state and the no-data
+            // screen keeps the shape of the ordinary one.
             _LiturgicalStrip(
               date: _date,
               tone: day?.tone ?? toneFor(_date),
               eothinon: day?.eothinon ?? eothinonFor(_date),
             ),
-            // Under everything the day *is* — its commemoration and where it
-            // sits in the year — and above the readings, which is where doing
-            // something about the day begins. Absent outside the hours a rule
-            // belongs to, which is why nothing here reserves space for it.
+            // Absent outside the hours a rule belongs to, so nothing here
+            // reserves space for it.
             CurrentPrayerButton(
-              // The live clock unless a date was injected, in which case its
-              // time of day is the hour under test.
               clock: () => widget.date ?? DateTime.now(),
               repository: widget.prayers,
             ),
@@ -200,8 +187,7 @@ class _TodayScreenState extends State<TodayScreen> {
                 _ReadingCard(heading: l10n.epistleReading, reading: epistle),
               if (day.gospel case final gospel?)
                 _ReadingCard(heading: l10n.gospelReading, reading: gospel),
-              // A separate reading from the Gospel, not a variant of it, so it
-              // gets its own card rather than being folded in beside it.
+              // A separate reading from the Gospel, not a variant of it.
               if (day.matinsGospel case final reading?)
                 _ReadingCard(
                   heading: l10n.matinsGospelReading,
@@ -303,13 +289,9 @@ class _DayHeader extends StatelessWidget {
     );
   }
 
-  /// The rank and fasting pills.
-  ///
-  /// The fasting rule in words wins and the fasting markers are dropped: they
-  /// say the same thing less precisely, and showing both reads as the day
-  /// being labelled twice. Safe to do unconditionally — across the whole feed
-  /// a fasting marker never appears without a rule stated alongside it, so
-  /// dropping one never loses information the rule does not carry.
+  /// The rule in words wins and the fasting markers are dropped, or the day
+  /// reads as labelled twice. Across the whole feed a marker never appears
+  /// without a rule beside it, so nothing is lost.
   List<Widget> _pills(AppLocalizations l10n) => [
     for (final mark in marks)
       if (fasting == null || mark == DayMark.majorFeast)
@@ -340,9 +322,8 @@ class _Pill extends StatelessWidget {
         color: theme.colorScheme.surface.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(20),
       ),
-      // The fasting rule can be a long sentence, and a Wrap gives its children
-      // unbounded width, so without Flexible the pill runs off the edge rather
-      // than wrapping inside it.
+      // A Wrap gives its children unbounded width, so without Flexible a long
+      // fasting rule runs off the edge instead of wrapping inside the pill.
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -355,12 +336,8 @@ class _Pill extends StatelessWidget {
   }
 }
 
-/// Where the day sits in the year: its distance from Pascha, the tone, and the
-/// eothinon.
-///
-/// All three need no data at all, so this is what the screen can always say,
-/// including after the published feed lapses. The tone is absent through
-/// Bright Week, where the Octoechos is set aside.
+/// Where the day sits in the year. All three need no data, so this is what the
+/// screen can always say. The tone is absent through Bright Week.
 class _LiturgicalStrip extends StatelessWidget {
   const _LiturgicalStrip({
     required this.date,
@@ -411,9 +388,7 @@ class _Fact extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // Flexible for the same reason as the pill above: a Wrap hands its
-    // children unbounded width, so at the larger text sizes "Fifty-two days
-    // after Pascha" runs off the edge instead of wrapping inside the strip.
+    // Flexible for the same reason as the pill above.
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -457,9 +432,8 @@ class _SectionCard extends StatelessWidget {
               children: [
                 Icon(icon, size: 16, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                // A section heading is a fixed string, but at the large text
-                // size it is wider than a narrow phone, so it has to be
-                // allowed to wrap rather than overflow.
+                // Fixed strings, but wider than a narrow phone at the large
+                // text size, so they have to be allowed to wrap.
                 Expanded(
                   child: Text(
                     label,
@@ -527,11 +501,8 @@ class _CommemorationsCard extends StatelessWidget {
   }
 }
 
-/// A reading, with its text folded away behind the citation.
-///
-/// The passages run to several hundred words each, and two of them expanded
-/// are what turned this page into a slab. The citation is what people scan
-/// for; the text is one tap away.
+/// A reading, with its several hundred words folded away behind the citation,
+/// which is what people scan for.
 class _ReadingCard extends StatelessWidget {
   const _ReadingCard({required this.heading, required this.reading});
 
@@ -546,8 +517,8 @@ class _ReadingCard extends StatelessWidget {
       margin: const EdgeInsets.only(top: 12),
       clipBehavior: Clip.antiAlias,
       child: Theme(
-        // ExpansionTile's default divider draws a hairline right at the card
-        // edge, which reads as a rendering fault rather than as a border.
+        // ExpansionTile's divider draws a hairline at the card edge, which
+        // reads as a rendering fault rather than as a border.
         data: theme.copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           leading: Icon(
@@ -577,11 +548,8 @@ class _ReadingCard extends StatelessWidget {
   }
 }
 
-/// Shown when the calendar has no entry for the day.
-///
-/// The published feed ends on a fixed date and upstream has let it lapse for a
-/// year before, so this is a state the app will genuinely sit in rather than a
-/// first-launch nicety.
+/// Shown when the calendar has no entry for the day. The feed ends on a fixed
+/// date and has lapsed for a year before, so this is a state to sit in.
 class _EmptyDayCard extends StatelessWidget {
   const _EmptyDayCard({required this.message, required this.onRetry});
 

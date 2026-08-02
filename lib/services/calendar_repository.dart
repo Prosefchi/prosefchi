@@ -13,9 +13,6 @@ import 'calendar_store.dart';
 export '../models/calendar.dart' show supportedLanguages;
 
 /// The content language for [locale], clamped to what we actually publish.
-///
-/// One definition: every screen asks this question and a private copy in each
-/// was four places to keep in step.
 String languageFor(Locale locale) =>
     supportedLanguages.contains(locale.languageCode)
     ? locale.languageCode
@@ -23,21 +20,16 @@ String languageFor(Locale locale) =>
 
 /// The repository used wherever one is not injected.
 ///
-/// Shared on purpose. Parsing a year of Greek readings is not free and the
-/// cache inside a repository is per-instance, so three screens each building
-/// their own meant reading and parsing the same stored calendar three times a
-/// launch — and leaking two `http.Client`s along with it. Lazily created on
-/// first use, and lives as long as the app, so nothing disposes it.
+/// Shared because the cache below is per-instance: three screens each building
+/// their own reparsed the same calendar three times a launch and leaked two
+/// `http.Client`s. Nothing disposes it.
 final sharedCalendarRepository = CalendarRepository();
 
 /// Fetches the calendar and keeps it stored between launches.
 ///
-/// Reading and refreshing are deliberately separate. [load] is local and fast,
-/// so the UI never waits on a network call to draw; [refresh] is the only thing
-/// that touches the network.
-///
-/// Every failure here is soft. A missing or stale calendar is an ordinary state
-/// — a first launch, a lapsed upstream feed, a plane — and callers fall back to
+/// [load] is local and fast, so the UI never waits on the network to draw;
+/// [refresh] is the only thing that touches it. Every failure is soft — a
+/// missing or stale calendar is an ordinary state, and callers fall back to
 /// the computed liturgical layer rather than showing an error.
 class CalendarRepository {
   CalendarRepository({Uri? baseUrl, http.Client? client, CalendarStore? store})
@@ -49,12 +41,10 @@ class CalendarRepository {
   final http.Client _client;
   final CalendarStore _store;
 
-  /// Parsing a few hundred kilobytes of Greek readings is not free. Holds nulls
-  /// too, so a missing calendar is not re-read on every widget rebuild.
+  /// Holds nulls too, so a missing calendar is not re-read on every rebuild.
   ///
-  /// The *future* rather than the value, so that callers arriving while a read
-  /// is still in flight wait on it instead of starting their own. A language
-  /// switch has two — the Today screen and the reminder refresh — in the same
+  /// The *future* rather than the value, so callers arriving mid-read wait on
+  /// it instead of starting their own. A language switch has two in the same
   /// turn of the event loop.
   final Map<String, Future<Calendar?>> _cache = {};
 
@@ -90,9 +80,8 @@ class CalendarRepository {
     if (!style.isPublishedFor(language)) return false;
 
     try {
-      // Both are independent, and neither reads the calendar body: a 304 with
-      // no stored copy would leave us with nothing, so the conditional request
-      // is only sent when there is something to fall back on.
+      // The conditional request is only sent when there is something to fall
+      // back on: a 304 with no stored copy would leave us with nothing.
       final (etag, stored) = await (
         _store.read(_etagName(language, style)),
         _store.exists(_jsonName(language, style)),
@@ -111,9 +100,8 @@ class CalendarRepository {
         return false;
       }
 
-      // Decode explicitly as UTF-8. `response.body` honours the charset in the
-      // Content-Type header and falls back to latin1 when it is absent, which
-      // silently mangles polytonic Greek.
+      // Not `response.body`: it falls back to latin1 where the Content-Type
+      // states no charset, which silently mangles polytonic Greek.
       final body = utf8.decode(response.bodyBytes);
 
       // Parse before storing. A malformed deploy must not overwrite a good

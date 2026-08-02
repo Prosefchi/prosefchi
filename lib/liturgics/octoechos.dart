@@ -1,36 +1,27 @@
 // The two weekly cycles that hang off Pascha: the eight Octoechos tones and
 // the eleven resurrectional Matins gospels.
 //
-// Upstream publishes both, but only on 86 days of a nine-year feed, so they
-// have to be computed to be useful. Both anchors here were checked against
-// every one of those days rather than taken from memory: the tone matched 86
-// of 86 and the eothinon 84 of 84, while the other plausible anchors matched
-// none. See test/liturgics/octoechos_test.dart.
+// Both anchors were checked against every day the feed publishes one: the tone
+// matched 86 of 86 and the eothinon 84 of 84, where the other plausible
+// anchors matched none. Do not change one without re-running that table.
 
 import 'paschalion.dart';
 
-/// The Octoechos tone for [date], 1 to 8, or null where there is none.
+/// The Octoechos tone for [date], 1 to 8, restarting at Thomas Sunday.
 ///
-/// The cycle restarts at Tone 1 on Thomas Sunday and advances every week.
-///
-/// Null through Bright Week, from Pascha to the eve of Thomas Sunday: the
-/// Octoechos is set aside for those days and each has its own proper texts, so
-/// reporting a tone would be inventing one.
+/// Null through Bright Week, where the Octoechos is set aside and each day has
+/// its own proper texts, so reporting a tone would be inventing one.
 int? toneFor(DateTime date) {
   final start = _cycleStart(date, MovableFeast.thomasSunday);
   if (start == null) return null;
   return (_weeksBetween(start, date) % 8) + 1;
 }
 
-/// Which of the eleven resurrectional Matins gospels is appointed, 1 to 11.
+/// Which of the eleven resurrectional Matins gospels is appointed, 1 to 11,
+/// restarting at the Sunday of All Saints.
 ///
-/// The cycle restarts at the first on the Sunday of All Saints and advances
-/// every week.
-///
-/// This says where the cycle stands, not that one is read: through Great Lent
-/// and the Pentecostarion the Sunday Matins gospel is proper to the day
-/// instead, and [CalendarDay.matinsGospel] is what actually says which reading
-/// is appointed.
+/// Where the cycle stands, not that one is read: through Great Lent and the
+/// Pentecostarion the Sunday Matins gospel is proper to the day instead.
 int eothinonFor(DateTime date) {
   final start =
       _cycleStart(date, MovableFeast.allSaints) ??

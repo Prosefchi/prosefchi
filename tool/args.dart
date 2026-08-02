@@ -1,13 +1,8 @@
-// Command-line parsing for the two build scripts.
-//
-// Shared so a fix to one reaches the other. Both take the same shape of
-// argument and neither needs anything `package:args` would add.
+// Command-line parsing for the two build scripts. Neither needs anything
+// `package:args` would add.
 
-/// Parses `--name value` and bare `--flag` pairs.
-///
-/// A bare flag maps to the empty string, so `options.containsKey('cache')`
-/// answers "was it given" and `options['out']` answers "with what". Anything
-/// not starting with `--` is ignored.
+/// Parses `--name value` and bare `--flag` pairs. A bare flag maps to the empty
+/// string, so `containsKey` answers "was it given" and `[]` "with what".
 Map<String, String> parseArgs(List<String> args) {
   final options = <String, String>{};
   for (var i = 0; i < args.length; i++) {

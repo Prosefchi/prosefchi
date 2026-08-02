@@ -3,19 +3,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 
-/// Opens [url], and says so when nothing can.
+/// Opens [url], and says so when nothing can. The one place that decides where
+/// a link opens and what a failure looks like.
 ///
-/// One copy of the policy — where a link opens, and what a failure looks like.
-/// A device with no browser is rare enough that two copies would drift for a
-/// long time before anyone noticed.
-///
-/// The default keeps the reader in the app. [LaunchMode.inAppBrowserView] is
-/// Android's Custom Tabs and iOS's `SFSafariViewController`: a real browser
-/// drawn over the app rather than a separate one switched to, so closing it
-/// returns to the prayer instead of leaving the app in the background. It is
-/// the browser rather than a bare `inAppWebView` on purpose — it shows the
-/// address, so a reader can see whose text they are being sent to, and it is
-/// updated by the platform rather than by this app.
+/// The default keeps the reader in the app: [LaunchMode.inAppBrowserView] is
+/// Custom Tabs and `SFSafariViewController`, a real browser drawn over the app,
+/// so closing it returns to the prayer. The browser rather than a bare
+/// `inAppWebView` because it shows the address.
 Future<void> openLink(
   BuildContext context,
   Uri url, {
@@ -26,9 +20,8 @@ Future<void> openLink(
   final messenger = ScaffoldMessenger.of(context);
   final open = launch ?? launchUrl;
 
-  // The mode is a preference, not a guarantee: a device with no Custom Tabs
-  // provider cannot honour it. Opening the link somewhere beats reporting a
-  // failure the reader can do nothing about.
+  // The mode is a preference, not a guarantee, and opening the link somewhere
+  // beats reporting a failure the reader can do nothing about.
   if (await open(url, mode: mode)) return;
   if (mode != LaunchMode.platformDefault &&
       await open(url, mode: LaunchMode.platformDefault)) {

@@ -1,6 +1,5 @@
-// How the site lays languages out in its URLs: the rule from
-// lib/models/site.dart, re-exported beside the one part of it that is the
-// site's own.
+// lib/models/site.dart's URL rule, re-exported beside the one part of it that
+// is the site's own.
 
 import 'package:prosefchi/models/calendar.dart' show supportedLanguages;
 import 'package:prosefchi/models/site.dart' show prefixFor;

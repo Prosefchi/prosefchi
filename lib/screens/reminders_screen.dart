@@ -15,13 +15,8 @@ import 'occasion_ui.dart';
 
 /// Switches each prayer reminder on or off and sets its time.
 ///
-/// Every occasion is independent. Someone who wants only the evening reminder
-/// gets only the evening reminder, and because each has its own Android
-/// channel they can also silence one from system settings without losing the
-/// rest.
-///
-/// Shrink-wraps, so it can sit on its own screen or inside a page of the
-/// onboarding without either host owning a second copy of the permission flow.
+/// Shrink-wraps, so it sits on its own screen or inside an onboarding page
+/// without either host owning a second copy of the permission flow.
 class ReminderList extends StatefulWidget {
   const ReminderList({
     super.key,
@@ -31,18 +26,15 @@ class ReminderList extends StatefulWidget {
     this.showTimes = true,
   });
 
-  /// Injectable so tests need neither real preferences nor platform channels.
   final ReminderStore? store;
   final ReminderScheduler? scheduler;
 
-  /// Read when scheduling the fasting reminder, so the notification can carry
-  /// the rule the Archdiocese states rather than a generic line.
+  /// So the fasting notification can carry the rule the Archdiocese states
+  /// rather than a generic line.
   final CalendarRepository? calendars;
 
-  /// Whether to offer the time picker.
-  ///
   /// Off during onboarding, where the only question is which prayers to be
-  /// reminded of. The times are there to adjust afterwards.
+  /// reminded of.
   final bool showTimes;
 
   @override
@@ -81,9 +73,8 @@ class _ReminderListState extends State<ReminderList> {
     });
   }
 
-  /// Unlike a prayer reminder this is not one repeating alarm but a block of
-  /// one-offs, so switching it on schedules a horizon of them and switching it
-  /// off clears the whole block.
+  /// A block of one-offs rather than one alarm, so switching it on schedules a
+  /// horizon of them and switching it off clears the whole block.
   Future<void> _updateFasting(FastingReminder reminder) async {
     final l10n = AppLocalizations.of(context);
     final language = languageFor(Localizations.localeOf(context));
@@ -109,11 +100,8 @@ class _ReminderListState extends State<ReminderList> {
     );
   }
 
-  /// Requests notification permission, reporting whether it was granted.
-  ///
   /// Called on the first switch-on rather than at launch, so the prompt arrives
-  /// attached to an action whose purpose is obvious. Every reminder ships off
-  /// precisely so that this is the flow.
+  /// attached to an action whose purpose is obvious.
   Future<bool> _ensurePermission() async {
     final granted = await _scheduler.requestPermission();
     if (!mounted) return false;
@@ -144,11 +132,8 @@ class _ReminderListState extends State<ReminderList> {
     }
   }
 
-  /// Persists first, then schedules.
-  ///
-  /// If scheduling fails the setting is still what the user chose, and the next
-  /// launch re-applies it. Scheduling first would risk a live notification with
-  /// nothing on disk to explain it.
+  /// Persists first, then schedules: the other order risks a live notification
+  /// with nothing on disk to explain it.
   Future<void> _update(Reminder reminder) async {
     final l10n = AppLocalizations.of(context);
 
@@ -162,8 +147,6 @@ class _ReminderListState extends State<ReminderList> {
     setState(() => _reminders = {..._reminders, reminder.occasion: reminder});
 
     await _store.write(reminder);
-    // Through the shared helper, so the wording here and the wording the daily
-    // refresh reschedules with cannot drift apart.
     await applyPrayerReminder(_scheduler, reminder, l10n);
   }
 
@@ -198,9 +181,6 @@ class _ReminderListState extends State<ReminderList> {
             ),
           ),
         for (final occasion in PrayerOccasion.values) ...[
-          // A heading at each change of group. The enum is ordered so every
-          // group is contiguous, so this is a comparison with the previous
-          // entry rather than a separate grouping pass.
           if (occasion.startsGroup)
             GroupHeading(
               occasion: occasion,
@@ -222,8 +202,7 @@ class _ReminderListState extends State<ReminderList> {
               secondary: _timeButton(() => _pickTime(reminder)),
             ),
         ],
-        // Set apart because it is a different kind of reminder: it fires on
-        // some days and not others, where every rule above fires daily.
+        // Set apart: this one fires on some days and not others.
         const Divider(height: 24),
         SwitchListTile(
           value: _fasting.enabled,

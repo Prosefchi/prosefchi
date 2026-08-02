@@ -12,17 +12,14 @@ class MarkupParagraph extends StatelessWidget {
   final List<MarkupSpan> spans;
   final TextStyle? style;
 
-  /// Injectable, as everything reaching a platform channel has to be. The
-  /// screens do not thread this through: building a link touches no channel,
-  /// so only a test that taps one needs it, and such a test can build this
-  /// widget directly.
+  /// The screens do not thread this through: building a link touches no
+  /// channel, so only a test that taps one needs it.
   final Future<bool> Function(Uri url, {LaunchMode mode})? launch;
 
   @override
   Widget build(BuildContext context) {
-    // Nearly every paragraph is prayer text with no link in it — a rule of a
-    // hundred blocks carries one, the source attribution at the end. Those
-    // need none of the recognizer bookkeeping below, nor a State to hold it.
+    // Nearly every paragraph is prayer text with no link in it, and needs
+    // neither the recognizer bookkeeping below nor a State to hold it.
     if (spans.every((span) => span is MarkupPlain)) {
       return Text(spans.map((span) => span.text).join(), style: style);
     }
@@ -31,10 +28,8 @@ class MarkupParagraph extends StatelessWidget {
   }
 }
 
-/// The same, where at least one span is a link.
-///
-/// Stateful only because a [TapGestureRecognizer] has to be disposed, and one
-/// built inside `build` never would be.
+/// The same, where at least one span is a link. Stateful only because a
+/// [TapGestureRecognizer] has to be disposed.
 class _LinkedParagraph extends StatefulWidget {
   const _LinkedParagraph(this.spans, {this.style, this.launch});
 
