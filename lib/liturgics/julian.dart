@@ -1,21 +1,12 @@
 // Converting between the two calendars.
 //
-// The Julian calendar runs behind the Gregorian by 13 days from 1900 to 2100
-// and the gap grows by a day roughly every century, so nothing here hardcodes
-// it: both directions go through the Julian Day Number, which is a plain count
-// of days and knows nothing about either calendar's leap rules.
+// Both directions go through the Julian Day Number rather than adding 13, so
+// the gap widens in 2100 on its own. Narrow in purpose: both calendars keep
+// Pascha on the same day, so only the fixed feasts convert.
 //
-// What this is *for* is narrow. Old and New Calendarists keep Pascha on the
-// same day — the Revised Julian calendar kept the Julian paschalion — so the
-// whole movable cycle is shared and none of it converts. Only the fixed
-// feasts and the fasts tied to them fall on a different civil day, and those
-// are what `fasting.dart` reads through here.
-//
-// A `DateTime` returned by [julianDateOf] carries a Julian year, month and day
-// in a Gregorian type. It is a set of calendar fields and not an instant: do
-// not subtract two of them, and do not hand one to `DateFormat` expecting a
-// correct weekday. The weekday is the one thing both calendars agree on
-// anyway, so read it from the Gregorian date.
+// **What comes back is calendar fields, not an instant.** Do not subtract two
+// of them, and do not hand one to `DateFormat` for a weekday — that would be a
+// fortnight out. Read the weekday off the Gregorian date, which both agree on.
 
 /// The Julian Day Number of a Gregorian calendar date.
 int _julianDayFromGregorian(int year, int month, int day) {

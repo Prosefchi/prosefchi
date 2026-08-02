@@ -181,13 +181,12 @@ class SettingsScreen extends StatelessWidget {
 
   /// Re-arms everything a setting change invalidates.
   ///
-  /// Both callers need it for the same reason: a notification's text and its
-  /// date are both fixed when it is scheduled, so a reminder already pending
-  /// carries the old language and the old calendar's fast days until something
-  /// rebuilds it. `ReminderRefresher` is throttled to once a day and will not.
+  /// A notification's text and date are fixed when it is scheduled, so one
+  /// already pending carries the old language and the old calendar's fast days
+  /// until something rebuilds it, and the daily refresh will not.
   ///
-  /// Through the shared refresh rather than looping over the prayer reminders
-  /// here, which used to leave the fasting block behind until the next launch.
+  /// Through the shared refresh, not a loop over the prayer reminders here,
+  /// which used to leave the fasting block behind until the next launch.
   Future<void> _reschedule(SettingsController settings) async {
     await refreshReminders(
       store: reminderStore ?? PreferencesReminderStore(),
@@ -209,10 +208,8 @@ class SettingsScreen extends StatelessWidget {
 
   /// The option, with what choosing it actually changes underneath.
   ///
-  /// The note is worth the second line because the obvious guess — that this
-  /// moves Pascha too — is wrong, and someone who believed it would not trust
-  /// the app in Holy Week. Name and note in one switch so a style cannot end
-  /// up described by the other one's sentence.
+  /// Worth the second line because the obvious guess — that this moves Pascha
+  /// too — is wrong, and believing it would cost the reader Holy Week.
   static Widget _calendarStyleTile(AppLocalizations l10n, CalendarStyle style) {
     final (name, note) = switch (style) {
       CalendarStyle.gregorian => (

@@ -29,22 +29,19 @@ enum CalendarStyle {
   /// The date this calendar calls the civil day [date].
   ///
   /// Gregorian 7 January 2026 is Julian 25 December 2025, which is why the
-  /// Nativity is kept on the 7th by anyone following the old calendar. The
-  /// enum answers for itself so that reading a fixed date is not three
-  /// `== julian` tests spread across the fasting rules.
+  /// Nativity is kept on the 7th on the old calendar.
   DateTime dateOf(DateTime date) => this == julian ? julianDateOf(date) : date;
 
-  /// The civil day this calendar's own [date] falls on. The inverse of
+  /// The civil day this calendar's own [date] falls on: the inverse of
   /// [dateOf], for a boundary stated in this calendar's terms.
   DateTime civilDateOf(DateTime date) =>
       this == julian ? gregorianDateOf(date) : date;
 
   /// Whether a calendar is published for [language] in this style.
   ///
-  /// Only English has a Julian file, because orthocal publishes English only.
-  /// Stated here rather than left for the app to discover by 404: a reader in
-  /// that position falls back to the computed layer, which is a designed state
-  /// and should not cost a doomed request on every launch.
+  /// Only English has a Julian file. Stated rather than discovered by 404: a
+  /// reader there falls back to the computed layer, which is a designed state
+  /// and should not cost a doomed request every launch.
   bool isPublishedFor(String language) => this == gregorian || language == 'en';
 }
 

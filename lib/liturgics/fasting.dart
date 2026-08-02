@@ -50,19 +50,16 @@ enum FastFreeWeek {
 
 /// The fasting season [date] falls in, or null if it falls in none.
 ///
-/// [style] moves the fixed boundaries and nothing else. The Dormition and
-/// Nativity fasts and the end of the Apostles' Fast are tied to the month, so
-/// on the old calendar they fall 13 days later; Cheesefare, Great Lent and the
-/// start of the Apostles' Fast hang off Pascha, which both calendars keep on
-/// the same day.
+/// [style] moves the fixed boundaries and nothing else: the Dormition and
+/// Nativity fasts and the end of the Apostles' Fast. The rest hang off Pascha,
+/// which both calendars keep on the same day.
 FastSeason? fastSeasonFor(
   DateTime date, {
   CalendarStyle style = CalendarStyle.gregorian,
 }) => _fastSeason(date, style.dateOf(date), style);
 
-/// [fixed] is [date] as [style] counts it, passed in rather than recomputed:
-/// [isFastDay] needs it before it calls either of these and one conversion is
-/// worth more than the two movable seasons below saving one.
+/// [fixed] is [date] as [style] counts it, passed in because [isFastDay] has
+/// already converted before it calls either of these.
 FastSeason? _fastSeason(DateTime date, DateTime fixed, CalendarStyle style) {
   if (_within(
     date,
@@ -80,12 +77,9 @@ FastSeason? _fastSeason(DateTime date, DateTime fixed, CalendarStyle style) {
     return FastSeason.greatLent;
   }
 
-  // Ends on 28 June, the eve of Saints Peter and Paul: movable at one end and
-  // fixed at the other, so it is the one season compared in both spaces. The
-  // start is a civil date; the end is stated in this calendar's own terms and
-  // converted back. On the old calendar that end is 11 July and the fast is 13
-  // days longer, which is also why it can no longer vanish — a late Pascha
-  // leaves it 8 days.
+  // Movable at one end and fixed at the other, so the one season compared in
+  // both spaces. On the old calendar the end is 11 July, which is why the fast
+  // is 13 days longer there and can no longer vanish to a late Pascha.
   final apostlesStart = MovableFeast.apostlesFastBegins.inYear(date.year);
   final apostlesEnd = style.civilDateOf(DateTime(fixed.year, 6, 28));
   if (!apostlesStart.isAfter(apostlesEnd) &&
@@ -142,10 +136,8 @@ FastFreeWeek? _fastFreeWeek(DateTime date, DateTime fixed) {
   )) {
     return FastFreeWeek.publicanAndPharisee;
   }
-  // Straddles the new year, which is why it is written as two windows and why
-  // the fixed date is what they are read against. The eve of Theophany on 5
-  // January is a strict fast in the middle of it, excluded above by
-  // _fixedFastDays; Theophany itself on the 6th is free again.
+  // Straddles the new year, hence two windows. The eve of Theophany on the 5th
+  // is a strict fast inside it, excluded above by _fixedFastDays.
   if (_within(
         fixed,
         DateTime(fixed.year, 12, 25),
@@ -167,9 +159,8 @@ FastFreeWeek? _fastFreeWeek(DateTime date, DateTime fixed) {
 /// the season, the day of the week and the rank of the feast, and is exactly
 /// what `CalendarDay.fasting` answers where it is available.
 bool isFastDay(DateTime date, {CalendarStyle style = CalendarStyle.gregorian}) {
-  // Converted once and shared with both, rather than three times. This runs
-  // sixty times per reminder refresh, and a local DateTime is not free: its
-  // constructor resolves the timezone offset per call.
+  // Converted once and shared, not three times: this runs sixty times per
+  // reminder refresh and a local DateTime resolves the timezone per call.
   final fixed = style.dateOf(date);
   if (_fixedFastDays.contains((fixed.month, fixed.day))) return true;
   if (_fastFreeWeek(date, fixed) != null) return false;

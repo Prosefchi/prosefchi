@@ -145,12 +145,9 @@ class _TodayScreenState extends State<TodayScreen> {
             _DayHeader(
               date: _date,
               locale: _language ?? 'en',
-              // The civil date stays the headline even on the old calendar:
-              // it is the date the phone and everyone around the reader are
-              // using. The Julian date goes under it, and the weekday is
-              // written once against the civil date because julianDateOf
-              // returns calendar fields rather than an instant — its own
-              // weekday would be a fortnight out.
+              // The civil date stays the headline: it is what the phone and
+              // everyone around the reader use. The weekday is written once,
+              // against it, because a converted date has no usable one.
               secondaryDate: _style == CalendarStyle.gregorian
                   ? null
                   : l10n.julianDate(
@@ -211,18 +208,16 @@ class _TodayScreenState extends State<TodayScreen> {
                   reading: reading,
                 ),
             ] else
-              // Resolved here rather than in the card, like the header's
-              // fasting and secondary date: three states, and only two of
-              // them are worth offering a retry for.
+              // Resolved here, like the header's: three states, of which
+              // only two are worth a retry.
               _EmptyDayCard(
                 message: switch (_style.isPublishedFor(_language ?? 'en')) {
                   false => l10n.calendarNotPublished,
                   true when _haveCalendar => l10n.noEntryForDay,
                   true => l10n.calendarNotDownloaded,
                 },
-                // Nothing to retry where nothing is published for the
-                // combination. A button that cannot succeed reads as the app
-                // being broken rather than as a state it was designed for.
+                // A button that cannot succeed reads as the app being broken
+                // rather than as a state it was designed for.
                 onRetry: _style.isPublishedFor(_language ?? 'en')
                     ? _retry
                     : null,
@@ -609,9 +604,8 @@ class _EmptyDayCard extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  // A cloud with a line through it says "offline", which is
-                  // true of the two states that can be retried and a lie
-                  // about the one that cannot.
+                  // A struck-through cloud says "offline": true of the two
+                  // retryable states, a lie about the third.
                   onRetry == null
                       ? Icons.info_outline
                       : Icons.cloud_off_outlined,
