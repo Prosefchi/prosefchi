@@ -58,7 +58,12 @@ enum FastFreeWeek {
 FastSeason? fastSeasonFor(
   DateTime date, {
   CalendarStyle style = CalendarStyle.gregorian,
-}) {
+}) => _fastSeason(date, style.dateOf(date), style);
+
+/// [fixed] is [date] as [style] counts it, passed in rather than recomputed:
+/// [isFastDay] needs it before it calls either of these and one conversion is
+/// worth more than the two movable seasons below saving one.
+FastSeason? _fastSeason(DateTime date, DateTime fixed, CalendarStyle style) {
   if (_within(
     date,
     addDays(MovableFeast.meatfareSunday.inYear(date.year), 1),
@@ -74,10 +79,6 @@ FastSeason? fastSeasonFor(
   )) {
     return FastSeason.greatLent;
   }
-
-  // Below the two movable seasons, which never read it: the same day as this
-  // calendar counts it, which is what every fixed boundary below compares to.
-  final fixed = style.dateOf(date);
 
   // Ends on 28 June, the eve of Saints Peter and Paul: movable at one end and
   // fixed at the other, so it is the one season compared in both spaces. The
@@ -119,7 +120,9 @@ const _fixedFastDays = [(8, 29), (9, 14), (1, 5), (12, 24)];
 FastFreeWeek? fastFreeWeekFor(
   DateTime date, {
   CalendarStyle style = CalendarStyle.gregorian,
-}) {
+}) => _fastFreeWeek(date, style.dateOf(date));
+
+FastFreeWeek? _fastFreeWeek(DateTime date, DateTime fixed) {
   final year = date.year;
 
   if (_within(date, orthodoxPascha(year), addDays(orthodoxPascha(year), 6))) {
@@ -143,7 +146,6 @@ FastFreeWeek? fastFreeWeekFor(
   // the fixed date is what they are read against. The eve of Theophany on 5
   // January is a strict fast in the middle of it, excluded above by
   // _fixedFastDays; Theophany itself on the 6th is free again.
-  final fixed = style.dateOf(date);
   if (_within(
         fixed,
         DateTime(fixed.year, 12, 25),
@@ -165,10 +167,13 @@ FastFreeWeek? fastFreeWeekFor(
 /// the season, the day of the week and the rank of the feast, and is exactly
 /// what `CalendarDay.fasting` answers where it is available.
 bool isFastDay(DateTime date, {CalendarStyle style = CalendarStyle.gregorian}) {
+  // Converted once and shared with both, rather than three times. This runs
+  // sixty times per reminder refresh, and a local DateTime is not free: its
+  // constructor resolves the timezone offset per call.
   final fixed = style.dateOf(date);
   if (_fixedFastDays.contains((fixed.month, fixed.day))) return true;
-  if (fastFreeWeekFor(date, style: style) != null) return false;
-  if (fastSeasonFor(date, style: style) != null) return true;
+  if (_fastFreeWeek(date, fixed) != null) return false;
+  if (_fastSeason(date, fixed, style) != null) return true;
   // The weekday is the one thing the two calendars never disagree about, so it
   // is read from the real date rather than the converted one.
   return date.weekday == DateTime.wednesday || date.weekday == DateTime.friday;

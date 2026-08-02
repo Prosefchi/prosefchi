@@ -247,4 +247,32 @@ void main() {
       findsNWidgets(PrayerOccasion.values.length + 1),
     );
   });
+
+  testWidgets('switching the calendar rebuilds the fasting block', (
+    tester,
+  ) async {
+    // A notification's date is fixed when it is scheduled, and the daily
+    // refresh is throttled, so without this someone who switched would keep
+    // being reminded to fast on the other calendar's days until tomorrow.
+    surface(tester, tallSurface);
+
+    final scheduler = RecordingScheduler();
+    final store = MemoryReminderStore()
+      ..fasting = const FastingReminder(enabled: true, hour: 6, minute: 0);
+
+    await tester.pumpWidget(
+      await harness(
+        SettingsController(store: MemorySettingsStore(language: 'en')),
+        reminderStore: store,
+        scheduler: scheduler,
+      ),
+    );
+    await settle(tester);
+
+    final before = scheduler.fastingApplies;
+    await tester.tap(find.text('Old calendar (Julian)'));
+    await settle(tester);
+
+    expect(scheduler.fastingApplies, greaterThan(before));
+  });
 }

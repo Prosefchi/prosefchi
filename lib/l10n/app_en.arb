@@ -363,5 +363,9 @@
         "type": "String"
       }
     }
+  },
+  "calendarNotPublished": "Saints and readings are not published for this calendar in this language.",
+  "@calendarNotPublished": {
+    "description": "Shown when no calendar exists for the chosen language and calendar style, which is not a failure and cannot be retried. The fast, the tone and the distance from Pascha are computed and still shown above."
   }
 }

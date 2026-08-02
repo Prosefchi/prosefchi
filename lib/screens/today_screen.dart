@@ -211,7 +211,22 @@ class _TodayScreenState extends State<TodayScreen> {
                   reading: reading,
                 ),
             ] else
-              _EmptyDayCard(haveCalendar: _haveCalendar, onRetry: _retry),
+              // Resolved here rather than in the card, like the header's
+              // fasting and secondary date: three states, and only two of
+              // them are worth offering a retry for.
+              _EmptyDayCard(
+                message: switch (_style.isPublishedFor(_language ?? 'en')) {
+                  false => l10n.calendarNotPublished,
+                  true when _haveCalendar => l10n.noEntryForDay,
+                  true => l10n.calendarNotDownloaded,
+                },
+                // Nothing to retry where nothing is published for the
+                // combination. A button that cannot succeed reads as the app
+                // being broken rather than as a state it was designed for.
+                onRetry: _style.isPublishedFor(_language ?? 'en')
+                    ? _retry
+                    : null,
+              ),
           ],
         ),
       ),
@@ -573,36 +588,40 @@ class _ReadingCard extends StatelessWidget {
 /// year before, so this is a state the app will genuinely sit in rather than a
 /// first-launch nicety.
 class _EmptyDayCard extends StatelessWidget {
-  const _EmptyDayCard({required this.haveCalendar, required this.onRetry});
+  const _EmptyDayCard({required this.message, required this.onRetry});
 
-  final bool haveCalendar;
-  final Future<void> Function() onRetry;
+  final String message;
+
+  /// Null where retrying cannot help.
+  final Future<void> Function()? onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return Card(
       margin: const EdgeInsets.only(top: 12),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+        padding: EdgeInsets.fromLTRB(16, 20, 16, onRetry == null ? 20 : 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(
-                  Icons.cloud_off_outlined,
+                  // A cloud with a line through it says "offline", which is
+                  // true of the two states that can be retried and a lie
+                  // about the one that cannot.
+                  onRetry == null
+                      ? Icons.info_outline
+                      : Icons.cloud_off_outlined,
                   size: 16,
                   color: theme.hintColor,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    haveCalendar
-                        ? l10n.noEntryForDay
-                        : l10n.calendarNotDownloaded,
+                    message,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.hintColor,
                     ),
@@ -610,10 +629,14 @@ class _EmptyDayCard extends StatelessWidget {
                 ),
               ],
             ),
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: TextButton(onPressed: onRetry, child: Text(l10n.retry)),
-            ),
+            if (onRetry case final retry?)
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TextButton(
+                  onPressed: retry,
+                  child: Text(AppLocalizations.of(context).retry),
+                ),
+              ),
           ],
         ),
       ),
