@@ -1,8 +1,8 @@
 // The fasting seasons, computed from the Paschalion.
 //
-// Prefer `CalendarDay.fasting` wherever the feed states one: it is what the
-// Archdiocese publishes and it carries exceptions no rule here captures. This
-// is for the days beyond the feed's end.
+// Prefer `CalendarDay.fastAllowance` wherever the feed states one: it is what
+// the Archdiocese publishes and it carries exceptions no rule here captures.
+// This is for the days beyond the feed's end.
 
 import '../models/calendar.dart' show CalendarStyle;
 import 'paschalion.dart';
@@ -151,7 +151,7 @@ FastFreeWeek? _fastFreeWeek(DateTime date, DateTime fixed) {
 ///
 /// This is the coarse question. What is permitted on a fast day varies with
 /// the season, the day of the week and the rank of the feast, and is exactly
-/// what `CalendarDay.fasting` answers where it is available.
+/// what `CalendarDay.fastAllowance` answers where it is available.
 bool isFastDay(DateTime date, {CalendarStyle style = CalendarStyle.gregorian}) {
   // Converted once and shared, not three times: this runs sixty times per
   // reminder refresh and a local DateTime resolves the timezone per call.
