@@ -306,7 +306,10 @@ void main() {
       await repository.refresh('en', style: CalendarStyle.gregorian);
       await repository.refresh('en', style: CalendarStyle.julian);
 
-      expect(asked, ['/calendar.en.json', '/calendar.en.julian.json']);
+      expect(asked, [
+        '/calendar.en.gregorian.json',
+        '/calendar.en.julian.json',
+      ]);
     });
 
     test('keeps the two apart in the store and the cache', () async {
