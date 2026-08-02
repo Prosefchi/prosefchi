@@ -3,6 +3,11 @@
 // Both sides of the pipeline use these types: tool/build_calendar.dart writes
 // them via toJson, and the app reads them back with fromJson. One definition
 // means the generator and the reader cannot drift apart.
+//
+// A field holds what a source published, so any of it may be absent and no
+// source reaches every date. That is ordinary rather than a fault: the tone,
+// the eothinon and the fasting are computed from the date alone in
+// lib/liturgics/, and a published value is preferred only where there is one.
 
 import '../liturgics/paschalion.dart';
 
@@ -16,9 +21,8 @@ const supportedLanguages = ['en', 'el'];
 /// saints arrive clean and only the title needs splitting.
 ///
 /// These mark *allowances* only, so an unmarked day is ambiguous between a
-/// strict fast and no fast at all. [CalendarDay.fasting] resolves that: on the
-/// days it is present upstream states the rule outright, and it should be
-/// preferred over these.
+/// strict fast and no fast at all. [CalendarDay.fastAllowance] resolves that
+/// and should be preferred over these wherever it is present.
 enum DayMark {
   /// A great feast.
   majorFeast('☦'),
@@ -37,7 +41,7 @@ enum DayMark {
   /// The bare codepoint, without the variation selector upstream appends.
   final String symbol;
 
-  static DayMark? byName(String name) => values.asNameMap()[name];
+  static DayMark? byName(String? name) => _byName(values, name);
 
   /// Splits the markers off a raw title.
   ///
@@ -56,9 +60,36 @@ enum DayMark {
   }
 }
 
+/// What a fast day permits.
+enum FastAllowance {
+  /// Nothing lifted: no oil, no wine.
+  strict,
+
+  wineAndOil,
+
+  fish,
+
+  /// Cheesefare week, where everything but meat is kept.
+  dairyEggsAndFish,
+
+  /// The fast lifted entirely.
+  free;
+
+  static FastAllowance? byName(String? name) => _byName(values, name);
+
+  /// Whether a day under this allowance fasts at all.
+  bool get fasts => this != FastAllowance.free;
+}
+
+/// The value of [values] named [name], or null if absent or unknown.
+///
+/// Unknown is ordinary here: JSON written by another version of the tool.
+T? _byName<T extends Enum>(List<T> values, String? name) =>
+    name == null ? null : values.asNameMap()[name];
+
 /// An appointed scripture reading.
 ///
-/// [text] is absent on the rare entries where upstream gives only a citation.
+/// [text] is absent where the source gives only a citation.
 class Reading {
   const Reading({required this.reference, this.text});
 
@@ -77,17 +108,13 @@ class Reading {
 }
 
 /// One day's commemorations and readings.
-///
-/// Roughly 9% of days carry no appointed readings, so [epistle] and [gospel]
-/// are routinely null rather than exceptionally so.
 class CalendarDay {
   const CalendarDay({
     required this.date,
     required this.title,
     this.saints = const [],
     this.marks = const [],
-    this.fasting,
-    this.fasts = false,
+    this.fastAllowance,
     this.tone,
     this.eothinon,
     this.epistle,
@@ -108,8 +135,7 @@ class CalendarDay {
             .map(DayMark.byName)
             .nonNulls
             .toList(),
-        fasting: json['fasting'] as String?,
-        fasts: json['fasts'] as bool? ?? false,
+        fastAllowance: FastAllowance.byName(json['fastAllowance'] as String?),
         tone: json['tone'] as int?,
         eothinon: json['eothinon'] as int?,
         epistle: _reading(json['epistle']),
@@ -132,29 +158,23 @@ class CalendarDay {
   /// Fasting allowances and feast rank, as marked upstream.
   final List<DayMark> marks;
 
-  /// The fasting rule in words, as upstream states it: "Strict Fast", "Fast
-  /// Day (Wine and Oil Allowed)", "Fast Free" and so on.
+  /// What the day's fast permits, where the source states a rule.
   ///
-  /// Authoritative where it exists, and unambiguous in a way [marks] is not:
-  /// the markers only ever record an allowance, so an unmarked day could be a
-  /// strict fast or no fast at all. This says which.
-  final String? fasting;
+  /// Where it states none the weekday fast still applies, computed by
+  /// `isFastDay`.
+  final FastAllowance? fastAllowance;
 
   /// Whether the day fasts at all.
   ///
-  /// Decided when the calendar is built, so the app never interprets the rule
-  /// text. False both when no rule is stated, which means an ordinary day, and
-  /// when the rule lifts the fast.
-  final bool fasts;
+  /// False both when no rule is stated and when the rule lifts the fast, which
+  /// are different facts with the same answer to this question.
+  bool get fasts => fastAllowance?.fasts ?? false;
 
-  /// The Octoechos tone, 1 to 8, where upstream publishes it.
-  ///
-  /// Rarely: 86 days of the feed. The cycle is computable for any date, and
-  /// those days are what the computation was checked against.
+  /// The Octoechos tone, 1 to 8, where the source publishes it.
   final int? tone;
 
   /// The eothinon, 1 to 11: which of the eleven resurrectional Matins gospels
-  /// is appointed. Published as rarely as [tone], and computable the same way.
+  /// is appointed.
   final int? eothinon;
 
   final Reading? epistle;
@@ -178,8 +198,7 @@ class CalendarDay {
     'title': title,
     if (saints.isNotEmpty) 'saints': saints,
     if (marks.isNotEmpty) 'marks': [for (final mark in marks) mark.name],
-    if (fasting != null) 'fasting': fasting,
-    if (fasts) 'fasts': true,
+    if (fastAllowance != null) 'fastAllowance': fastAllowance!.name,
     if (tone != null) 'tone': tone,
     if (eothinon != null) 'eothinon': eothinon,
     if (epistle != null) 'epistle': epistle!.toJson(),

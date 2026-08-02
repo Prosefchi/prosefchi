@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/models/prayer.dart';
 import 'package:prosefchi/models/text_size.dart';
+import 'package:prosefchi/models/calendar.dart';
 import 'package:prosefchi/screens/onboarding_screen.dart';
 import 'package:prosefchi/screens/prayers_screen.dart';
 import 'package:prosefchi/screens/settings_screen.dart';
@@ -58,7 +59,9 @@ void main() {
             TodayScreen(
               repository: calendarsServing(
                 calendarJson(
-                  fasting: 'Wine and oil are allowed',
+                  // The longest rule in both languages, which is what makes
+                  // this an overflow test at the large sizes.
+                  fastAllowance: FastAllowance.dairyEggsAndFish,
                   tone: 3,
                   eothinon: 5,
                 ),

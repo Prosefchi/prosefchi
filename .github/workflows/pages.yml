@@ -12,12 +12,14 @@ on:
     branches: [master]
     paths:
       - 'tool/build_calendar.dart'
+      - 'tool/calendar/**'
       - 'tool/build_site.dart'
       - 'lib/models/calendar.dart'
       # The site compiles these into its JavaScript and renders through the app's parser.
       - 'lib/liturgics/**'
       - 'lib/models/markup.dart'
       - 'lib/models/prayer.dart'
+      - 'lib/l10n/liturgical_keys.dart'
       - 'lib/l10n/*.arb'
       - 'site/**'
       - 'res/prayers/**'

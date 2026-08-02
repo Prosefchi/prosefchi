@@ -24,6 +24,7 @@
 import 'dart:convert';
 import 'dart:js_interop';
 
+import 'package:prosefchi/l10n/liturgical_keys.dart';
 import 'package:prosefchi/liturgics/fasting.dart';
 import 'package:prosefchi/liturgics/octoechos.dart';
 import 'package:prosefchi/liturgics/paschalion.dart';
@@ -224,7 +225,10 @@ web.HTMLElement _header(CalendarDay? day) {
   // so a day with no fast says so rather than leaving the slot empty — an
   // empty slot is ambiguous between there being no fast and our not knowing,
   // and those are different answers to give someone who came to check.
-  final fasting = day?.fasting ?? _computedFasting(_date);
+  final allowance = day?.fastAllowance;
+  final fasting = allowance != null
+      ? _strings[fastAllowanceKey(allowance)]
+      : _computedFasting(_date);
 
   final pills = _el('div', className: 'pills');
   for (final mark in day?.marks ?? const <DayMark>[]) {
@@ -232,7 +236,7 @@ web.HTMLElement _header(CalendarDay? day) {
     // same thing less precisely, and showing both reads as the day being
     // labelled twice. The rank is a different fact, so it stays.
     if (mark != DayMark.majorFeast) continue;
-    pills.append(_pill(mark.symbol, _markLabel(mark)));
+    pills.append(_pill(mark.symbol, _strings[dayMarkKey(mark)]));
   }
   pills.append(_pill('🍽', fasting));
   header.append(pills);
@@ -267,7 +271,7 @@ web.HTMLElement _strip(CalendarDay? day) {
   // its own proper texts, so reporting a tone would be inventing one.
   final tone = day?.tone ?? toneFor(_date);
   if (tone != null) {
-    strip.append(_el('span', text: _strings['tone$tone']));
+    strip.append(_el('span', text: _strings[toneKey(tone)]));
   }
 
   final eothinon = day?.eothinon ?? eothinonFor(_date);
@@ -341,24 +345,9 @@ web.HTMLElement _missingDayNotice() {
 /// the day merely fasts.
 String _computedFasting(DateTime date) {
   final season = fastSeasonFor(date);
-  if (season != null) return _strings[_fastSeasonKey(season)];
+  if (season != null) return _strings[fastSeasonKey(season)];
   return isFastDay(date) ? _strings['fastDay'] : _strings['noFast'];
 }
-
-String _fastSeasonKey(FastSeason season) => switch (season) {
-  FastSeason.cheesefare => 'fastSeasonCheesefare',
-  FastSeason.greatLent => 'fastSeasonGreatLent',
-  FastSeason.apostles => 'fastSeasonApostles',
-  FastSeason.dormition => 'fastSeasonDormition',
-  FastSeason.nativity => 'fastSeasonNativity',
-};
-
-String _markLabel(DayMark mark) => switch (mark) {
-  DayMark.majorFeast => _strings['markMajorFeast'],
-  DayMark.wineAndOil => _strings['markWineAndOil'],
-  DayMark.fish => _strings['markFish'],
-  DayMark.dairy => _strings['markDairy'],
-};
 
 /// The browser's own date formatting, rather than `package:intl`.
 ///

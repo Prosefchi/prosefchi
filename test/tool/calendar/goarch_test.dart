@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prosefchi/models/calendar.dart';
 
-import '../../tool/build_calendar.dart';
+import '../../../tool/calendar/goarch.dart';
+import '../../../tool/calendar/source.dart';
 
 /// Wraps a description the way the feed does, as a single folded line.
 String event(String date, String summary, String description) =>
@@ -43,7 +44,7 @@ void main() {
         const Feed(
           url: 'x',
           fastingPattern: r'\bFast\b',
-          fastFreePattern: 'Fast Free',
+          fastingRules: {},
           markers: {
             Section.saints: ['Saints and Feasts:'],
             Section.gospel: ['Gospel Reading:'],
@@ -87,7 +88,7 @@ void main() {
       );
 
       expect(result.saints, ['Andrew', 'Peter', 'Paul']);
-      expect(result.fasting, 'Fast Day (Wine and Oil Allowed)');
+      expect(result.fastAllowance, FastAllowance.wineAndOil);
     });
 
     test('leaves Greek question marks alone', () {
@@ -103,12 +104,15 @@ void main() {
 
     test('is empty for an absent section', () {
       expect(commemorations(null, feeds['en']!).saints, isEmpty);
-      expect(commemorations(null, feeds['en']!).fasting, isNull);
+      expect(commemorations(null, feeds['en']!).fastAllowance, isNull);
       expect(commemorations('', feeds['en']!).saints, isEmpty);
     });
 
     test('has no fasting rule when only commemorations are given', () {
-      expect(commemorations('Andrew; Peter', feeds['en']!).fasting, isNull);
+      expect(
+        commemorations('Andrew; Peter', feeds['en']!).fastAllowance,
+        isNull,
+      );
     });
 
     test('tells the fasting rule, tone and eothinon apart', () {
@@ -120,7 +124,7 @@ void main() {
       );
 
       expect(result.saints, ['Andrew']);
-      expect(result.fasting, 'Fast Day (Fish Allowed)');
+      expect(result.fastAllowance, FastAllowance.fish);
       expect(result.tone, 3);
       expect(result.eothinon, 6);
     });
@@ -145,9 +149,12 @@ void main() {
         feeds['en']!,
       );
 
-      expect(result.fasting, isNull);
-      expect(result.unparsed, [
-        'The Theophany of Our Lord and Saviour Jesus Christ',
+      expect(result.fastAllowance, isNull);
+      expect(result.findings, [
+        (
+          line: 'The Theophany of Our Lord and Saviour Jesus Christ',
+          kind: FindingKind.unrecognised,
+        ),
       ]);
     });
 
@@ -156,8 +163,64 @@ void main() {
       // build-time warning is what surfaced it.
       final result = commemorations('A\n\nWine & Oil Allowed', feeds['en']!);
 
-      expect(result.fasting, 'Wine & Oil Allowed');
-      expect(result.unparsed, isEmpty);
+      expect(result.fastAllowance, FastAllowance.wineAndOil);
+      expect(result.findings, isEmpty);
+    });
+
+    test('reports a fasting rule it cannot map instead of dropping it', () {
+      // The table is exact strings, so a rewording upstream stops being
+      // recognised. It has to be loud: silently unmapped, the day publishes no
+      // rule at all and every reader is told it does not fast.
+      final result = commemorations(
+        'Andrew\n\nFast Day (Squid Allowed)',
+        feeds['en']!,
+      );
+
+      // Told apart by the type rather than by a prefix on the message: this
+      // one silently makes the day read as one that does not fast, and the
+      // build reports it separately and in full for that reason.
+      expect(result.fastAllowance, isNull);
+      expect(result.findings, [
+        (
+          line: 'Fast Day (Squid Allowed)',
+          kind: FindingKind.unmappedFastingRule,
+        ),
+      ]);
+    });
+
+    test('Κατάλυσις is a release, and only Πάντων lifts the fast', () {
+      // It appears in three Greek rules. Matching the word rather than listing
+      // the rules made two fast days fast-free.
+      FastAllowance? allowanceOf(String rule) =>
+          commemorations('Ἅγιος\n\n$rule', feeds['el']!).fastAllowance;
+
+      expect(allowanceOf('Κατάλυσις Πάντων'), FastAllowance.free);
+      expect(
+        allowanceOf('Κατάλυσις οἴνου καί ἐλαίου'),
+        FastAllowance.wineAndOil,
+      );
+      expect(allowanceOf('Κατάλυσις ἰχθύος'), FastAllowance.fish);
+
+      expect(FastAllowance.free.fasts, isFalse);
+      expect(FastAllowance.wineAndOil.fasts, isTrue);
+      expect(FastAllowance.fish.fasts, isTrue);
+    });
+
+    test('every rule either feed states maps to an allowance', () {
+      // Six phrasings in English and nine in Greek for the same five rules.
+      // Both tables have to stay complete; a missing one is a build warning
+      // and a day that reads as not fasting.
+      for (final feed in feeds.values) {
+        for (final rule in feed.fastingRules.keys) {
+          expect(
+            commemorations('Ἅγιος\n\n$rule', feed).fastAllowance,
+            isNotNull,
+            reason: rule,
+          );
+        }
+      }
+      expect(feeds['en']!.fastingRules.length, 6);
+      expect(feeds['el']!.fastingRules.length, 9);
     });
 
     test('reads the plural Gospel Readings header', () {
@@ -206,7 +269,7 @@ void main() {
           '20200624',
           '🐟 Γενέθλιον τοῦ Ιωάννου Προδρόμου',
           'Ἅγιοι καὶ ἑορταί: Γενέθλιον τοῦ Ιωάννου Προδρόμου; Ἐλισάβετ\n\n'
-              'Ημέρα Νηστείας (Κατάλυσις ιχθύος)\n\n'
+              'Ημέρα Νηστείας (Κατάλυσις ιχθύος, ελαίου και οίνου)\n\n'
               'Ἀνάγνωσις Εὐαγγελίου Ὄρθρου: Κατὰ Λουκᾶν 1:24-25\n'
               'Τί ἄρα τὸ παιδίον τοῦτο ἔσται; καὶ χεὶρ Κυρίου ἦν μετ᾿ αὐτοῦ.\n\n'
               'Ἀνάγνωσις Εὐαγγελίου: Κατὰ Λουκᾶν 1:1-25',
@@ -216,7 +279,7 @@ void main() {
 
       final day = parsed.days['2020-06-24']!;
       expect(day.saints, ['Γενέθλιον τοῦ Ιωάννου Προδρόμου', 'Ἐλισάβετ']);
-      expect(day.fasting, 'Ημέρα Νηστείας (Κατάλυσις ιχθύος)');
+      expect(day.fastAllowance, FastAllowance.fish);
       expect(day.matinsGospel?.text, contains('τὸ παιδίον τοῦτο ἔσται;'));
       expect(day.gospel?.reference, 'Κατὰ Λουκᾶν 1:1-25');
       expect(day.marks, [DayMark.fish]);

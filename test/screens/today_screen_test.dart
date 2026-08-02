@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:prosefchi/models/calendar.dart';
 import 'package:prosefchi/screens/today_screen.dart';
 import 'package:prosefchi/services/calendar_repository.dart';
 import 'package:prosefchi/services/prayer_repository.dart';
@@ -52,7 +53,7 @@ void main() {
             title: 'Παρασκευή η Οσιομάρτυς',
             saints: const ['Παρασκευή η Οσιομάρτυς', 'Ερμόλαος ο Ιερομάρτυς'],
             marks: const ['majorFeast'],
-            fasting: 'Ημέρα Νηστείας (Κατάλυσις ιχθύος)',
+            fastAllowance: FastAllowance.fish,
             gospelReference: 'Κατὰ Μᾶρκον 5:24-34',
           ),
         ),
@@ -63,7 +64,10 @@ void main() {
 
     expect(find.text('Σήμερα'), findsOneWidget);
     expect(find.text('Ευαγγέλιο'), findsOneWidget);
-    expect(find.text('Ημέρα Νηστείας (Κατάλυσις ιχθύος)'), findsOneWidget);
+    expect(
+      find.text('Ημέρα Νηστείας (Κατάλυσις ιχθύος, ελαίου και οίνου)'),
+      findsOneWidget,
+    );
     expect(find.text('Παρασκευή η Οσιομάρτυς'), findsWidgets);
   });
 
@@ -144,7 +148,7 @@ void main() {
     // the same thing less precisely, so showing both labels the day twice.
     await tester.pumpWidget(
       harness(
-        calendarsServing(calendarJson(fasting: 'Fast Day (Fish Allowed)')),
+        calendarsServing(calendarJson(fastAllowance: FastAllowance.fish)),
       ),
     );
     await settle(tester);
@@ -234,7 +238,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       harness(
-        calendarsServing(calendarJson(fasting: 'Fast Day (Fish Allowed)')),
+        calendarsServing(calendarJson(fastAllowance: FastAllowance.fish)),
       ),
     );
     await settle(tester);

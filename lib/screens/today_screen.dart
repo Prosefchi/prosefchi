@@ -141,7 +141,9 @@ class _TodayScreenState extends State<TodayScreen> {
               // authoritative there. Past the end of the feed, and on the
               // handful of days it puts something else in that slot, the
               // computed season stands in.
-              fasting: day?.fasting ?? _computedFasting(l10n, _date),
+              fasting:
+                  l10n.fastAllowanceLabel(day?.fastAllowance) ??
+                  _computedFasting(l10n, _date),
             ),
             // All computed, so this appears in every state. It also means the
             // no-data screen keeps the same shape as the ordinary one rather
@@ -265,7 +267,7 @@ class _DayHeader extends StatelessWidget {
       if (fasting == null || mark == DayMark.majorFeast)
         _Pill(
           leading: Text(mark.symbol, style: const TextStyle(fontSize: 13)),
-          label: _markLabel(l10n, mark),
+          label: l10n.dayMarkLabel(mark),
         ),
     if (fasting case final rule?)
       _Pill(
@@ -273,14 +275,6 @@ class _DayHeader extends StatelessWidget {
         label: rule,
       ),
   ];
-
-  static String _markLabel(AppLocalizations l10n, DayMark mark) =>
-      switch (mark) {
-        DayMark.majorFeast => l10n.markMajorFeast,
-        DayMark.wineAndOil => l10n.markWineAndOil,
-        DayMark.fish => l10n.markFish,
-        DayMark.dairy => l10n.markDairy,
-      };
 }
 
 class _Pill extends StatelessWidget {

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:prosefchi/models/calendar.dart';
 import 'package:prosefchi/services/calendar_repository.dart';
 
 import 'memory_calendar_store.dart';
@@ -21,7 +22,7 @@ String calendarJson({
   ],
   List<String> marks = const ['majorFeast'],
   String gospelReference = 'Mark 5:24-34',
-  String? fasting,
+  FastAllowance? fastAllowance,
   bool matinsGospel = false,
   int? tone,
   int? eothinon,
@@ -39,7 +40,7 @@ String calendarJson({
       'title': title,
       'saints': saints,
       'marks': marks,
-      'fasting': ?fasting,
+      'fastAllowance': ?fastAllowance?.name,
       'tone': ?tone,
       'eothinon': ?eothinon,
       if (matinsGospel)

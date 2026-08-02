@@ -1,7 +1,11 @@
 import '../liturgics/fasting.dart';
+import '../models/calendar.dart';
 import 'app_localizations.dart';
 
 /// Display names for the computed and published liturgical values.
+///
+/// The getters reached here are the ARB entries `liturgical_keys.dart` names,
+/// which is how the website reaches the same words.
 extension LiturgicalLabels on AppLocalizations {
   /// The tone by its traditional name rather than its number.
   ///
@@ -19,11 +23,31 @@ extension LiturgicalLabels on AppLocalizations {
     _ => tone8,
   };
 
+  String dayMarkLabel(DayMark mark) => switch (mark) {
+    DayMark.majorFeast => markMajorFeast,
+    DayMark.wineAndOil => markWineAndOil,
+    DayMark.fish => markFish,
+    DayMark.dairy => markDairy,
+  };
+
   String fastSeasonLabel(FastSeason season) => switch (season) {
     FastSeason.cheesefare => fastSeasonCheesefare,
     FastSeason.greatLent => fastSeasonGreatLent,
     FastSeason.apostles => fastSeasonApostles,
     FastSeason.dormition => fastSeasonDormition,
     FastSeason.nativity => fastSeasonNativity,
+  };
+
+  /// The published fasting rule in words, or null where none was published.
+  ///
+  /// Nullable in and out so callers keep the `??` shape the rest of the day's
+  /// resolution uses — every one of them falls back to the computed layer.
+  String? fastAllowanceLabel(FastAllowance? allowance) => switch (allowance) {
+    FastAllowance.strict => fastAllowanceStrict,
+    FastAllowance.wineAndOil => fastAllowanceWineAndOil,
+    FastAllowance.fish => fastAllowanceFish,
+    FastAllowance.dairyEggsAndFish => fastAllowanceDairyEggsAndFish,
+    FastAllowance.free => fastAllowanceFree,
+    null => null,
   };
 }
