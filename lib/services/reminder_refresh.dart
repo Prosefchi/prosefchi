@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../l10n/app_localizations.dart';
 import '../l10n/occasion_labels.dart';
+import '../models/calendar.dart' show CalendarStyle;
 import '../models/reminder.dart';
 import 'calendar_repository.dart';
 import 'fasting_schedule.dart';
@@ -61,6 +62,7 @@ Future<void> refreshReminders({
   required ReminderScheduler scheduler,
   required String language,
   required AppLocalizations l10n,
+  CalendarStyle style = CalendarStyle.gregorian,
 }) async {
   // Independent reads over the same preferences; no reason to serialize.
   final (reminders, fasting) = await (
@@ -85,6 +87,7 @@ Future<void> refreshReminders({
     scheduler: scheduler,
     language: language,
     l10n: l10n,
+    style: style,
   );
 }
 
@@ -124,6 +127,14 @@ class ReminderRefresher {
   /// rather than writing the day off.
   DateTime? _refreshedOn;
 
+  /// The calendar the stamped day was built for.
+  ///
+  /// Without this the throttle would hold a switch back until tomorrow, and
+  /// the fasting block is the one thing a switch actually changes — someone
+  /// who moved to the old calendar would keep being reminded to fast on the
+  /// new one's days for the rest of the day they changed it.
+  CalendarStyle? _refreshedStyle;
+
   /// Guards re-entry, which stamping only on success would otherwise allow:
   /// Android delivers a `resumed` shortly after launch, and that would arrive
   /// while the launch refresh was still in flight.
@@ -154,7 +165,10 @@ class ReminderRefresher {
     // Day precision by construction rather than by subtracting a Duration,
     // which lands an hour out across a daylight saving change.
     final today = DateTime(now.year, now.month, now.day);
-    if (_refreshedOn == today || _refreshing) return;
+    final style = settings.calendarStyle;
+    if ((_refreshedOn == today && _refreshedStyle == style) || _refreshing) {
+      return;
+    }
 
     _refreshing = true;
     try {
@@ -165,8 +179,10 @@ class ReminderRefresher {
         scheduler: _scheduler,
         language: language,
         l10n: await AppLocalizations.delegate.load(Locale(language)),
+        style: style,
       );
       _refreshedOn = today;
+      _refreshedStyle = style;
     } on Object catch (error) {
       // Nothing the user can act on, and the reminders already scheduled are
       // untouched. Leaving the day unstamped is the retry.

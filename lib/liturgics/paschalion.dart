@@ -4,6 +4,8 @@
 // the app can always stand on. The GOARCH feed has a hard end date and stops;
 // these functions keep working for any year.
 
+import 'julian.dart';
+
 /// The date of Orthodox Pascha in [year], as a Gregorian calendar date.
 ///
 /// Orthodox Pascha uses the Julian computus, so this computes the Julian
@@ -20,7 +22,7 @@ DateTime orthodoxPascha(int year) {
   final month = (d + e + 114) ~/ 31;
   final day = (d + e + 114) % 31 + 1;
 
-  return _gregorianFromJulianDay(_julianDayFromJulianDate(year, month, day));
+  return gregorianFromJulianDay(julianDayFromJulian(year, month, day));
 }
 
 /// A feast whose date is fixed relative to Pascha rather than to the month.
@@ -107,25 +109,3 @@ int daysBetween(DateTime from, DateTime to) => DateTime.utc(
   to.month,
   to.day,
 ).difference(DateTime.utc(from.year, from.month, from.day)).inDays;
-
-int _julianDayFromJulianDate(int year, int month, int day) {
-  final a = (14 - month) ~/ 12;
-  final y = year + 4800 - a;
-  final m = month + 12 * a - 3;
-  return day + (153 * m + 2) ~/ 5 + 365 * y + y ~/ 4 - 32083;
-}
-
-DateTime _gregorianFromJulianDay(int julianDay) {
-  final a = julianDay + 32044;
-  final b = (4 * a + 3) ~/ 146097;
-  final c = a - (146097 * b) ~/ 4;
-  final d = (4 * c + 3) ~/ 1461;
-  final e = c - (1461 * d) ~/ 4;
-  final m = (5 * e + 2) ~/ 153;
-
-  return DateTime(
-    100 * b + d - 4800 + m ~/ 10,
-    m + 3 - 12 * (m ~/ 10),
-    e - (153 * m + 2) ~/ 5 + 1,
-  );
-}

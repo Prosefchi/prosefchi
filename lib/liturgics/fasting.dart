@@ -6,6 +6,8 @@
 // rules here would capture. This exists for the days beyond the feed's end,
 // where otherwise the app could say nothing at all.
 
+import '../models/calendar.dart' show CalendarStyle;
+import 'julian.dart';
 import 'paschalion.dart';
 
 /// A season of fasting in the Orthodox year.
@@ -48,7 +50,18 @@ enum FastFreeWeek {
 }
 
 /// The fasting season [date] falls in, or null if it falls in none.
-FastSeason? fastSeasonFor(DateTime date) {
+///
+/// [style] moves the fixed boundaries and nothing else. The Dormition and
+/// Nativity fasts and the end of the Apostles' Fast are tied to the month, so
+/// on the old calendar they fall 13 days later; Cheesefare, Great Lent and the
+/// start of the Apostles' Fast hang off Pascha, which both calendars keep on
+/// the same day.
+FastSeason? fastSeasonFor(
+  DateTime date, {
+  CalendarStyle style = CalendarStyle.gregorian,
+}) {
+  // The same day counted the other way, for the fixed boundaries only.
+  final fixed = style == CalendarStyle.julian ? julianDateOf(date) : date;
   if (_within(
     date,
     addDays(MovableFeast.meatfareSunday.inYear(date.year), 1),
@@ -65,25 +78,41 @@ FastSeason? fastSeasonFor(DateTime date) {
     return FastSeason.greatLent;
   }
 
-  // Ends on 28 June, the eve of Saints Peter and Paul. A late Pascha can push
-  // its start past that, in which case there is no Apostles' Fast that year.
+  // Ends on 28 June, the eve of Saints Peter and Paul: movable at one end and
+  // fixed at the other, so it is the one season both dates are read for. On
+  // the old calendar that end is 11 July and the fast is 13 days longer, which
+  // is also why it can no longer vanish — a late Pascha leaves it 8 days.
   final apostlesStart = MovableFeast.apostlesFastBegins.inYear(date.year);
-  final apostlesEnd = DateTime(date.year, 6, 28);
+  final apostlesEnd = _fixed(date, style, 6, 28);
   if (!apostlesStart.isAfter(apostlesEnd) &&
       _within(date, apostlesStart, apostlesEnd)) {
     return FastSeason.apostles;
   }
 
-  if (_within(date, DateTime(date.year, 8), DateTime(date.year, 8, 14))) {
+  if (_within(fixed, DateTime(fixed.year, 8), DateTime(fixed.year, 8, 14))) {
     return FastSeason.dormition;
   }
 
-  if (_within(date, DateTime(date.year, 11, 15), DateTime(date.year, 12, 24))) {
+  if (_within(
+    fixed,
+    DateTime(fixed.year, 11, 15),
+    DateTime(fixed.year, 12, 24),
+  )) {
     return FastSeason.nativity;
   }
 
   return null;
 }
+
+/// The Gregorian date of the fixed [month]/[day] under [style], in the year
+/// [date] falls in.
+///
+/// Needed where a season is compared against a movable date and a fixed one at
+/// once, which is only the Apostles' Fast.
+DateTime _fixed(DateTime date, CalendarStyle style, int month, int day) =>
+    style == CalendarStyle.julian
+    ? gregorianDateOf(DateTime(julianDateOf(date).year, month, day))
+    : DateTime(date.year, month, day);
 
 /// Days that fast whatever the weekday and whatever season they fall in.
 ///
@@ -92,7 +121,12 @@ FastSeason? fastSeasonFor(DateTime date) {
 const _fixedFastDays = [(8, 29), (9, 14), (1, 5), (12, 24)];
 
 /// The fast-free week [date] falls in, or null if it falls in none.
-FastFreeWeek? fastFreeWeekFor(DateTime date) {
+///
+/// Only Christmastide moves with [style]; the other three hang off Pascha.
+FastFreeWeek? fastFreeWeekFor(
+  DateTime date, {
+  CalendarStyle style = CalendarStyle.gregorian,
+}) {
   final year = date.year;
 
   if (_within(date, orthodoxPascha(year), addDays(orthodoxPascha(year), 6))) {
@@ -112,11 +146,17 @@ FastFreeWeek? fastFreeWeekFor(DateTime date) {
   )) {
     return FastFreeWeek.publicanAndPharisee;
   }
-  // Straddles the new year. The eve of Theophany on 5 January is a strict
-  // fast in the middle of it, and is excluded above by _fixedFastDays;
-  // Theophany itself on the 6th is free again.
-  if (_within(date, DateTime(year, 12, 25), DateTime(year, 12, 31)) ||
-      _within(date, DateTime(year), DateTime(year, 1, 6))) {
+  // Straddles the new year, which is why it is written as two windows and why
+  // the fixed date is what they are read against. The eve of Theophany on 5
+  // January is a strict fast in the middle of it, excluded above by
+  // _fixedFastDays; Theophany itself on the 6th is free again.
+  final fixed = style == CalendarStyle.julian ? julianDateOf(date) : date;
+  if (_within(
+        fixed,
+        DateTime(fixed.year, 12, 25),
+        DateTime(fixed.year, 12, 31),
+      ) ||
+      _within(fixed, DateTime(fixed.year), DateTime(fixed.year, 1, 6))) {
     return FastFreeWeek.christmastide;
   }
   return null;
@@ -131,10 +171,13 @@ FastFreeWeek? fastFreeWeekFor(DateTime date) {
 /// This is the coarse question. What is permitted on a fast day varies with
 /// the season, the day of the week and the rank of the feast, and is exactly
 /// what `CalendarDay.fasting` answers where it is available.
-bool isFastDay(DateTime date) {
-  if (_fixedFastDays.contains((date.month, date.day))) return true;
-  if (fastFreeWeekFor(date) != null) return false;
-  if (fastSeasonFor(date) != null) return true;
+bool isFastDay(DateTime date, {CalendarStyle style = CalendarStyle.gregorian}) {
+  final fixed = style == CalendarStyle.julian ? julianDateOf(date) : date;
+  if (_fixedFastDays.contains((fixed.month, fixed.day))) return true;
+  if (fastFreeWeekFor(date, style: style) != null) return false;
+  if (fastSeasonFor(date, style: style) != null) return true;
+  // The weekday is the one thing the two calendars never disagree about, so it
+  // is read from the real date rather than the converted one.
   return date.weekday == DateTime.wednesday || date.weekday == DateTime.friday;
 }
 

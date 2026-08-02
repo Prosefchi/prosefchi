@@ -12,11 +12,13 @@ class MemorySettingsStore implements SettingsStore {
     this.language,
     this.onboardingSeen = false,
     this.textSize,
+    this.calendarStyle,
   });
 
   String? language;
   bool onboardingSeen;
   String? textSize;
+  String? calendarStyle;
 
   @override
   Future<String?> readLanguage() async => language;
@@ -32,6 +34,12 @@ class MemorySettingsStore implements SettingsStore {
 
   @override
   Future<String?> readTextSize() async => textSize;
+
+  @override
+  Future<String?> readCalendarStyle() async => calendarStyle;
+
+  @override
+  Future<void> writeCalendarStyle(String slug) async => calendarStyle = slug;
 
   @override
   Future<void> writeTextSize(String slug) async => textSize = slug;

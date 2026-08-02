@@ -4,11 +4,13 @@ import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/liturgical_labels.dart';
 import '../liturgics/fasting.dart';
+import '../liturgics/julian.dart';
 import '../liturgics/octoechos.dart';
 import '../liturgics/paschalion.dart';
 import '../models/calendar.dart';
 import '../services/calendar_repository.dart';
 import '../services/prayer_repository.dart';
+import '../services/settings_controller.dart';
 import 'current_prayer_button.dart';
 import 'settings_screen.dart';
 
@@ -44,6 +46,7 @@ class _TodayScreenState extends State<TodayScreen> {
   late final DateTime _date = widget.date ?? DateTime.now();
 
   String? _language;
+  CalendarStyle _style = CalendarStyle.gregorian;
   CalendarDay? _day;
   bool _loading = true;
   bool _haveCalendar = false;
@@ -54,8 +57,12 @@ class _TodayScreenState extends State<TodayScreen> {
     // The locale is not available in initState. Reload only when the language
     // actually changes, since this fires for unrelated dependency changes too.
     final language = languageFor(Localizations.localeOf(context));
-    if (language == _language) return;
+    final style =
+        SettingsScope.maybeOf(context)?.calendarStyle ??
+        CalendarStyle.gregorian;
+    if (language == _language && style == _style) return;
     _language = language;
+    _style = style;
     _load(language);
   }
 
@@ -68,7 +75,7 @@ class _TodayScreenState extends State<TodayScreen> {
       // Nothing to show yet, so wait for the first fetch rather than flashing
       // "not downloaded" and replacing it a moment later. This is the only
       // path where the user waits on the network.
-      await _repository.refresh(language);
+      await _repository.refresh(language, style: _style);
       await _apply(language);
       if (mounted) setState(() => _loading = false);
       return;
@@ -77,14 +84,14 @@ class _TodayScreenState extends State<TodayScreen> {
     // Something is already on screen, so refresh behind it. A failure here is
     // silent by design: whatever was stored stays put.
     setState(() => _loading = false);
-    if (await _repository.refresh(language) && mounted) {
+    if (await _repository.refresh(language, style: _style) && mounted) {
       await _apply(language);
       if (mounted) setState(() {});
     }
   }
 
   Future<void> _apply(String language) async {
-    final calendar = await _repository.load(language);
+    final calendar = await _repository.load(language, style: _style);
     if (!mounted) return;
     _haveCalendar = calendar != null;
     _day = calendar?.forDate(_date);
@@ -102,11 +109,15 @@ class _TodayScreenState extends State<TodayScreen> {
   /// so rather than leaving the slot empty. An empty slot is ambiguous between
   /// there being no fast and our not knowing, and those are not the same
   /// answer to give someone who opened the app to check.
-  static String _computedFasting(AppLocalizations l10n, DateTime date) {
-    if (fastSeasonFor(date) case final season?) {
+  static String _computedFasting(
+    AppLocalizations l10n,
+    DateTime date,
+    CalendarStyle style,
+  ) {
+    if (fastSeasonFor(date, style: style) case final season?) {
       return l10n.fastSeasonLabel(season);
     }
-    return isFastDay(date) ? l10n.fastDay : l10n.noFast;
+    return isFastDay(date, style: style) ? l10n.fastDay : l10n.noFast;
   }
 
   @override
@@ -134,6 +145,7 @@ class _TodayScreenState extends State<TodayScreen> {
           children: [
             _DayHeader(
               date: _date,
+              style: _style,
               locale: _language ?? 'en',
               title: day?.title,
               marks: day?.marks ?? const [],
@@ -143,7 +155,7 @@ class _TodayScreenState extends State<TodayScreen> {
               // computed season stands in.
               fasting:
                   l10n.fastAllowanceLabel(day?.fastAllowance) ??
-                  _computedFasting(l10n, _date),
+                  _computedFasting(l10n, _date, _style),
             ),
             // All computed, so this appears in every state. It also means the
             // no-data screen keeps the same shape as the ordinary one rather
@@ -200,6 +212,7 @@ class _TodayScreenState extends State<TodayScreen> {
 class _DayHeader extends StatelessWidget {
   const _DayHeader({
     required this.date,
+    required this.style,
     required this.locale,
     required this.title,
     required this.marks,
@@ -207,6 +220,7 @@ class _DayHeader extends StatelessWidget {
   });
 
   final DateTime date;
+  final CalendarStyle style;
   final String locale;
   final String? title;
   final List<DayMark> marks;
@@ -235,6 +249,22 @@ class _DayHeader extends StatelessWidget {
                 ),
               ),
             ),
+            // The civil date stays the headline even on the old calendar: it
+            // is the date the phone and everyone around the reader are using.
+            // The Julian date sits under it, which is also why the weekday is
+            // only written once — julianDateOf returns calendar fields rather
+            // than an instant, and its weekday would be a fortnight out.
+            if (style == CalendarStyle.julian)
+              Text(
+                l10n.julianDate(
+                  DateFormat.yMMMMd(locale).format(julianDateOf(date)),
+                ),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onPrimaryContainer.withValues(
+                    alpha: 0.6,
+                  ),
+                ),
+              ),
             if (title case final headline? when headline.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(

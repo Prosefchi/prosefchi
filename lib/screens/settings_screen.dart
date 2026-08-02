@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/calendar.dart' show CalendarStyle;
 import '../models/text_size.dart';
 import '../services/calendar_repository.dart';
 import '../services/notification_service.dart';
@@ -97,6 +98,24 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const Divider(height: 32),
+          _Heading(l10n.calendarStyle),
+          RadioGroup<CalendarStyle>(
+            groupValue: settings.calendarStyle,
+            onChanged: (value) {
+              if (value != null) _setCalendarStyle(context, value);
+            },
+            child: Column(
+              children: [
+                for (final style in CalendarStyle.values)
+                  RadioListTile<CalendarStyle>(
+                    value: style,
+                    title: Text(_calendarStyleName(l10n, style)),
+                    subtitle: Text(_calendarStyleNote(l10n, style)),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(height: 32),
           _Heading(l10n.reminders),
           ListTile(
             leading: const Icon(Icons.notifications_outlined),
@@ -152,12 +171,37 @@ class SettingsScreen extends StatelessWidget {
     if (language == settings.language) return;
 
     await settings.setLanguage(language);
+    await _reschedule(settings);
+  }
 
+  /// Switches the calendar and rebuilds the schedule behind it.
+  ///
+  /// The reschedule is the whole point rather than tidiness. The fasting block
+  /// is a bounded horizon of one-off notifications whose days were chosen
+  /// under the old setting, and `ReminderRefresher` is throttled to once a
+  /// day, so without this someone who switched would be reminded to fast on
+  /// the other calendar's days until tomorrow.
+  Future<void> _setCalendarStyle(
+    BuildContext context,
+    CalendarStyle style,
+  ) async {
+    final settings = SettingsScope.of(context);
+    if (style == settings.calendarStyle) return;
+
+    await settings.setCalendarStyle(style);
+    await _reschedule(settings);
+  }
+
+  /// Re-arms everything through the shared refresh rather than looping over the
+  /// prayer reminders here, which used to leave the fasting block on the old
+  /// setting until the next launch.
+  Future<void> _reschedule(SettingsController settings) async {
     await refreshReminders(
       store: reminderStore ?? PreferencesReminderStore(),
       calendars: calendars ?? sharedCalendarRepository,
       scheduler: scheduler ?? sharedReminderScheduler,
       language: settings.effectiveLanguage,
+      style: settings.calendarStyle,
       l10n: await AppLocalizations.delegate.load(
         Locale(settings.effectiveLanguage),
       ),
@@ -169,6 +213,27 @@ class SettingsScreen extends StatelessWidget {
         'el' => l10n.languageGreek,
         _ => l10n.languageEnglish,
       };
+
+  static String _calendarStyleName(
+    AppLocalizations l10n,
+    CalendarStyle style,
+  ) => switch (style) {
+    CalendarStyle.gregorian => l10n.calendarStyleNew,
+    CalendarStyle.julian => l10n.calendarStyleOld,
+  };
+
+  /// What choosing it actually changes, since the names alone do not say.
+  ///
+  /// Worth the second line because the obvious guess — that this moves Pascha
+  /// too — is wrong, and someone who believes it would not trust the app in
+  /// Holy Week.
+  static String _calendarStyleNote(
+    AppLocalizations l10n,
+    CalendarStyle style,
+  ) => switch (style) {
+    CalendarStyle.gregorian => l10n.calendarStyleNewNote,
+    CalendarStyle.julian => l10n.calendarStyleOldNote,
+  };
 
   static String _textSizeName(AppLocalizations l10n, TextSize size) =>
       switch (size) {
