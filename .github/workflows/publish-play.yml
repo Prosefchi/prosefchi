@@ -107,9 +107,9 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.service_account_json }}
           packageName: ${{ steps.package.outputs.name }}
-          releaseFile: ${{ env.BUNDLE }}
+          releaseFiles: ${{ env.BUNDLE }}
           releaseName: ${{ inputs.version }}
-          track: ${{ env.TRACK }}
+          tracks: ${{ env.TRACK }}
           status: ${{ env.STATUS }}
           # Empty where the notes were skipped above, which the action reads as
           # having none rather than as a missing directory.
