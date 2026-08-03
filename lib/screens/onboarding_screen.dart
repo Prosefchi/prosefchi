@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/markup.dart';
 import '../models/text_size.dart';
-import '../services/calendar_repository.dart' show supportedLanguages;
+import '../services/calendar_repository.dart'
+    show CalendarRepository, supportedLanguages;
 import '../services/document_repository.dart';
 import '../services/notification_service.dart';
+import '../services/reminder_refresh.dart';
 import '../services/reminder_store.dart';
 import '../services/settings_controller.dart';
+import 'calendar_style_options.dart';
 import 'markup_list.dart';
 import 'markup_paragraph.dart';
 import 'reminders_screen.dart';
@@ -20,11 +23,15 @@ class OnboardingScreen extends StatefulWidget {
     this.documents,
     this.reminderStore,
     this.scheduler,
+    this.calendars,
   });
 
   final DocumentRepository? documents;
   final ReminderStore? reminderStore;
   final ReminderScheduler? scheduler;
+
+  /// Reaches the fasting reminders, which take the day's rule from it.
+  final CalendarRepository? calendars;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -76,6 +83,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (Navigator.of(context).canPop()) Navigator.of(context).pop();
   }
 
+  /// On a first launch nothing is scheduled yet and this does nothing; it
+  /// earns its place when the flow is replayed from settings.
+  Future<void> _reschedule() => rescheduleReminders(
+    SettingsScope.of(context),
+    store: widget.reminderStore,
+    calendars: widget.calendars,
+    scheduler: widget.scheduler,
+  );
+
   void _next() => _controller.nextPage(
     duration: const Duration(milliseconds: 250),
     curve: Curves.easeOut,
@@ -97,11 +113,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   _WelcomePage(document: _welcome, loading: _loading),
                   // Before the reminders, because a reader who needs the large
-                  // size needs it on the next page too.
-                  const _ReaderPage(),
+                  // size needs it on the next page too, and because a fasting
+                  // reminder armed there is scheduled on the calendar chosen
+                  // here.
+                  _ReaderPage(reschedule: _reschedule),
                   _RemindersPage(
                     store: widget.reminderStore,
                     scheduler: widget.scheduler,
+                    calendars: widget.calendars,
                   ),
                 ],
               ),
@@ -205,10 +224,15 @@ class _WelcomePage extends StatelessWidget {
 }
 
 class _RemindersPage extends StatelessWidget {
-  const _RemindersPage({required this.store, required this.scheduler});
+  const _RemindersPage({
+    required this.store,
+    required this.scheduler,
+    required this.calendars,
+  });
 
   final ReminderStore? store;
   final ReminderScheduler? scheduler;
+  final CalendarRepository? calendars;
 
   @override
   Widget build(BuildContext context) {
@@ -238,15 +262,23 @@ class _RemindersPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        ReminderList(store: store, scheduler: scheduler, showTimes: false),
+        ReminderList(
+          store: store,
+          scheduler: scheduler,
+          calendars: calendars,
+          showTimes: false,
+        ),
       ],
     );
   }
 }
 
-/// Language and text size, the two settings that shape the reading.
+/// Language, text size and calendar: what the reader is given, before they are
+/// asked what to be reminded of.
 class _ReaderPage extends StatelessWidget {
-  const _ReaderPage();
+  const _ReaderPage({required this.reschedule});
+
+  final Future<void> Function() reschedule;
 
   @override
   Widget build(BuildContext context) {
@@ -280,7 +312,8 @@ class _ReaderPage extends StatelessWidget {
         _SectionLabel(l10n.language),
         RadioGroup<String?>(
           groupValue: settings.language,
-          onChanged: settings.setLanguage,
+          onChanged: (value) =>
+              settings.setLanguage(value).then((_) => reschedule()),
           child: Column(
             children: [
               // Null is a real option: following the device.
@@ -321,6 +354,12 @@ class _ReaderPage extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+        _SectionLabel(l10n.calendarStyle),
+        CalendarStyleOptions(
+          value: settings.calendarStyle,
+          onChanged: (style) =>
+              settings.setCalendarStyle(style).then((_) => reschedule()),
         ),
       ],
     );

@@ -69,6 +69,30 @@ Future<void> refreshReminders({
   );
 }
 
+/// [refreshReminders] with the language, style and strings read off [settings].
+///
+/// Call it after the setting is written, since it reads both back. A
+/// notification's text and its date are fixed when it is scheduled, so every
+/// screen offering either setting has to call this; one that did not would
+/// leave what is already pending on the old language and the old calendar's
+/// fast days until [ReminderRefresher]'s once-a-day rebuild caught up.
+Future<void> rescheduleReminders(
+  SettingsController settings, {
+  ReminderStore? store,
+  CalendarRepository? calendars,
+  ReminderScheduler? scheduler,
+}) async {
+  final language = settings.effectiveLanguage;
+  await refreshReminders(
+    store: store ?? PreferencesReminderStore(),
+    calendars: calendars ?? sharedCalendarRepository,
+    scheduler: scheduler ?? sharedReminderScheduler,
+    language: language,
+    style: settings.calendarStyle,
+    l10n: await AppLocalizations.delegate.load(Locale(language)),
+  );
+}
+
 /// Keeps the device's reminder schedule alive for as long as the app runs.
 ///
 /// Owned by `main` rather than by a screen: hung off a widget, its coverage is
@@ -126,14 +150,11 @@ class ReminderRefresher {
 
     _refreshing = true;
     try {
-      final language = settings.effectiveLanguage;
-      await refreshReminders(
+      await rescheduleReminders(
+        settings,
         store: _store,
         calendars: _calendars,
         scheduler: _scheduler,
-        language: language,
-        l10n: await AppLocalizations.delegate.load(Locale(language)),
-        style: settings.calendarStyle,
       );
       _refreshedOn = today;
     } on Object catch (error) {

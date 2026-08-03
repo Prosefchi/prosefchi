@@ -1,7 +1,8 @@
 # Get the app
 
 Download the app to access your prayers offline and receive notification
-reminders to pray and fast.
+reminders to pray and fast. The app also supports the Julian calendar as an
+alternative to the Gregorian calendar.
 
 ## Android
 

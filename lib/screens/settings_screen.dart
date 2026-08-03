@@ -9,6 +9,7 @@ import '../services/reminder_refresh.dart';
 import '../services/reminder_store.dart';
 import '../services/settings_controller.dart';
 import 'about_section.dart';
+import 'calendar_style_options.dart';
 import 'onboarding_screen.dart';
 import 'reminders_screen.dart';
 
@@ -87,17 +88,9 @@ class SettingsScreen extends StatelessWidget {
           ),
           const Divider(height: 32),
           _Heading(l10n.calendarStyle),
-          RadioGroup<CalendarStyle>(
-            groupValue: settings.calendarStyle,
-            onChanged: (value) {
-              if (value != null) _setCalendarStyle(context, value);
-            },
-            child: Column(
-              children: [
-                for (final style in CalendarStyle.values)
-                  _calendarStyleTile(l10n, style),
-              ],
-            ),
+          CalendarStyleOptions(
+            value: settings.calendarStyle,
+            onChanged: (value) => _setCalendarStyle(context, value),
           ),
           const Divider(height: 32),
           _Heading(l10n.reminders),
@@ -127,6 +120,7 @@ class SettingsScreen extends StatelessWidget {
                 builder: (_) => OnboardingScreen(
                   reminderStore: reminderStore,
                   scheduler: scheduler,
+                  calendars: calendars,
                 ),
               ),
             ),
@@ -169,54 +163,18 @@ class SettingsScreen extends StatelessWidget {
     await _reschedule(settings);
   }
 
-  /// Re-arms everything a setting change invalidates.
-  ///
-  /// A notification's text and date are fixed when it is scheduled, so one
-  /// already pending carries the old language and the old calendar's fast days
-  /// until something rebuilds it, and the daily refresh will not.
-  ///
-  /// Through the shared refresh, not a loop over the prayer reminders here,
-  /// which used to leave the fasting block behind until the next launch.
-  Future<void> _reschedule(SettingsController settings) async {
-    await refreshReminders(
-      store: reminderStore ?? PreferencesReminderStore(),
-      calendars: calendars ?? sharedCalendarRepository,
-      scheduler: scheduler ?? sharedReminderScheduler,
-      language: settings.effectiveLanguage,
-      style: settings.calendarStyle,
-      l10n: await AppLocalizations.delegate.load(
-        Locale(settings.effectiveLanguage),
-      ),
-    );
-  }
+  Future<void> _reschedule(SettingsController settings) => rescheduleReminders(
+    settings,
+    store: reminderStore,
+    calendars: calendars,
+    scheduler: scheduler,
+  );
 
   static String _languageName(AppLocalizations l10n, String language) =>
       switch (language) {
         'el' => l10n.languageGreek,
         _ => l10n.languageEnglish,
       };
-
-  /// The option, with what choosing it actually changes underneath.
-  ///
-  /// Worth the second line because the obvious guess — that this moves Pascha
-  /// too — is wrong, and believing it would cost the reader Holy Week.
-  static Widget _calendarStyleTile(AppLocalizations l10n, CalendarStyle style) {
-    final (name, note) = switch (style) {
-      CalendarStyle.gregorian => (
-        l10n.calendarStyleNew,
-        l10n.calendarStyleNewNote,
-      ),
-      CalendarStyle.julian => (
-        l10n.calendarStyleOld,
-        l10n.calendarStyleOldNote,
-      ),
-    };
-    return RadioListTile<CalendarStyle>(
-      value: style,
-      title: Text(name),
-      subtitle: Text(note),
-    );
-  }
 
   static String _textSizeName(AppLocalizations l10n, TextSize size) =>
       switch (size) {

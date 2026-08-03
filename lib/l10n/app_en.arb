@@ -329,11 +329,11 @@
   },
   "onboardingReaderTitle": "Set up your reading",
   "@onboardingReaderTitle": {
-    "description": "Title of the welcome page that configures language and text size."
+    "description": "Title of the welcome page that configures language, text size and calendar."
   },
-  "onboardingReaderBody": "Choose the language you pray in, and how large the prayers should be. Both can be changed later in settings.",
+  "onboardingReaderBody": "Choose the language you pray in, how large the prayers should be, and which calendar you keep. All of this can be changed later in settings.",
   "@onboardingReaderBody": {
-    "description": "Body of the welcome page that configures language and text size."
+    "description": "Body of the welcome page that configures language, text size and calendar."
   },
   "calendarStyle": "Calendar",
   "@calendarStyle": {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:prosefchi/models/calendar.dart' show CalendarStyle;
 import 'package:prosefchi/models/prayer.dart';
+import 'package:prosefchi/models/reminder.dart';
 import 'package:prosefchi/models/text_size.dart';
 import 'package:prosefchi/screens/onboarding_screen.dart';
 import 'package:prosefchi/services/document_repository.dart';
@@ -9,6 +11,7 @@ import 'package:prosefchi/services/reminder_store.dart';
 import 'package:prosefchi/services/settings_controller.dart';
 import '../support/pump.dart';
 import '../support/app.dart';
+import '../support/calendar_fixture.dart';
 import '../support/fake_bundle.dart';
 import '../support/memory_settings_store.dart';
 import '../support/reminder_doubles.dart';
@@ -43,6 +46,10 @@ Future<Widget> harness(
     ),
     reminderStore: reminderStore ?? MemoryReminderStore(),
     scheduler: scheduler ?? RecordingScheduler(),
+    // Without this a setting changed on the reader page would send the fasting
+    // block to the real file store and http.Client, whose futures never
+    // complete under FakeAsync.
+    calendars: offlineCalendars(),
   ),
 );
 
@@ -116,7 +123,7 @@ void main() {
       await settle(tester);
     }
 
-    testWidgets('offers both settings between welcome and reminders', (
+    testWidgets('offers every setting between welcome and reminders', (
       tester,
     ) async {
       surface(tester, tallSurface);
@@ -132,6 +139,14 @@ void main() {
       for (final size in ['Small', 'Medium', 'Large']) {
         expect(find.text(size), findsOneWidget);
       }
+      expect(find.text('New calendar'), findsOneWidget);
+      expect(find.text('Old calendar (Julian)'), findsOneWidget);
+      // The note the shared options carry: without it the obvious guess is
+      // that the old calendar moves Pascha too.
+      expect(
+        find.textContaining('Pascha and Great Lent are the same on both'),
+        findsOneWidget,
+      );
       // Still ahead of the reminders, not replacing them.
       expect(find.byType(SwitchListTile), findsNothing);
     });
@@ -149,6 +164,51 @@ void main() {
 
       expect(controller.textSize, TextSize.large);
       expect(store.textSize, 'large');
+    });
+
+    testWidgets('choosing a calendar here is what the reader gets', (
+      tester,
+    ) async {
+      surface(tester, tallSurface);
+      final store = MemorySettingsStore();
+      final controller = SettingsController(store: store);
+      await tester.pumpWidget(await harness(controller));
+      await settle(tester);
+      await toReader(tester);
+
+      await tester.tap(find.text('Old calendar (Julian)'));
+      await settle(tester);
+
+      expect(controller.calendarStyle, CalendarStyle.julian);
+      expect(store.calendarStyle, 'julian');
+    });
+
+    testWidgets('switching the calendar rebuilds the fasting block', (
+      tester,
+    ) async {
+      surface(tester, tallSurface);
+
+      // Enabled up front: replayed from settings, a block is already pending,
+      // and a notification's date is fixed when it is scheduled.
+      final scheduler = RecordingScheduler();
+      final reminders = MemoryReminderStore()
+        ..fasting = const FastingReminder(enabled: true, hour: 6, minute: 0);
+
+      await tester.pumpWidget(
+        await harness(
+          SettingsController(store: MemorySettingsStore(language: 'en')),
+          reminderStore: reminders,
+          scheduler: scheduler,
+        ),
+      );
+      await settle(tester);
+      await toReader(tester);
+
+      final before = scheduler.fastingApplies;
+      await tester.tap(find.text('Old calendar (Julian)'));
+      await settle(tester);
+
+      expect(scheduler.fastingApplies, greaterThan(before));
     });
 
     testWidgets('choosing a language switches the flow immediately', (

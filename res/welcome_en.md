@@ -31,5 +31,11 @@ The calendar updates when the device connects online. Once the calendar is
 downloaded, it stays on the device, so the saint of the day is available even
 without an internet connection.
 
-> The saints, feasts, and readings are sourced from the
+Either calendar can be chosen in settings. Both keep Pascha, and everything
+counted from it, on the same day; only the fixed feasts move.
+
+> The saints, feasts, and readings of the new calendar are sourced from the
 > [calendar of the Greek Orthodox Archdiocese of America](https://www.goarch.org/en/chapel/planner).
+> The Archdiocese publishes the new calendar only, so those of the old calendar
+> are sourced from [orthocal.info](https://orthocal.info/), which is available
+> in English only.
