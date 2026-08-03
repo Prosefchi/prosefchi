@@ -163,8 +163,6 @@ class SettingsScreen extends StatelessWidget {
     await _reschedule(settings);
   }
 
-  /// Through the shared refresh, not a loop over the prayer reminders here,
-  /// which used to leave the fasting block behind until the next launch.
   Future<void> _reschedule(SettingsController settings) => rescheduleReminders(
     settings,
     store: reminderStore,

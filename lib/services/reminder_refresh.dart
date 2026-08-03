@@ -69,16 +69,13 @@ Future<void> refreshReminders({
   );
 }
 
-/// Re-arms everything a change of language or calendar invalidates.
+/// [refreshReminders] with the language, style and strings read off [settings].
 ///
-/// A notification's text and its date are both fixed when it is scheduled, so
-/// one already pending carries the old language and the old calendar's fast
-/// days until something rebuilds it, and [ReminderRefresher] is throttled to
-/// once a calendar day and will not. Every screen that offers either setting
-/// calls this; one that did not would put that bug back on its own.
-///
-/// Call it after the setting is written, since it reads both back from
-/// [settings].
+/// Call it after the setting is written, since it reads both back. A
+/// notification's text and its date are fixed when it is scheduled, so every
+/// screen offering either setting has to call this; one that did not would
+/// leave what is already pending on the old language and the old calendar's
+/// fast days until [ReminderRefresher]'s once-a-day rebuild caught up.
 Future<void> rescheduleReminders(
   SettingsController settings, {
   ReminderStore? store,
@@ -153,14 +150,11 @@ class ReminderRefresher {
 
     _refreshing = true;
     try {
-      final language = settings.effectiveLanguage;
-      await refreshReminders(
+      await rescheduleReminders(
+        settings,
         store: _store,
         calendars: _calendars,
         scheduler: _scheduler,
-        language: language,
-        l10n: await AppLocalizations.delegate.load(Locale(language)),
-        style: settings.calendarStyle,
       );
       _refreshedOn = today;
     } on Object catch (error) {
