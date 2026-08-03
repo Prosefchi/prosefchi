@@ -186,12 +186,10 @@ void main() {
     testWidgets('switching the calendar rebuilds the fasting block', (
       tester,
     ) async {
-      // Replayed from settings there are reminders already pending, and a
-      // notification's date is fixed when it is scheduled. Without this, the
-      // one path that switches the calendar without re-arming would put back
-      // the bug the settings screen fixed.
       surface(tester, tallSurface);
 
+      // Enabled up front: replayed from settings, a block is already pending,
+      // and a notification's date is fixed when it is scheduled.
       final scheduler = RecordingScheduler();
       final reminders = MemoryReminderStore()
         ..fasting = const FastingReminder(enabled: true, hour: 6, minute: 0);

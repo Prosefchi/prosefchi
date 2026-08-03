@@ -5,9 +5,8 @@ import '../models/calendar.dart' show CalendarStyle;
 
 /// The old and new calendar, offered in settings and in the welcome flow.
 ///
-/// Shared rather than built in each: the subtitle is what stops the obvious
-/// wrong guess — that this moves Pascha too — and a reader who met the choice
-/// on the screen that had lost it would be no better off for the other.
+/// The subtitle is load-bearing: without it the obvious guess is that this
+/// moves Pascha too.
 class CalendarStyleOptions extends StatelessWidget {
   const CalendarStyleOptions({
     super.key,
