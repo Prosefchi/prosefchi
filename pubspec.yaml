@@ -140,17 +140,19 @@ flutter_launcher_icons:
   image_path: assets/icon/icon.png
 
   android: true
-  # The flag full bleed, for the legacy launcher icon on older Android.
-  # Adaptive icons get the two layers instead, because a circular mask cuts
-  # straight through the firesteels when the flag runs edge to edge.
+  # The legacy launcher icon for older Android. Adaptive icons get the two
+  # layers instead, because a circular mask cuts straight through the
+  # firesteels when the emblem runs close to the edge.
   adaptive_icon_background: "#BB0602"
   # The artwork is inset in the source as well as by the 16% the generator
   # writes into the adaptive XML. Belt and braces, but it is what looks right
   # on a real launcher: the emblem reads as a seal rather than crowding the
   # mask edge.
   adaptive_icon_foreground: assets/icon/adaptive_foreground.png
-  # Same artwork again as the monochrome layer for themed icons on Android 13+.
-  adaptive_icon_monochrome: assets/icon/adaptive_foreground.png
+  # The themed-icon mask for Android 13+. Its own file, not the foreground
+  # again: the launcher reads only the alpha, so the foreground's shadow would
+  # arrive as extra cross rather than as shadow.
+  adaptive_icon_monochrome: assets/icon/adaptive_monochrome.png
 
   ios: true
   # iOS forbids transparency in app icons and rejects builds that carry it.
