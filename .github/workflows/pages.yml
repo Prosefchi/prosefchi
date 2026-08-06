@@ -22,6 +22,8 @@ on:
       - 'lib/l10n/liturgical_keys.dart'
       - 'lib/l10n/*.arb'
       - 'site/**'
+      # The tab icon is copied from the master, so a redraw deploys with it.
+      - 'assets/icon/icon-flat.svg'
       - 'res/prayers/**'
       # Rendered into the site, so a correction to it deploys with the push.
       - 'PRIVACY*.md'
