@@ -305,8 +305,8 @@ final iconFiles = [for (final icon in _icons) icon.file];
 
 /// The tab icon, the one asset copied from outside `site/`: it is a vector, so
 /// nothing renders it and a committed copy would only be somewhere to drift.
-/// The flat master for the same reason the PNGs take it.
-const favicon = (source: 'assets/icon/icon-flat.svg', file: 'icon.svg');
+/// The app's own master, which the site's PNGs are cut from too.
+const favicon = (source: 'assets/icon/icon.svg', file: 'icon.svg');
 
 final _manifestOnlyIcons = {
   for (final icon in _icons)
