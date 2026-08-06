@@ -303,6 +303,11 @@ const _icons = [
 /// Public so test/tool/ can hold each to existing.
 final iconFiles = [for (final icon in _icons) icon.file];
 
+/// The tab icon, the one asset copied from outside `site/`: it is a vector, so
+/// nothing renders it and a committed copy would only be somewhere to drift.
+/// The flat master for the same reason the PNGs take it.
+const favicon = (source: 'assets/icon/icon-flat.svg', file: 'icon.svg');
+
 final _manifestOnlyIcons = {
   for (final icon in _icons)
     if (!icon.page) icon.file,
@@ -690,7 +695,8 @@ Future<void> _copyAssets(
     );
   }
 
-  for (final name in ['icon.svg', ...iconFiles]) {
+  await File(favicon.source).copy('${outDir.path}/${favicon.file}');
+  for (final name in iconFiles) {
     await File('site/$name').copy('${outDir.path}/$name');
   }
 
@@ -844,6 +850,7 @@ final _watched = [
   'res/prayers',
   'lib',
   'pubspec.yaml',
+  favicon.source,
   ...supportedLanguages.map(privacySource),
 ];
 

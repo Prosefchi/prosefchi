@@ -97,6 +97,13 @@ void main() {
     });
   });
 
+  // A master renamed under assets/, or a written name shell.html stops linking,
+  // is a 404 in the tab and nothing else would catch it.
+  test('the tab icon is a vector master, under the name the pages link', () {
+    expect(File(favicon.source).existsSync(), isTrue, reason: favicon.source);
+    expect(File('site/shell.html').readAsStringSync(), contains(favicon.file));
+  });
+
   // All that joins the authored markup to the script. Renamed in one and not
   // the other, the badge never appears — which looks like the browser not
   // offering an install.
