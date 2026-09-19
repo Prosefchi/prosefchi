@@ -154,6 +154,8 @@ flutter_launcher_icons:
   # arrive as extra cross rather than as shadow.
   adaptive_icon_monochrome: assets/icon/adaptive_monochrome.png
 
-  ios: true
-  # iOS forbids transparency in app icons and rejects builds that carry it.
-  remove_alpha_ios: true
+  # iOS generates nothing: the appiconset is committed output, the same
+  # convention as the SVG masters. The iOS 18 single-size set carries dark and
+  # tinted variants the generator has no keys for, so a run with `ios: true`
+  # would overwrite them with the legacy twenty-two-file set.
+  ios: false

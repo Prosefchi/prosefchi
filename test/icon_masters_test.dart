@@ -11,6 +11,7 @@ void main() {
   final masters = [
     'icon.svg',
     'icon-flat.svg',
+    'icon-glass.svg',
     'adaptive_foreground.svg',
     'adaptive_monochrome.svg',
   ];
@@ -38,7 +39,7 @@ void main() {
     }
   });
 
-  test('the firesteel is the same path in all four', () {
+  test('the firesteel is the same path in all five', () {
     final paths = {for (final name in masters) name: firesteel(read(name))};
     expect(
       paths.values.toSet(),
@@ -56,6 +57,14 @@ void main() {
     final mono = read('adaptive_monochrome.svg');
     expect(mono, isNot(contains('feGaussianBlur')));
     expect(mono, isNot(contains('linearGradient')));
+  });
+
+  test('the liquid-glass master carries neither the shadow nor the ramp', () {
+    // iOS 18 and macOS apply their own lighting over the icon, so a baked
+    // shadow or ramp arrives doubled. iOS also forbids transparency.
+    final glass = read('icon-glass.svg');
+    expect(glass, isNot(contains('feGaussianBlur')));
+    expect(glass, isNot(contains('linearGradient')));
   });
 
   test('pubspec points the monochrome key at its own file', () {
