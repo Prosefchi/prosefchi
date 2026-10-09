@@ -86,6 +86,9 @@ class NotificationService implements ReminderScheduler {
 
   /// Stated once: the two kinds of reminder differ in how they are scheduled,
   /// not in how they look.
+  ///
+  /// The Darwin details serve iPhone and Mac alike; macOS delivers the same
+  /// scheduled requests with the same thread grouping.
   NotificationDetails _detailsFor(String channelId, String channelName) =>
       NotificationDetails(
         android: AndroidNotificationDetails(
@@ -96,6 +99,7 @@ class NotificationService implements ReminderScheduler {
           color: _brandColour,
         ),
         iOS: DarwinNotificationDetails(threadIdentifier: channelId),
+        macOS: DarwinNotificationDetails(threadIdentifier: channelId),
       );
 
   /// The future, not a bool set at the end of [_initialize]: a flag lets a
@@ -146,7 +150,14 @@ class NotificationService implements ReminderScheduler {
         // at 24dp the firesteels collapse into mush.
         android: AndroidInitializationSettings('@drawable/ic_notification'),
         // Asked for when the user switches a reminder on, not at launch.
+        // Same settings for iPhone and Mac; macOS has no badge convention
+        // for third-party apps. v22 merged the macOS arm into the Darwin one.
         iOS: DarwinInitializationSettings(
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
+        ),
+        macOS: DarwinInitializationSettings(
           requestAlertPermission: false,
           requestBadgePermission: false,
           requestSoundPermission: false,
@@ -185,6 +196,18 @@ class NotificationService implements ReminderScheduler {
       return await ios?.requestPermissions(
             alert: true,
             badge: true,
+            sound: true,
+          ) ??
+          false;
+    }
+
+    if (Platform.isMacOS) {
+      final mac = _plugin
+          .resolvePlatformSpecificImplementation<
+            MacOSFlutterLocalNotificationsPlugin
+          >();
+      return await mac?.requestPermissions(
+            alert: true,
             sound: true,
           ) ??
           false;
